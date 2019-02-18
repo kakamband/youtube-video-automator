@@ -4,21 +4,6 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var socketAttr = require('./config/socket-attributes');
-var socket = require('./socket/init');
-
-const secrets = require('./config/secrets');
-
-// WebSocket
-const WebSocket = require('ws');
-const Gdax = require('gdax');
-
-// WebSocket definition
-const ws = new WebSocket(socketAttr.url);
-const authedClient = new Gdax.AuthenticatedClient(secrets.SANDBOX_API_KEY, secrets.SANDBOX_API_SECRET, secrets.SANDBOX_API_PASSPHRASE, socketAttr.authUrl);
-
-// Initialize the socket
-socket.Init(ws, authedClient);
 
 var index = require('./routes/index');
 var users = require('./routes/users');

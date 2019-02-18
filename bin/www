@@ -5,14 +5,16 @@
  */
 
 var app = require('../app');
-var debug = require('debug')('bitcoin-buyer:server');
+var basicConfig = require('../config/basic_config');
+var cLog = require('color-log');
+var debug = require('debug')(basicConfig.APP_NAME + ':server');
 var http = require('http');
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || basicConfig.PORT_NUMBER);
 app.set('port', port);
 
 /**
@@ -28,6 +30,7 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+cLog.info("Server is listening on port: " + port);
 
 /**
  * Normalize a port into a number, string, or false.
