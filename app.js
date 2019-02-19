@@ -4,11 +4,46 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var twitch = require('twitch-api-v5');
+var Secrets = require('./config/secrets');
+var Poller = require('./poller/poller');
+var Attr = require('./config/attributes');
+var cLogger = require('color-log');
+var Models = require('./models/database');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
 
 var app = express();
+
+var dbConfig = {
+  client: 'pg',
+  connection: Attr.PG_CONNECTION_STR,
+  searchPath: ['knex', 'public']
+};
+
+var knex = require('knex')(dbConfig);
+
+knex.raw('select 1+1 as result').then(function() {
+	cLogger.info("Did connect succesfully to db.\n");
+	Models.initialize(knex)
+	.then(function() {
+		// Setup twitch connection
+		twitch.clientID = Secrets.TWITCH_CLIENT_ID;
+		global.twitch = twitch;
+
+		// Start Polling for Clips
+		Poller.pollForClips();
+	})
+	.catch(function(err) {
+		cLogger.error("Did not initialize database models.");
+	});
+}).catch(function() {
+	cLogger.error("Did not connect succesfully to db.");
+});
+
+// Global knex init
+global.knex = knex;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
