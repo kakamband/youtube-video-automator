@@ -17,3 +17,16 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 		})
 	});
 }
+
+module.exports.setUsed = function(clipObject) {
+	return new Promise(function(resolve, reject) {
+		knex('used_content')
+		.insert(clipObject)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

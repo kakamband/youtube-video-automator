@@ -7,14 +7,13 @@ var DefinedGames = {
 	LEAGUE_OF_LEGENDS: "League of Legends"
 };
 
+// Constants
+const LIMIT_OF_CLIPS_TO_PULL = 100;
+const MIN_VIDEO_DURATION = 420; // Default 420 (7 Minutes)
+const MAX_VIDEO_DURATION = 650; // Default 650 (10 Minutes 50 Seconds)
+
 module.exports.pollForClips = function() {
-	poller([DefinedGames.FORTNITE/*, DefinedGames.LEAGUE_OF_LEGENDS */ ])
-	.then(function(results) {
-		cLogger.info("Success with Poller: ", results);
-	})
-	.catch(function(err) {
-		cLogger.error("Error Polling: " + err);
-	});
+	return poller([DefinedGames.FORTNITE, DefinedGames.LEAGUE_OF_LEGENDS]);
 }
 
 function poller(games) {
@@ -53,7 +52,7 @@ function poller(games) {
 function makeReq(game) {
 	return new Promise(function(resolve, reject) {
 		return twitch.clips.top({
-			limit: 100,
+			limit: LIMIT_OF_CLIPS_TO_PULL,
 			game: game
 		}, (err, res) => {
 			if (err) {
@@ -81,7 +80,7 @@ function smartParse(items) {
 			return new Promise(function(res1, rej1) {
 
 				// If we have the maximum duration we want already, return the clips to the high level promise.
-				if (currentDuration >= 650)
+				if (currentDuration >= MAX_VIDEO_DURATION)
 					return resolve(chosenClips);
 
 				// If this isn't an english vod then skip it
@@ -90,7 +89,7 @@ function smartParse(items) {
 
 				return dbController.alreadyUsed(currClip.game, currClip.id, currClip.tracking_id)
 				.then(function(alreadyUsed) {
-					if (!alreadyUsed) {
+					if (!alreadyUsed && currClip != null && currClip.vod != null) {
 						var newClipObj = createClipObject(
 							currClip.game, 
 							currClip.id, 
@@ -118,7 +117,7 @@ function smartParse(items) {
 		.then(function() {
 
 			// If the current duration is less than our minimum video length we dont return anything.
-			if (currentDuration < 420) {
+			if (currentDuration < MIN_VIDEO_DURATION) {
 				return resolve([]);
 			}
 

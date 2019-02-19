@@ -10,6 +10,8 @@ var Poller = require('./poller/poller');
 var Attr = require('./config/attributes');
 var cLogger = require('color-log');
 var Models = require('./models/database');
+var Downloader = require('./downloader/downloader');
+var Combiner = require('./combiner/combiner');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -33,7 +35,28 @@ knex.raw('select 1+1 as result').then(function() {
 		global.twitch = twitch;
 
 		// Start Polling for Clips
-		Poller.pollForClips();
+		cLogger.warn("\nStarting Polling!\n");
+		Poller.pollForClips()
+		.then(function(results) {
+			cLogger.warn("\nFinished Polling, Starting Downloading!\n");
+			Downloader.downloadContent(results)
+			.then(function(clipsLenMap) {
+				cLogger.warn("\nFinished Downloading, Starting Combining!\n");
+				Combiner.combineContent(clipsLenMap)
+				.then(function(finishedFiles) {
+					cLogger.warn("\nFinished Combining, Starting Uploading!\n");
+				})
+				.catch(function(err) {
+					cLogger.error("Error Combining content: " + err);
+				});
+			})
+			.catch(function(err) {
+				cLogger.error("Error downloading content: " + err);
+			});
+		})
+		.catch(function(err) {
+			cLogger.error("Error polling for clips: " + err);
+		});
 	})
 	.catch(function(err) {
 		cLogger.error("Did not initialize database models.");
