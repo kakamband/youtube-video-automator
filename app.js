@@ -36,7 +36,7 @@ knex.raw('select 1+1 as result').then(function() {
 		Poller.pollForClips();
 	})
 	.catch(function(err) {
-
+		cLogger.error("Did not initialize database models.");
 	});
 }).catch(function() {
 	cLogger.error("Did not connect succesfully to db.");
