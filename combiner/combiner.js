@@ -102,6 +102,6 @@ function createCommand(count, maxWidth, maxHeight) {
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[v" + i + "][" + i + ":a]";
 	}
-	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" -preset ultrafast finished.mkv");
+	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" finished.mkv");
 	return str;
 }
