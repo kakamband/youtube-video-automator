@@ -6,13 +6,17 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "bluebird": "^3.5.3",
     "body-parser": "~1.18.2",
     "color-log": "0.0.2",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
+    "knex": "^0.16.3",
     "morgan": "~1.9.0",
+    "pg": "^7.8.0",
     "pug": "2.0.0-beta11",
-    "serve-favicon": "~2.4.5"
+    "serve-favicon": "~2.4.5",
+    "twitch-api-v5": "^2.0.4"
   }
 }
