@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "recover-content": "node ./bin/www --recover-content",
-    "recover": "node ./bin/www --recover-upload"
+    "recover": "node ./bin/www --recover-upload",
+    "stream-hijack": "node ./bin/www --stream-hijack"
   },
   "dependencies": {
     "base64url": "^3.0.1",

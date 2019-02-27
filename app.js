@@ -15,6 +15,7 @@ var Combiner = require('./combiner/combiner');
 var Uploader = require('./uploader/uploader');
 var shell = require('shelljs');
 var Recover = require('./recover/recover');
+var Hijacker = require('./hijacker/hijacker');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -43,6 +44,9 @@ if (process.argv.length == 3) {
 			break;
 		case "recover":
 			processType = 2;
+			break;
+		case "stream-hijack":
+			processType = 3;
 			break;
 		default:
 			processType = 0;
@@ -89,6 +93,33 @@ switch (processType) {
 			return Uploader.uploadRecoveredVideos();
 		}).then(function() {
 			cLogger.info("Finsihed the upload recovery, there shouldn't be any remaining videos in video_data_saved/");
+			process.exit();
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Stream Hijack, this will wait until the user tells the server to start hijacking the stream. And when the user does let the server know
+	// it will automatically start downloading the stream into a vod. While this vod is downloading, we let the user choose when to stop downloading,
+	// when they choose to stop downloading we stop creating the vod and put it into 'video_data_hijacks' folder. If there are enough clips to make a video
+	// of acceptable size, we either start putting clips together or just export one clip (if the clip is long enough itself). After the export exactly ONE youtube
+	// video will be attempted to be uploaded.
+	case 3:
+
+		cLogger.info("Starting Stream Hijacking Process.");
+		knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			// Setup twitch connection
+			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
+			global.twitch = twitch;
+
+			return Hijacker.startHijacking();
+		}).then(function() {
+			cLogger.info("Done Hijacking.");
 			process.exit();
 		}).catch(function(err) {
 			cLogger.error("Error during process: " + err);
