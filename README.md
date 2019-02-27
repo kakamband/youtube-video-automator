@@ -60,3 +60,4 @@ Node Dependencies Needed:
 4) Run `npm install`
 5) Change the config/basic_config.js file to how you see fit (or leave it, as the defaults are fine).
 6) Fill out the config/local_attributes_template.js file and save it as config/local_attributes.js.
+7) Run `npm start`. The first time around you will need to authenticate with Youtube, this will be done by opening up a web browser on your computer.
