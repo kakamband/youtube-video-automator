@@ -10,9 +10,9 @@ var dbController = require('../controller/db');
 const readline = require('readline');
 const opn = require('opn');
 const base64url = require('base64url');
+var Attr = require('../config/attributes');
 
 // Constants
-const finishedFileName = "finished.mkv";
 const youtubeVideoPrefix = "https://www.youtube.com/watch?v=";
 
 function uploadVideos(content) {
@@ -161,7 +161,7 @@ function backfillVideos(numberOfUploads) {
 			cLogger.info("The number of uploads in this file is: " + numberOfUploads);
 			var count = 0;
 			function next() {
-				var currFileName = "finished" + (count + 1);
+				var currFileName = Attr.FINISHED_FNAME + (count + 1);
 				cLogger.info("Looking at file " + currFileName + ".[mp4/txt]");
 				return handleBackfillFile(currFileName, numberOfUploads, count)
 				.then(function() {
@@ -249,14 +249,14 @@ function deleteAllUploadedAlready(currNumber, numberOfUploads) {
 			let newCurrNumber = currNumber + index;
 
 			return new Promise(function(res, rej) {
-				var mvMP4 = "mv finished" + newCurrNumber + ".mp4 tmp-finished" + newCurrNumber + ".mp4";
+				var mvMP4 = "mv " + Attr.FINISHED_FNAME + newCurrNumber + ".mp4 tmp-" + Attr.FINISHED_FNAME + newCurrNumber + ".mp4";
 				cLogger.info("Running command: " + mvMP4);
 				return shell.exec(mvMP4, function(code, stdout, stderr) {
 					if (code != 0) {
 						return reject(stderr);
 					}
 
-					var mvTXT = "mv finished" + newCurrNumber + ".txt tmp-finished" + newCurrNumber + ".txt";
+					var mvTXT = "mv " + Attr.FINISHED_FNAME + newCurrNumber + ".txt tmp-" + Attr.FINISHED_FNAME + newCurrNumber + ".txt";
 					cLogger.info("Running command: " + mvTXT);
 					return shell.exec(mvTXT, function(code, stdout, stderr) {
 						if (code != 0) {
@@ -272,7 +272,7 @@ function deleteAllUploadedAlready(currNumber, numberOfUploads) {
 		.then(function() {
 			cLogger.info("Now deleting all already uploaded videos.");
 			return new Promise(function(res, rej) {
-				var rmCMD = "rm finished*.mp4 finished*.txt overview.txt";
+				var rmCMD = "rm " + Attr.FINISHED_FNAME + "*.mp4 " + Attr.FINISHED_FNAME + "*.txt overview.txt";
 				cLogger.info("Running command: " + rmCMD);
 				return shell.exec(rmCMD, function(code, stdout, stderr) {
 
@@ -317,7 +317,7 @@ function deleteAllUploadedAlready(currNumber, numberOfUploads) {
 
 function resetFileName(item, count) {
 	return new Promise(function(resolve, reject) {
-		var mvCMD = "mv tmp-finished" + item + ".mp4 finished" + count + ".mp4";
+		var mvCMD = "mv tmp-" + Attr.FINISHED_FNAME + item + ".mp4 " + Attr.FINISHED_FNAME + count + ".mp4";
 		cLogger.info("Running command: " + mvCMD);
 		return shell.exec(mvCMD, function(code, stdout, stderr) {
 			if (code != 0) {
@@ -325,7 +325,7 @@ function resetFileName(item, count) {
 			}
 
 
-			var mvCMD2 = "mv tmp-finished" + item + ".txt finished" + count + ".txt";
+			var mvCMD2 = "mv tmp-" + Attr.FINISHED_FNAME + item + ".txt " + Attr.FINISHED_FNAME + count + ".txt";
 			cLogger.info("Running command: " + mvCMD2);
 			return shell.exec(mvCMD2, function(code, stdout, stderr) {
 				if (code != 0) {
@@ -370,7 +370,7 @@ function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 				}
 
 				// Save the video
-				var cpCmd = "cp \"../../video_data/" + gameName + "/finished.mp4\" finished" + count + ".mp4";
+				var cpCmd = "cp \"../../video_data/" + gameName + "/" + Attr.FINISHED_FNAME + ".mp4\" " + Attr.FINISHED_FNAME + count + ".mp4";
 				cLogger.info("Running the following command: " + cpCmd);
 				return shell.exec(cpCmd, function(code, stdout, stderr) {
 					if (code != 0) {
@@ -381,7 +381,7 @@ function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 					var clipsB64 = base64url(clipsJSON);
 					var gameNameB64 = base64url(gameName);
 
-					return shell.exec("echo \"" + gameNameB64 + " " + clipsB64 + "\" > finished" + count + ".txt", function(code, stdout, stderr) {
+					return shell.exec("echo \"" + gameNameB64 + " " + clipsB64 + "\" > " + Attr.FINISHED_FNAME + count + ".txt", function(code, stdout, stderr) {
 						if (code != 0) {
 							return reject(stderr);
 						}
@@ -537,7 +537,7 @@ module.exports.startUploadProcess = function(content) {
 }
 
 function _uploadVideo(gameName, clips) {
-	return uploadVideo(gameName, clips, "finished.mp4");
+	return uploadVideo(gameName, clips, (Attr.FINISHED_FNAME + ".mp4"));
 }
 
 // Uploads the video that is in the current directory, named 'finished.mkv'

@@ -1,5 +1,6 @@
 config/secrets.js
 config/youtube-secrets.json
+config/local_attributes.js
 node_modules/
 video_data/
 video_data_saved/

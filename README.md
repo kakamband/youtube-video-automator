@@ -53,6 +53,10 @@ Node Dependencies Needed:
 
 ## Setup and Configuration
 ### Installing Youtube-Twitch-Automator
-``` bash
-./setup.sh
-```
+
+1) Download & Install [PostgreSQL](https://www.postgresql.org/download/).
+2) Download & Install [FFMPEG](https://www.ffmpeg.org/download.html).
+3) Download & Install [Youtube-DL](https://rg3.github.io/youtube-dl/download.html).
+4) Run `npm install`
+5) Change the config/basic_config.js file to how you see fit (or leave it, as the defaults are fine).
+6) Fill out the config/local_attributes_template.js file and save it as config/local_attributes.js.

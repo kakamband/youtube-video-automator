@@ -1,20 +1,15 @@
 var cLogger = require('color-log');
 var Promise = require('bluebird');
 var dbController = require('../controller/db');
-
-var DefinedGames = {
-	FORTNITE: "Fortnite",
-	LEAGUE_OF_LEGENDS: "League of Legends",
-	APEX_LEGENDS: "Apex Legends"
-};
+var Attr = require('../config/attributes');
 
 // Constants
 const LIMIT_OF_CLIPS_TO_PULL = 100;
-const MIN_VIDEO_DURATION = 420; // Default 420 (7 Minutes)
-const MAX_VIDEO_DURATION = 650; // Default 650 (10 Minutes 50 Seconds)
+const MIN_VIDEO_DURATION = Attr.MIN_V_LENGTH; // Default 420 (7 Minutes)
+const MAX_VIDEO_DURATION = Attr.MAX_V_LENGTH; // Default 650 (10 Minutes 50 Seconds)
 
 module.exports.pollForClips = function() {
-	return poller([DefinedGames.FORTNITE, DefinedGames.LEAGUE_OF_LEGENDS, DefinedGames.APEX_LEGENDS]);
+	return poller(Attr.POLLED_GAMES);
 }
 
 function poller(games) {

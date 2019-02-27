@@ -2,6 +2,7 @@ var Promise = require('bluebird');
 var shell = require('shelljs');
 var cLogger = require('color-log');
 var getDimensions = require('get-video-dimensions');
+var Attr = require("../config/attributes");
 
 module.exports.combineContent = function(content) {
 	return new Promise(function(resolve, reject) {
@@ -103,6 +104,6 @@ function createCommand(count, maxWidth, maxHeight) {
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[v" + i + "][" + i + ":a]";
 	}
-	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" finished.mp4");
+	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" " + Attr.FINISHED_FNAME + ".mp4");
 	return str;
 }
