@@ -27,12 +27,16 @@ There are a few very heavy weight dependencies that we need in order for this au
 
 ### Dependency List
 Global Dependencies Needed:
+
+
 | Dependency | Usage Description                                                                                                                             |
 |------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | [FFMPEG](https://www.ffmpeg.org/)     | Used in the download process of twitch clips (youtube-dl uses this).  As well as plays the biggest role in combining clips into one main one. |
 | [youtube-dl](https://rg3.github.io/youtube-dl/) | Used to download twitch clips at the highest quality.                                                                                         |
 
 Node Dependencies Needed:
+
+
 | Dependency           | Usage Description                                                              |
 |----------------------|--------------------------------------------------------------------------------|
 | base64url            | Used to store content in a safe way, as well as to handle OAuth callback data. |
