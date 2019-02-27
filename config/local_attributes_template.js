@@ -19,5 +19,9 @@ module.exports = {
 	// SPECIFIES HOW FAST TO ENCCODE THE VIDEO. 'medium' is pretty high quality.
 	// The possible values are: 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'veryslow'
 	// The faster the processing, the lower the quality. The slower the processing, the better the quality.
-	VIDEO_PROCESSING_SPEED: "medium"
+	VIDEO_PROCESSING_SPEED: "medium",
+	DEFAULT_VIDEO_DESCRIPTION: "ADD A DEFAULT VIDEO DESCRIPTION FOR ALL OF YOUR VIDEOS HERE",
+
+	// Example: 'Highlights - Ep.' will result in a title of 'GAME_NAME Highlights - Ep.EPISODE_COUNT'.
+	DEFAULT_VIDEO_TITLE: "ADD A DEFAULT VIDEO TITLE. TO THE LEFT OF THE TITLE WILL BE THE GAME NAME AND TO THE RIGHT THE EPISODE NUMBER",
 };

@@ -562,7 +562,7 @@ function uploadVideo(gameName, clips, fileName) {
 			.then(function(playlistID) {
 
 				var snippetObj = {
-					title: (gameName + " INSANE Funny Plays Fresh Everyday (WTF, Pro, Fails!?) Ep." + (parseInt(episodeNumber) + 1)),
+					title: (gameName + " " + Attr.DEFAULT_VIDEO_TITLE + (parseInt(episodeNumber) + 1)),
 					description: getDescription(gameName, clips),
 					tags: getKeywords(gameName, clips),
 					categoryId: "22", // Gaming
@@ -647,7 +647,7 @@ function addToYoutubePlaylist(youtube, videoID, playlistID) {
 
 // Builds a description of a video. Includes the credits to the twitch clips
 function getDescription(game, clips) {
-	var descr = "Watch these INSANE highlights fresh made for you guys today! I know I wouldn't want to miss out on this.\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
+	var descr = Attr.DEFAULT_VIDEO_DESCRIPTION + "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
 
 	for (var i = 0; i < clips.length; i++) {
 		descr += clips[i].clip_channel_name + ": " + clips[i].clip_url + "\n";
