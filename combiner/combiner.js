@@ -3,14 +3,15 @@ var shell = require('shelljs');
 var cLogger = require('color-log');
 var getDimensions = require('get-video-dimensions');
 
-module.exports.combineContent = function(clipsLenMap) {
+module.exports.combineContent = function(content) {
 	return new Promise(function(resolve, reject) {
 
 		shell.cd("video_data/");
 
-		return new Promise.mapSeries(clipsLenMap.entries(), function(item, ind, len) {
+		return new Promise.mapSeries(content.entries(), function(item, ind, len) {
 			let gameName = item[0];
-			let count = item[1];
+			let clips = item[1];
+			let count = clips.length;
 
 			// Enter the game directory
 			shell.cd(gameName + "/");
@@ -41,7 +42,7 @@ module.exports.combineContent = function(clipsLenMap) {
 			// Leave the video data directory
 			shell.cd("..");
 
-			return resolve();
+			return resolve(content);
 		})
 		.catch(function(err) {
 			return reject(err);
@@ -102,6 +103,6 @@ function createCommand(count, maxWidth, maxHeight) {
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[v" + i + "][" + i + ":a]";
 	}
-	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" finished.mkv");
+	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" finished.mp4");
 	return str;
 }

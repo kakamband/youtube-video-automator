@@ -1,3 +1,5 @@
 config/secrets.js
+config/youtube-secrets.json
 node_modules/
 video_data/
+video_data_saved/

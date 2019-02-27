@@ -4,7 +4,8 @@ var dbController = require('../controller/db');
 
 var DefinedGames = {
 	FORTNITE: "Fortnite",
-	LEAGUE_OF_LEGENDS: "League of Legends"
+	LEAGUE_OF_LEGENDS: "League of Legends",
+	APEX_LEGENDS: "Apex Legends"
 };
 
 // Constants
@@ -13,7 +14,7 @@ const MIN_VIDEO_DURATION = 420; // Default 420 (7 Minutes)
 const MAX_VIDEO_DURATION = 650; // Default 650 (10 Minutes 50 Seconds)
 
 module.exports.pollForClips = function() {
-	return poller([DefinedGames.FORTNITE, DefinedGames.LEAGUE_OF_LEGENDS]);
+	return poller([DefinedGames.FORTNITE, DefinedGames.LEAGUE_OF_LEGENDS, DefinedGames.APEX_LEGENDS]);
 }
 
 function poller(games) {

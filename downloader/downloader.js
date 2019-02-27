@@ -6,9 +6,6 @@ var dbController = require('../controller/db');
 module.exports.downloadContent = function(content) {
 	return new Promise(function(resolve, reject) {
 
-		// Initialize the length maps
-		var clipsLenMap = new Map();
-
 		// Go into the video data directory
 		shell.cd("video_data/");
 
@@ -30,9 +27,6 @@ module.exports.downloadContent = function(content) {
 				return downloadEachClip(clips)
 				.then(function() {
 
-					// Set the length of this clips list
-					clipsLenMap.set(gameName, clips.length);
-
 					// Leave the game directory
 					shell.cd("..");
 
@@ -50,7 +44,7 @@ module.exports.downloadContent = function(content) {
 			// Leave the video data directory
 			shell.cd("..");
 
-			return resolve(clipsLenMap);
+			return resolve(content);
 		})
 		.catch(function(err) {
 			return reject(err);
@@ -60,6 +54,11 @@ module.exports.downloadContent = function(content) {
 
 function downloadEachClip(clips) {
 	return new Promise(function(resolve, reject) {
+		// If we couldn't find enough clips to make the video
+		if (clips.length == 0) {
+			return resolve();
+		}
+
 		return new Promise.mapSeries(clips, function(clip, index, len) {
 			return new Promise(function(res, rej) {
 				return shell.exec("youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader ffmpeg", function(code, stdout, stderr) {

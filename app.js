@@ -12,6 +12,9 @@ var cLogger = require('color-log');
 var Models = require('./models/database');
 var Downloader = require('./downloader/downloader');
 var Combiner = require('./combiner/combiner');
+var Uploader = require('./uploader/uploader');
+var shell = require('shelljs');
+var Recover = require('./recover/recover');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -26,47 +29,113 @@ var dbConfig = {
 
 var knex = require('knex')(dbConfig);
 
-knex.raw('select 1+1 as result').then(function() {
-	cLogger.info("Did connect succesfully to db.\n");
-	Models.initialize(knex)
-	.then(function() {
-		// Setup twitch connection
-		twitch.clientID = Secrets.TWITCH_CLIENT_ID;
-		global.twitch = twitch;
-
-		// Start Polling for Clips
-		cLogger.warn("\nStarting Polling!\n");
-		Poller.pollForClips()
-		.then(function(results) {
-			cLogger.warn("\nFinished Polling, Starting Downloading!\n");
-			Downloader.downloadContent(results)
-			.then(function(clipsLenMap) {
-				cLogger.warn("\nFinished Downloading, Starting Combining!\n");
-				Combiner.combineContent(clipsLenMap)
-				.then(function(finishedFiles) {
-					cLogger.warn("\nFinished Combining, Starting Uploading!\n");
-				})
-				.catch(function(err) {
-					cLogger.error("Error Combining content: " + err);
-				});
-			})
-			.catch(function(err) {
-				cLogger.error("Error downloading content: " + err);
-			});
-		})
-		.catch(function(err) {
-			cLogger.error("Error polling for clips: " + err);
-		});
-	})
-	.catch(function(err) {
-		cLogger.error("Did not initialize database models.");
-	});
-}).catch(function() {
-	cLogger.error("Did not connect succesfully to db.");
-});
-
 // Global knex init
 global.knex = knex;
+
+// Defines what process is run
+var processType = 0;
+
+// Check for parameters
+if (process.argv.length == 3) {
+	switch (process.argv[2]) {
+		case "recover-content":
+			processType = 1;
+			break;
+		case "recover":
+			processType = 2;
+			break;
+		default:
+			processType = 0;
+	}
+}
+
+switch (processType) {
+
+	// Content Recover, looks through video_data and makes a recovery of the videos and inserts them into video_data_saved
+	// Usually this process happens implicitly, however this can be run to manually do it.
+	// Helpful for testing, and when error occurs.
+	case 1:
+		// This should be run IF AND ONLY IF the videos were succesfully made, however none of the videos were uploaded for whatever reason.
+		// AND the videos weren't automatically recovered.
+
+		cLogger.info("Starting Content Recovery Process.");
+		knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			return Recover.recoverFromNothing();
+		}).then(function() {
+			cLogger.info("Finished content recovery. All of the recovered files should be in video_data_saved/");
+			process.exit();
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Recover Upload, tries to upload all of the videos in 'video_data_saved' directory.
+	// This process is done everytime the normal process is finished also.
+	// Once this process is finished the data that is in video_data_saved directory, that has been uploaded is deleted.
+	case 2:
+		// This should be run IF AND ONLY IF the videos content were succesfully recovered (put into video_data_saved) and have yet to be uploaded.
+
+		cLogger.info("Starting Recovery Process.");
+		knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			return Uploader.uploadRecoveredVideos();
+		}).then(function() {
+			cLogger.info("Finsihed the upload recovery, there shouldn't be any remaining videos in video_data_saved/");
+			process.exit();
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Default and normal process to run. This process polls for the highest rated clips on twitch.
+	// It then downloads these clips sequentially, until all the clips are downloaded.
+	// It then starts combining the clips into a single video (this is a slow process).
+	// After it then starts to automatically upload it to youtube.
+	// If youtube upload fails it moves the files and the needed data to post to a recovery area in video_data_saved directory.
+	// If all the videos are successfully saved it then starts trying to upload the saved videos right away.
+	case 0:
+	default:
+		cLogger.info("Starting Normal Process.");
+		knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			// Setup twitch connection
+			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
+			global.twitch = twitch;
+
+			// Start Polling for Clips
+			cLogger.warn("\nStarting Polling!\n");
+			return Poller.pollForClips();
+		}).then(function(results) {
+			cLogger.warn("\nFinished Polling, Starting Downloading!\n");
+			return Downloader.downloadContent(results);
+		}).then(function(clipsLenMap) {
+			cLogger.warn("\nFinished Downloading, Starting Combining!\n");
+			return Combiner.combineContent(clipsLenMap);
+		}).then(function(finishedFiles) {
+			cLogger.warn("\nFinished Combining, Starting Uploading!\n");
+			return Uploader.startUploadProcess(finishedFiles)
+		}).then(function() {
+			cLogger.warn("\nFinished Uploading. Process complete, terminating.");
+			process.exit();
+			return;
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -74,7 +143,7 @@ app.set('view engine', 'pug');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
+//app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());

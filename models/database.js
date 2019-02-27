@@ -45,6 +45,21 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('user_tokens', function(table) {
+			table.increments();
+			table.string("client_id").notNullable();
+			table.string("access_token").notNullable();
+			table.string("refresh_token").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('playlists', function(table) {
+			table.increments();
+			table.string("game").notNullable();
+			table.string("playlist_id").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		console.log = oldLogger;
 		cLogger.info("Succesfully setup tables!\n");
 		return Promise.resolve();
