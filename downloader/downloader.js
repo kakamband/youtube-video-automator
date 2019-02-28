@@ -7,7 +7,7 @@ module.exports.downloadContent = function(content) {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video data directory
-		shell.cd("video_data/");
+		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/");
 
 		// Delete all the contents in this directory
 		shell.exec("rm -R */");
@@ -20,7 +20,7 @@ module.exports.downloadContent = function(content) {
 			shell.mkdir(gameName);
 
 			// Go into the game directory
-			shell.cd(gameName + "/");
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/" + gameName + "/");
 
 			return new Promise(function(res, rej) {
 				cLogger.mark("Starting to download clips for " + gameName);
@@ -42,7 +42,7 @@ module.exports.downloadContent = function(content) {
 		.then(function() {
 
 			// Leave the video data directory
-			shell.cd("..");
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
 
 			return resolve(content);
 		})

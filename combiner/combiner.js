@@ -5,7 +5,7 @@ var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
 
 module.exports.combineHijackedContent = function(content) {
-	return _combineContent(content, "video_data_hijacks");
+	return _combineContent(content, "video_data_hijacks/");
 }
 
 module.exports.combineContent = function(content) {
@@ -15,7 +15,7 @@ module.exports.combineContent = function(content) {
 function _combineContent(content, dir) {
 	return new Promise(function(resolve, reject) {
 
-		shell.cd(dir);
+		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + dir);
 
 		return new Promise.mapSeries(content.entries(), function(item, ind, len) {
 			let gameName = item[0];
@@ -23,7 +23,7 @@ function _combineContent(content, dir) {
 			let count = clips.length;
 
 			// Enter the game directory
-			shell.cd(gameName + "/");
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + dir + gameName + "/");
 
 			return new Promise(function(res, rej) {
 				cLogger.info("Combining " + count + " videos of " + gameName + " now.");
@@ -49,7 +49,7 @@ function _combineContent(content, dir) {
 		.then(function() {
 
 			// Leave the video data directory
-			shell.cd("..");
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
 
 			return resolve(content);
 		})

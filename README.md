@@ -68,3 +68,4 @@ Node Dependencies Needed:
 
 1) Scale out to an [EC2 AWS Machine](https://aws.amazon.com/ec2/pricing/on-demand/) ([storage sizes](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html))
 2) Use Selenium to automate browser uploading to guarantee we can always upload.
+3) [Example](https://www.quora.com/Is-there-a-way-to-allow-someone-else-to-upload-videos-to-my-channel-without-giving-them-my-login-credentials) of how users will need to allow our account to post for them.

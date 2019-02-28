@@ -133,7 +133,7 @@ switch (processType) {
 						return restart()
 						.then(function(redo) {
 							if (redo) {
-								shell.cd("../..");
+								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
 								return next();
 							} else {
 								return resolve();

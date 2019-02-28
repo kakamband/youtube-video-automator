@@ -13,9 +13,8 @@ const base64url = require('base64url');
 var Attr = require('../config/attributes');
 var dateFormat = require('dateformat');
 const VIDEO_DATA_DEFAULT_DIR = "video_data/";
-const VIDEO_DATA_HIJACKED_DIR = "video_data_hijacks";
+const VIDEO_DATA_HIJACKED_DIR = "video_data_hijacks/";
 var VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
-const PATH_TO_DIRECTORY = "~/Documents/youtube-creator-bot/youtube-video-automator/";
 
 // Constants
 const youtubeVideoPrefix = "https://www.youtube.com/watch?v=";
@@ -24,7 +23,7 @@ function uploadVideos(content) {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video_data directory
-		shell.cd(VIDEO_DATA_DIRECTORY);
+		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + VIDEO_DATA_DIRECTORY);
 
 		var uploadedVideos = [];
 
@@ -34,7 +33,7 @@ function uploadVideos(content) {
 
 			return new Promise(function(res, rej) {
 				// Go into the game directory
-				shell.cd(gameName + "/");
+				shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + VIDEO_DATA_DIRECTORY + gameName + "/");
 
 				return _uploadVideo(gameName, clips)
 				.then(function(vidID) {
@@ -68,21 +67,36 @@ function uploadVideos(content) {
 				})
 				.catch(function(err) {
 
-					// Before we terminate make sure to move all of the untracked videos to a new folder
-					return recoverAllRemainingVideos(content, gameName, (PATH_TO_DIRECTORY + "video_data_saved/"))
+					return addToDB(uploadedVideos)
 					.then(function() {
-						cLogger.info("Succesfully saved videos + information for backfilling next time.");
-						return reject(err);
+						// Before we terminate make sure to move all of the untracked videos to a new folder
+						return recoverAllRemainingVideos(content, gameName, (process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/"))
+						.then(function() {
+							cLogger.info("Succesfully saved videos + information for backfilling next time.");
+							return reject(err);
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
 					})
 					.catch(function(err) {
-						return reject(err);
+						cLogger.error("Error adding videos to db: " + err);
+						// Before we terminate make sure to move all of the untracked videos to a new folder
+						return recoverAllRemainingVideos(content, gameName, (process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/"))
+						.then(function() {
+							cLogger.info("Succesfully saved videos + information for backfilling next time.");
+							return reject(err);
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
 					});
 				});
 			});
 		})
 		.then(function() {
 			// Leave the video_data directory
-			shell.cd(PATH_TO_DIRECTORY);
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
 
 			// Add all of these youtube videos to the db
 			return addToDB(uploadedVideos);
@@ -103,7 +117,7 @@ function uploadVideos(content) {
 module.exports.uploadRecoveredVideos = function() {
 	return new Promise(function(resolve, reject) {
 		// Go into the video data saved directory
-		shell.cd(PATH_TO_DIRECTORY + "video_data_saved/");
+		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
 
 		return shell.exec("ls", function(code, stdout, stderr) {
 			if (code != 0) {
@@ -116,7 +130,7 @@ module.exports.uploadRecoveredVideos = function() {
 				cLogger.info("Backfill uploading the following directory: " + item);
 
 				return new Promise(function(res, rej) {
-					shell.cd(item + "/");
+					shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/" + item + "/");
 
 					return fs.readFile("overview.txt", function(err, data) {
 						if (err) {
@@ -130,12 +144,8 @@ module.exports.uploadRecoveredVideos = function() {
 						.then(function() {
 
 							// Leave this directory
-							shell.cd("..");
+							shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
 							return shell.exec("rm -R \"" + item + "\"/", function(code, stdout, stderr) {
-								if (code != 0) {
-									return reject(stderr);
-								}
-
 								return res();
 							});
 						})
@@ -701,7 +711,7 @@ module.exports.changeThumbnail = function(videoID, clips, gameName) {
 				auth: oauth2Client
 			});
 			const youtube = google.youtube({ version:'v3'});
-			shell.cd(PATH_TO_DIRECTORY + "video_data_hijacks/Fortnite/");
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/Fortnite/");
 			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
 			.then(function() {
 				return resolve();
@@ -735,7 +745,7 @@ function attemptToAddThumbnail(youtube, videoID, clips, gameName) {
 				cLogger.info("No thumbnail found. Countinuing.");
 				return resolve();
 			} else {
-				shell.cd(PATH_TO_DIRECTORY + "thumbnails/"); // Leave the game directory and into the thumbnails directory
+				shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "thumbnails/"); // Leave the game directory and into the thumbnails directory
 				return youtube.thumbnails.set({
 					videoId: videoID,
 					media: {
