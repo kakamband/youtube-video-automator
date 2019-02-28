@@ -9,4 +9,5 @@ module.exports = {
 	ENCODING_SPEED: LocalAttr.VIDEO_PROCESSING_SPEED || "medium",
 	VIDEO_DESCR: LocalAttr.DEFAULT_VIDEO_DESCRIPTION || "",
 	VIDEO_TITLE: LocalAttr.DEFAULT_VIDEO_TITLE || "Highlights - Ep.",
+	DEFAULT_TAGS_MAP: LocalAttr.DEFAULT_TAGS,
 };

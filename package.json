@@ -5,7 +5,10 @@
   "scripts": {
     "start": "node ./bin/www",
     "recover-content": "node ./bin/www --recover-content",
-    "recover": "node ./bin/www --recover-upload"
+    "recover": "node ./bin/www --recover-upload",
+    "stream-hijack": "node ./bin/www --stream-hijack",
+    "test": "node ./bin/www --test",
+    "change-thumbnail": "node ./bin/www --change-thumbnail"
   },
   "dependencies": {
     "base64url": "^3.0.1",
@@ -14,9 +17,11 @@
     "cli-progress": "^2.1.1",
     "color-log": "0.0.2",
     "cookie-parser": "~1.4.3",
+    "dateformat": "^3.0.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
     "get-video-dimensions": "^1.0.0",
+    "get-video-duration": "^1.0.3",
     "googleapis": "^37.2.0",
     "knex": "^0.16.3",
     "morgan": "~1.9.0",

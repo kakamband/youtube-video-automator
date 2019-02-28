@@ -24,4 +24,15 @@ module.exports = {
 
 	// Example: 'Highlights - Ep.' will result in a title of 'GAME_NAME Highlights - Ep.EPISODE_COUNT'.
 	DEFAULT_VIDEO_TITLE: "ADD A DEFAULT VIDEO TITLE. TO THE LEFT OF THE TITLE WILL BE THE GAME NAME AND TO THE RIGHT THE EPISODE NUMBER",
+
+	// Default Attributes to apply to videos of certain games
+	DEFAULT_TAGS: new Map([
+		[
+			"Fortnite", [
+				"esports",
+				// ADD MORE TAGS FOR FORTNITE HERE
+			]
+		],
+		// ADD MORE GAMES WITH TAGS HERE
+	])
 };

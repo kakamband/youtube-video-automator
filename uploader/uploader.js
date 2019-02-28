@@ -11,6 +11,11 @@ const readline = require('readline');
 const opn = require('opn');
 const base64url = require('base64url');
 var Attr = require('../config/attributes');
+var dateFormat = require('dateformat');
+const VIDEO_DATA_DEFAULT_DIR = "video_data/";
+const VIDEO_DATA_HIJACKED_DIR = "video_data_hijacks";
+var VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
+const PATH_TO_DIRECTORY = "~/Documents/youtube-creator-bot/youtube-video-automator/";
 
 // Constants
 const youtubeVideoPrefix = "https://www.youtube.com/watch?v=";
@@ -19,7 +24,7 @@ function uploadVideos(content) {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video_data directory
-		shell.cd("video_data/");
+		shell.cd(VIDEO_DATA_DIRECTORY);
 
 		var uploadedVideos = [];
 
@@ -36,10 +41,25 @@ function uploadVideos(content) {
 					// Leave the game directory
 					shell.cd("..");
 
+					// Check to see if any of the clips have a hijacked tag set
+					var isHijacked = false;
+					for (var i = 0; i < clips.length; i++) {
+						if (clips[i].hijacked) {
+							isHijacked = true;
+							break;
+						}
+					}
+
+					// Add the hijacked string to the game name
+					var dbGameName = gameName;
+					if (isHijacked) {
+						dbGameName += " - hijacked";
+					}
+
 					cLogger.info("Uploaded video and obtained ID of: " + vidID);
 					uploadedVideos.push({
 						url: (youtubeVideoPrefix + vidID),
-						game: gameName,
+						game: dbGameName,
 						created_at: new Date(),
 						updated_at: new Date()
 					});
@@ -49,7 +69,7 @@ function uploadVideos(content) {
 				.catch(function(err) {
 
 					// Before we terminate make sure to move all of the untracked videos to a new folder
-					return recoverAllRemainingVideos(content, gameName, "../../video_data_saved/")
+					return recoverAllRemainingVideos(content, gameName, (PATH_TO_DIRECTORY + "video_data_saved/"))
 					.then(function() {
 						cLogger.info("Succesfully saved videos + information for backfilling next time.");
 						return reject(err);
@@ -62,7 +82,7 @@ function uploadVideos(content) {
 		})
 		.then(function() {
 			// Leave the video_data directory
-			shell.cd("..");
+			shell.cd(PATH_TO_DIRECTORY);
 
 			// Add all of these youtube videos to the db
 			return addToDB(uploadedVideos);
@@ -83,7 +103,7 @@ function uploadVideos(content) {
 module.exports.uploadRecoveredVideos = function() {
 	return new Promise(function(resolve, reject) {
 		// Go into the video data saved directory
-		shell.cd("video_data_saved/");
+		shell.cd(PATH_TO_DIRECTORY + "video_data_saved/");
 
 		return shell.exec("ls", function(code, stdout, stderr) {
 			if (code != 0) {
@@ -278,7 +298,6 @@ function deleteAllUploadedAlready(currNumber, numberOfUploads) {
 
 					var count = 1;
 					function next() {
-						console.log("Starting to reset file name.");
 						return resetFileName(toUpdateNames[count - 1], count)
 						.then(function() {
 							if (count < toUpdateNames.length) {
@@ -301,7 +320,6 @@ function deleteAllUploadedAlready(currNumber, numberOfUploads) {
 						});
 					}
 
-					console.log("Calling the next function now.");
 					return next();
 				});
 			});
@@ -370,7 +388,7 @@ function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 				}
 
 				// Save the video
-				var cpCmd = "cp \"../../video_data/" + gameName + "/" + Attr.FINISHED_FNAME + ".mp4\" " + Attr.FINISHED_FNAME + count + ".mp4";
+				var cpCmd = "cp \"../../" + VIDEO_DATA_DIRECTORY + "/" + gameName + "/" + Attr.FINISHED_FNAME + ".mp4\" " + Attr.FINISHED_FNAME + count + ".mp4";
 				cLogger.info("Running the following command: " + cpCmd);
 				return shell.exec(cpCmd, function(code, stdout, stderr) {
 					if (code != 0) {
@@ -409,9 +427,30 @@ function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 
 function addToDB(uploaded) {
 	return new Promise(function(resolve, reject) {
-		return new Promise.mapSeries(uploaded, function(item, index, len) {
-			return dbController.addYoutubeVideo(item);
-		})
+		var count = 0;
+
+		function next() {
+			return addYTVideo(uploaded[count])
+			.then(function() {
+				if (count < (uploaded.length - 1)) {
+					count++;
+					return next();
+				} else {
+					return resolve();
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		next();
+	});
+}
+
+function addYTVideo(item) {
+	return new Promise(function(resolve, reject) {
+		return dbController.addYoutubeVideo(item)
 		.then(function() {
 			return resolve();
 		})
@@ -525,7 +564,17 @@ module.exports.startUploadingWithToken = function(code, contentSTR) {
 }
 
 module.exports.startUploadProcess = function(content) {
-	return new Promise(function(resolve, reject) {
+	VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
+	return initUpload(content);
+}
+
+module.exports.uploadHijackedVideos = function(content) {
+	VIDEO_DATA_DIRECTORY = VIDEO_DATA_HIJACKED_DIR;
+	return initUpload(content);
+}
+
+function initUpload(content) {
+	return new Promise(function(resolve) {
 		return getAccessToken(content)
 		.then(function(result) {
 			return resolve();
@@ -533,7 +582,7 @@ module.exports.startUploadProcess = function(content) {
 		.catch(function(err) {
 			return resolve();
 		});
-	})
+	});
 }
 
 function _uploadVideo(gameName, clips) {
@@ -561,9 +610,11 @@ function uploadVideo(gameName, clips, fileName) {
 			return dbController.getPlaylist(gameName)
 			.then(function(playlistID) {
 
+				var vodTitle = getTitle(gameName, clips, episodeNumber);
+				var vodDescription = getDescription(gameName, clips);
 				var snippetObj = {
-					title: (gameName + " " + Attr.DEFAULT_VIDEO_TITLE + (parseInt(episodeNumber) + 1)),
-					description: getDescription(gameName, clips),
+					title: vodTitle,
+					description: vodDescription,
 					tags: getKeywords(gameName, clips),
 					categoryId: "22", // Gaming
 					defaultLanguage: "en"
@@ -593,9 +644,20 @@ function uploadVideo(gameName, clips, fileName) {
 					let data = res.data;
 					let videoID = data.id;
 
+					// Now try to add the playlist if it exists
 					return addToYoutubePlaylist(youtube, videoID, playlistID)
 					.then(function() {
-						return resolve(videoID);
+
+						// Now try to add the thumbnail if it exists
+						return attemptToAddThumbnail(youtube, videoID, clips, gameName)
+						.then(function() {
+							return resolve(videoID);
+						})
+						.catch(function(err) {
+							cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
+							cLogger.error("The ignored error was: ", err);
+							return resolve(videoID);
+						});
 					})
 					.catch(function(err) {
 						cLogger.info("Have encountered an error adding to playlist, however not terminating since its not worth.");
@@ -618,17 +680,98 @@ function uploadVideo(gameName, clips, fileName) {
 	});
 }
 
+module.exports.changeThumbnail = function(videoID, clips, gameName) {
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		Secrets.GOOGLE_API_REDIRECT_URI
+	);
+
+	return new Promise(function(resolve, reject) {
+		return getRefreshToken(Secrets.GOOGLE_API_CLIENT_ID)
+		.then(function(tokens) {
+			if (tokens == null) {
+				return reject(new Error("Could not find a refresh token."));
+			}
+
+			oauth2Client.setCredentials({
+				refresh_token: tokens.refresh_token
+			});
+			google.options({
+				auth: oauth2Client
+			});
+			const youtube = google.youtube({ version:'v3'});
+			shell.cd(PATH_TO_DIRECTORY + "video_data_hijacks/Fortnite/");
+			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function attemptToAddThumbnail(youtube, videoID, clips, gameName) {
+	return new Promise(function(resolve, reject) {
+		var hijacked = false;
+		var hijackedName = null;
+
+		if (clips.length > 0 && clips[0].hijacked) {
+			hijacked = true;
+			hijackedName = clips[0].clip_channel_name;
+			cLogger.info("Looking for a hijacked thumbnail for channel: " + hijackedName);
+		} else {
+			cLogger.info("Looking for a game thumbnail for game: " + gameName);
+		}
+
+		return dbController.getThumbnail(gameName, hijacked, hijackedName)
+		.then(function(thumbnail) {
+			if (thumbnail == null) {
+				cLogger.info("No thumbnail found. Countinuing.");
+				return resolve();
+			} else {
+				shell.cd(PATH_TO_DIRECTORY + "thumbnails/"); // Leave the game directory and into the thumbnails directory
+				return youtube.thumbnails.set({
+					videoId: videoID,
+					media: {
+						mimeType: "image/jpeg",
+						body: fs.createReadStream(thumbnail)
+					},
+				},
+				(err, thumbResponse) => {
+					if (err) {
+						return reject(err);
+					}
+
+					cLogger.info("Thumbnail succesfully added!");
+					return resolve();
+				})
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 function addToYoutubePlaylist(youtube, videoID, playlistID) {
 	return new Promise(function(resolve, reject) {
+		if (playlistID == null) return resolve();
+
 		var req = {
 			playlistId: playlistID,
 			part: "snippet",
 			resource: {
 				snippet: {
-					playlistID,
+					playlistId: playlistID,
 					resourceId: {
 						kind: "youtube#video",
-						videoID
+						videoId: videoID
 					},
 				},
 			},
@@ -645,19 +788,59 @@ function addToYoutubePlaylist(youtube, videoID, playlistID) {
 	});
 }
 
+// Builds a title for the video
+function getTitle(gameName, clips, episodeNumber) {
+	if (clips.length > 0 && clips[0].override_title) {
+		var niceDate = dateFormat(clips[0].overrided_title_timestamp, "mediumDate");
+		if (clips.length == 1) { // Only one video
+			return (gameName + " " + clips[0].overrided_title + " - " + niceDate);
+		} else {
+			return (gameName + " " + clips[0].overrided_title + " (And More!) - " + niceDate);
+		}
+	} else {
+		return (gameName + " " + Attr.VIDEO_TITLE + (parseInt(episodeNumber) + 1));
+	}
+}
+
 // Builds a description of a video. Includes the credits to the twitch clips
 function getDescription(game, clips) {
-	var descr = Attr.DEFAULT_VIDEO_DESCRIPTION + "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
 
+	var descr = "";
+	var creditsPortion = "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
+
+	// Check to see if there are overrides
+	if (clips.length > 0 && clips[0].override_description) {
+		if (clips.length == 1) { // A single clip only
+			descr = clips[0].overrided_description;
+		} else {
+			for (var i = 0; i < clips.length; i++) {
+				descr += "Clip " + (i + 1) + ":\n";
+				if (clips[i].override_description) {
+					descr += "Title: " + clips[i].overrided_title + "\n";
+					descr += "Description: " + clips[i].overrided_description + "\n";
+				}
+			}
+		}
+		descr += creditsPortion;
+	} else {
+		descr = Attr.VIDEO_DESCR + creditsPortion;
+	}
 	for (var i = 0; i < clips.length; i++) {
 		descr += clips[i].clip_channel_name + ": " + clips[i].clip_url + "\n";
-	}
+	}		
 	return descr;
 }
 
 // Builds out some keywords, including anyone in the video
 function getKeywords(game, clips) {
-	var tags = [game, "esports", "pro gaming", "twitch streamers", "pro players", "twitch", (game + " pros")];
+	var tagsMap = Attr.DEFAULT_TAGS_MAP;
+	var gameTags = tagsMap.get(game);
+	if (gameTags == undefined) {
+		gameTags = [];
+	}
+	var tags = gameTags;
+	tags.push(game);
+	tags.push((game + " pros"));
 	for (var i = 0; i < clips.length; i++) {
 		if (tags.indexOf(clips[i].clip_channel_name) == -1) {
 			tags.push(clips[i].clip_channel_name);

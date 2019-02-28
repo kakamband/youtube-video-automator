@@ -50,6 +50,7 @@ Node Dependencies Needed:
 | pg                   | PostgreSQL database.                                                           |
 | shelljs              | Allows the node script to interact with a shell thread.                        |
 | twitch-api-v5        | Allows us to interact with Twitch.                                             |
+| get-video-duration   | Allows us to get the duration of videos on our local machine                   |
 
 ## Setup and Configuration
 ### Installing Youtube-Twitch-Automator
