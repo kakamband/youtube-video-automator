@@ -97,6 +97,62 @@ module.exports.getPlaylist = function(gameName) {
 	});
 }
 
+module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
+	return new Promise(function(resolve, reject) {
+		if (hijacked) {
+			return knex('thumbnails')
+			.where("game", "=", gameName)
+			.where("hijacked", "=", true)
+			.where("hijacked_name", "=", hijackedName)
+			.orderBy("created_at", "desc")
+			.limit(1)
+			.then(function(result) {
+				if (result.length == 0) {
+					return findGameThumbnail(gameName)
+					.then(function(result) {
+						return resolve(result);
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				} else {
+					return resolve(result[0].image_name)
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		} else {
+			return findGameThumbnail(gameName)
+			.then(function(result) {
+				return resolve(result);
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+	});
+}
+
+function findGameThumbnail(gameName) {
+	return new Promise(function(resolve, reject) {
+		return knex('thumbnails')
+		.where("game", "=", gameName)
+		.orderBy("created_at", "desc")
+		.limit(1)
+		.then(function(result) {
+			if (result.length == 0) {
+				return resolve(null);
+			} else {
+				return resolve(result[0].image_name);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.addYoutubeVideo = function(youtubeObj) {
 	return new Promise(function(resolve, reject) {
 		knex('youtube_videos')

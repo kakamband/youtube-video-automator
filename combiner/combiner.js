@@ -4,10 +4,18 @@ var cLogger = require('color-log');
 var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
 
+module.exports.combineHijackedContent = function(content) {
+	return _combineContent(content, "video_data_hijacks");
+}
+
 module.exports.combineContent = function(content) {
+	return _combineContent(content, "video_data/");
+}
+
+function _combineContent(content, dir) {
 	return new Promise(function(resolve, reject) {
 
-		shell.cd("video_data/");
+		shell.cd(dir);
 
 		return new Promise.mapSeries(content.entries(), function(item, ind, len) {
 			let gameName = item[0];
@@ -59,7 +67,7 @@ function executeCombining(count, maxWidth, maxHeight) {
 				return reject(stderr);
 			}
 
-			return shell.exec("rm clip-*.mp4", function(code, stdout, stderr) {
+			return shell.exec("rm clip-*.mp4 rm clip-*.txt", function(code, stdout, stderr) {
 				shell.cd("..");
 				return resolve();
 			});

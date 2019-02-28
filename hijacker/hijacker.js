@@ -4,30 +4,41 @@ const readline = require('readline');
 var shell = require('shelljs');
 var Attr = require('../config/attributes');
 const base64url = require('base64url');
+const { getVideoDurationInSeconds } = require('get-video-duration');
+var fs = require('fs');
+var Combiner = require('../combiner/combiner');
+var Uploader = require('../uploader/uploader');
+const PATH_TO_DIRECTORY = "~/Documents/youtube-creator-bot/youtube-video-automator/";
 
 module.exports.startHijacking = function() {
 	return new Promise(function(resolve, reject) {
 		const rl = readline.createInterface({
 		  input: process.stdin,
-		  output: process.stdout
+		  output: process.stdout,
+		  terminal: false
 		});
 
 		// Go into the video_data_hijacks directory
-		shell.cd("video_data_hijacks/");
+		shell.cd(PATH_TO_DIRECTORY + "video_data_hijacks/");
 
 		return rl.question('Enter the Twitch TV stream you want to hijack (ex. \"https://www.twitch.tv/tfue\"): ', (twitchStream) => {
 			cLogger.info("The user entered: " + twitchStream);
-			rl.close();
 
 			function next() {
 				return getCurrentStreamGame(twitchStream)
 				.then(function(game) {
 					cLogger.info("This stream is currently playing the following game: " + game);
 					return processHijack(game, twitchStream)
-					.then(function() {
-						return attemptUpload();
+					.then(function(uploadIt) {
+						if (uploadIt) {
+							return attemptUpload(game);
+						} else {
+							rl.close();
+							return resolve();
+						}
 					})
 					.then(function() {
+						rl.close();
 						return resolve();
 					})
 					.catch(function(err) {
@@ -44,28 +55,142 @@ module.exports.startHijacking = function() {
 	});
 }
 
-function attemptUpload() {
+// The starting point of this function should be in 'video_data_hijacks/GameName/'
+function attemptUpload(gameName) {
 	return new Promise(function(resolve, reject) {
-		return setTimeout(function() {
-			cLogger.info("\n\nDone processing. Attempting to do an upload now.");
-			var lsCMD = ("ls");
-			cLogger.info("Running command: " + lsCMD);
-			return shell.exec(lsCMD, function(code, stdout, stderr) {
+		cLogger.info("\n\nDone processing. Attempting to do an upload now.");
+		var lsCMD = ("ls *.mp4");
+		cLogger.info("Running command: " + lsCMD);
+		return shell.exec(lsCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			var files = stdout.split("\n");
+			files.pop(); // Remove empty file
+			var count = 0;
+
+			// Start putting videos together to combine
+			var videosToCombine = [];
+			var currentDuration = 0;
+
+			// TODO: See if we can upload a video. Either by combining videos or by uploading a single video.
+			function next() {
+				return checkFileDurations(files[count])
+				.then(function(duration) {
+
+					// Add these videos to the list
+					currentDuration += duration;
+					videosToCombine.push(files[count]);
+
+					if (currentDuration >= Attr.MIN_V_LENGTH) {
+						cLogger.info("Have enough content! Building a new file combining " + videosToCombine.length + " clips with a duration of: " + currentDuration + " seconds.");
+						if (videosToCombine.length == 1) { // A single video, so no combining
+							return buildContent(videosToCombine, gameName)
+							.then(function(content) {
+								return renameSingleContent(content);
+							})
+							.then(function(content) {
+								shell.cd(PATH_TO_DIRECTORY); // Leave the game directory, and the video_data_hijacks directory.
+								return Uploader.uploadHijackedVideos(content);
+							})
+							.then(function() {
+								shell.cd(PATH_TO_DIRECTORY + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
+								cLogger.info("Done uploading video! Deleting the file now to save space and to not reupload.");
+								return deleteFinishedVod();
+							})
+							.then(function() {
+								shell.cd(PATH_TO_DIRECTORY); // Leave the video_data_hijacks directory
+								return resolve();
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
+						} else { // More than one video, so combining is needed.
+							return buildContent(videosToCombine, gameName)
+							.then(function(content) {
+								shell.cd(PATH_TO_DIRECTORY); // Leave the game directory, and the video_data_hijacks directory.
+								return Combiner.combineHijackedContent(content);
+							})
+							.then(function(content) {
+								cLogger.mark("Finished combining!");
+								return Uploader.uploadHijackedVideos(content);
+							})
+							.then(function() {
+								shell.cd(PATH_TO_DIRECTORY + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
+								cLogger.info("Done uploading video! Deleting the file now to save space and to not reupload.");
+								return deleteFinishedVod();
+							})
+							.then(function() {
+								shell.cd(PATH_TO_DIRECTORY); // Leave the video_data_hijacks directory
+								return resolve();
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
+						}
+					} else if (count < (files.length - 1)) {
+						count++;
+						next();
+					} else {
+						cLogger.mark("We could only find a combined duration of " + currentDuration + " seconds, which is not enough to create a video.");
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			next();
+		});
+	});
+}
+
+function deleteFinishedVod() {
+	return new Promise(function(resolve, reject) {
+		var rmCMD = "rm finished.mp4";
+		cLogger.info("Running command: " + rmCMD);
+		return shell.exec(rmCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve();
+		});
+	});
+}
+
+function renameSingleContent(content) {
+	return new Promise(function(resolve, reject) {
+		var mvCMD = "mv clip-0.mp4 " + Attr.FINISHED_FNAME + ".mp4";
+		cLogger.info("Running command: " + mvCMD);
+		return shell.exec(mvCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			var rmCMD = "rm clip-0.txt";
+			cLogger.info("Running command: " + rmCMD);
+			return shell.exec(rmCMD, function(code, stdout, stderr) {
 				if (code != 0) {
 					return reject(stderr);
 				}
 
-				var files = stdout.split("\n");
-				files.pop(); // Remove empty file
-				var count = 0;
-
-				// TODO: See if we can upload a video. Either by combining videos or by uploading a single video.
+				return resolve(content);
 			});
-		}, 5000);
+		});
 	});
 }
 
-
+function checkFileDurations(file) {
+	return new Promise(function(resolve, reject) {
+		return getVideoDurationInSeconds(file).then((duration) => {
+			cLogger.info("File " + file + " has video length of: " + duration + " seconds.");
+			return resolve(duration);
+		});
+	});
+}
 
 function processHijack(gameName, twitchStream) {
 	return new Promise(function(resolve, reject) {
@@ -82,38 +207,241 @@ function processHijack(gameName, twitchStream) {
 			// Ask to initiate the hijack
 			cLogger.mark("\nPress any key to start hijacking.\n");
 			process.stdin.setRawMode(true);
-			process.stdin.resume();
 
 			var hijacking = false;
 			var cProcess = null;
 			var fileName = null;
+			var endingHijack = false;
 
 			return process.stdin.on('data', function(data) {
 			  	if (hijacking) {
-			  		cLogger.info("Ending the hijack!");
+			  		cLogger.info("Ending the hijack in 5 Seconds (give some leeway)!");
 			  		hijacking = false;
 
 			  		if (cProcess != null) {
-			  			return shell.exec("echo \"" + base64url(gameName) + " " + base64url(twitchStream) + " " + base64url((new Date).getTime() + "") + "\" > " + fileName + ".txt", function(code, stdout, stderr) {
-			  				if (code != 0) {
-			  					cLogger.info("Could not save info file. However this is non blocking. Error: ", stderr);
-			  				}
-
-				  			cProcess.kill();
-				  			cLogger.info("\nYou have just completed a hijack, you can find the file in video_data_hijacks/" + gameName + "/" + fileName);
-				  			return resolve();
+			  			endingHijack = true;
+			  			return endHijack(gameName, twitchStream, cProcess, fileName)
+			  			.then(function(uploadIt) {
+			  				return resolve(uploadIt);
+			  			})
+			  			.catch(function(err) {
+			  				return reject(err);
 			  			});
 			  		}
-			  	} else {
+			  	} else if (!endingHijack && !hijacking) {
 					cLogger.info("Starting the hijack! You will see some text appear shortly. Press Enter again to stop the hijack.");
 			  		hijacking = true;
 
 			  		var epoch = (new Date).getTime();
 			  		fileName = "finished-" + epoch;
 
-			  		cProcess = shell.exec('ffmpeg -i $(youtube-dl -f best -g ' + twitchStream + ') -codec:v libx264 -crf 21 -bf 2 -flags +cgop -pix_fmt yuv420p -codec:a aac -strict -2 -b:a 384k -r:a 48000 -movflags faststart ' + fileName + '.mp4', {async: true});
+			  		cProcess = shell.exec('ffmpeg -i $(youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
 			  	}
 			  	process.stdin.setRawMode(false);
+			});
+		});
+	});
+}
+
+function endHijack(gameName, twitchStream, cProcess, fileName) {
+	const rl = readline.createInterface({  
+		input: process.stdin,
+		output: process.stdout,
+		terminal: false
+	});
+
+	return new Promise(function(resolve, reject) {
+		process.stdin.setRawMode(false);
+
+		// Delay killing the process for 5 seconds for possible behind the live stream lag.
+		return setTimeout(function() {
+			// Kill the process now instead of before the delay to give it 5 seconds leeway
+			cProcess.kill();
+
+			// Delay for 5 seconds since the twitch stream download will probably be lagging behind
+			return setTimeout(function() {
+				return saveVideo(fileName)
+				.then(function(stored) {
+
+					if (stored) {
+						cLogger.mark("\n\nGive a title and description for this video.");
+						return rl.question('Enter the title of the video (the date will automatically be added to the end): ', (vodTitle) => {
+							rl.close();
+
+							return endHijackHelper(gameName, twitchStream, cProcess, fileName, vodTitle)
+							.then(function() {
+								return resolve(stored);
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
+						});
+					} else {
+						return resolve(stored);
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}, 5000);
+
+		}, 5000);
+	});
+}
+
+function saveVideo(fileName) {
+	const rl = readline.createInterface({  
+		input: process.stdin,
+		output: process.stdout,
+		terminal: false
+	});
+
+	return new Promise(function(resolve, reject) {
+		cLogger.mark("\nDo you want to use this video? (No/n to abandon it, anything else to keep it) ");
+		return rl.question("", (storeIt) => {
+
+			if (storeIt.toLowerCase() == "no" || storeIt.toLowerCase() == "n") {
+				cLogger.info("You have chosen to abandon this file. Deleting it.");
+				return deleteFile(fileName)
+				.then(function() {
+					return resolve(false);
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				cLogger.info("You have chosen to use this file. Continuing.");
+				return resolve(true);
+			}
+		});
+	});
+}
+
+function deleteFile(fileName) {
+	return new Promise(function(resolve, reject) {
+		var rmCMD = "rm " + fileName + ".mp4";
+		cLogger.info("Running command: " + rmCMD);
+		return shell.exec(rmCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve();
+		});
+	});
+}
+
+function endHijackHelper(gameName, twitchStream, cProcess, fileName, vodTitle) {
+	const rl = readline.createInterface({  
+		input: process.stdin,
+		output: process.stdout,
+		terminal: false
+	});
+
+	return new Promise(function(resolve, reject) {
+		return rl.question('Enter the description of the video (the source will be credited automatically at the bottom): ', (vodDescr) => {
+			return shell.exec("echo \"" + getStoredInformation(gameName, twitchStream, vodTitle, vodDescr) + "\" > " + fileName + ".txt", function(code, stdout, stderr) {
+				if (code != 0) {
+					cLogger.info("Could not save info file. However this is non blocking. Error: ", stderr);
+				}
+
+				cLogger.info("\nYou have just completed a hijack, you can find the file in video_data_hijacks/" + gameName + "/" + fileName);
+				return resolve();
+			});
+		});
+	});
+}
+
+function getStoredInformation(gameName, twitchStream, vodTitle, vodDescr) {
+	var currDate = new Date();
+	cLogger.mark("\nThe video will have the following properties:");
+	cLogger.info("Video Title: " + vodTitle);
+	cLogger.info("Video Description: " + vodDescr);
+	cLogger.info("Game Name: " + gameName);
+	cLogger.info("Twitch Stream Credit: " + twitchStream);
+	cLogger.info("Date of Video: " + currDate);
+
+	var b64Game = base64url(gameName);
+	var b64Stream = base64url(twitchStream);
+	var b64Time = base64url(currDate.getTime() + "");
+	var b64Title = base64url(vodTitle);
+	var b64Descr = base64url(vodDescr);
+
+	return b64Game + " " + b64Stream + " " + b64Time + " " + b64Title + " " + b64Descr;
+}
+
+function buildContent(videosToCombine, gameName) {
+	var content = new Map();
+	var contentArr = [];
+	return new Promise(function(resolve, reject) {
+		var count = 0;
+
+		function next() {
+			return buildContentComponent(videosToCombine[count], gameName, count)
+			.then(function(contentPiece) {
+				contentArr.push(contentPiece);
+				if (count < (videosToCombine.length - 1)) {
+					count++;
+					return next();
+				} else {
+					content.set(gameName, contentArr);
+					return resolve(content);
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		next();
+	});
+}
+
+function buildContentComponent(fileName, gameName, count) {
+	return new Promise(function(resolve, reject) {
+		var fileNameSplit = fileName.split(".mp4");
+		var fileNameNoFType = fileNameSplit[0];
+
+		return fs.readFile(fileNameNoFType + ".txt", function(err, data) {
+			if (err) {
+				return reject(err);
+			}
+
+			var dataB64 = data.toString().split("\n")[0];
+			var dataB64Split = dataB64.split(" ");
+
+			var gameN = base64url.decode(dataB64Split[0]);
+			if (gameN != gameName) {
+				return reject(new Error("Found a different game name in the attributes file."));
+			}
+			var streamLink = base64url.decode(dataB64Split[1]);
+			var contentTime = new Date(parseInt(base64url.decode(dataB64Split[2])));
+			var contentTitle = base64url.decode(dataB64Split[3]);
+			var contentDesc = base64url.decode(dataB64Split[4]);
+
+			return shell.exec("mv " + fileNameNoFType + ".mp4 clip-" + count + ".mp4", function(code, stdout, stderr) {
+				if (code != 0) {
+					return reject(stderr);
+				}
+
+				return shell.exec("mv " + fileNameNoFType + ".txt clip-" + count + ".txt", function(code, stdout, stderr) {
+					if (code != 0) {
+						return reject(stderr);
+					}
+
+					return resolve({
+						clip_channel_name: streamLink.split(".tv/")[1],
+						clip_url: streamLink,
+
+						// Some overrides
+						hijacked: true,
+						override_title: true,
+						overrided_title: contentTitle,
+						overrided_title_timestamp: contentTime,
+						override_description: true,
+						overrided_description: contentDesc,
+					});
+				});
 			});
 		});
 	});

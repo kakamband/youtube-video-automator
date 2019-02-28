@@ -16,6 +16,8 @@ var Uploader = require('./uploader/uploader');
 var shell = require('shelljs');
 var Recover = require('./recover/recover');
 var Hijacker = require('./hijacker/hijacker');
+var Promise = require('bluebird');
+const readline = require('readline');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -47,6 +49,12 @@ if (process.argv.length == 3) {
 			break;
 		case "stream-hijack":
 			processType = 3;
+			break;
+		case "test":
+			processType = 4;
+			break;
+		case "change-thumbnail":
+			processType = 5;
 			break;
 		default:
 			processType = 0;
@@ -117,9 +125,51 @@ switch (processType) {
 			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
 			global.twitch = twitch;
 
-			return Hijacker.startHijacking();
+			return new Promise(function(resolve, reject) {
+
+				function next() {
+					return Hijacker.startHijacking()
+					.then(function() {
+						return restart()
+						.then(function(redo) {
+							if (redo) {
+								shell.cd("../..");
+								return next();
+							} else {
+								return resolve();
+							}
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				}
+
+				next();
+			});
 		}).then(function() {
 			cLogger.info("Done Hijacking.");
+			process.exit();
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Test tests a feature of the developers choosing
+	case 4:
+	cLogger.info("Starting Test Process.");
+	knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			//return Uploader.testAddThumbnail();
+		}).then(function() {
+			cLogger.info("Done Testing.");
 			process.exit();
 		}).catch(function(err) {
 			cLogger.error("Error during process: " + err);
@@ -166,6 +216,25 @@ switch (processType) {
 			process.exit();
 		});
 		break;
+}
+
+function restart() {
+	const rl = readline.createInterface({
+	  input: process.stdin,
+	  output: process.stdout,
+  	  terminal: false
+	});
+
+	return new Promise(function(resolve, reject) {
+		cLogger.mark("\nDo you want to restart? (Yes/y to restart, anything else to exit)");
+		rl.question("", (ans) => {
+			if (ans.toLowerCase() == "yes" || ans.toLowerCase() == "y") {
+				return resolve(true);
+			} else {
+				return resolve(false);
+			}
+		});
+	});
 }
 
 // view engine setup
