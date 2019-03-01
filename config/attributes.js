@@ -10,4 +10,5 @@ module.exports = {
 	VIDEO_DESCR: LocalAttr.DEFAULT_VIDEO_DESCRIPTION || "",
 	VIDEO_TITLE: LocalAttr.DEFAULT_VIDEO_TITLE || "Highlights - Ep.",
 	DEFAULT_TAGS_MAP: LocalAttr.DEFAULT_TAGS,
+	DEFAULT_LIKE_SUB_TEXT: LocalAttr.DEFAULT_LIKE_SUB_TEXT || "",
 };

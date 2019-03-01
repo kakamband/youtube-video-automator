@@ -108,9 +108,15 @@ module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
 			.limit(1)
 			.then(function(result) {
 				if (result.length == 0) {
-					return findGameThumbnail(gameName)
-					.then(function(result) {
-						return resolve(result);
+					return findGameHijackedThumbnail(gameName)
+					.then(function(result1) {
+						if (result1 != null) {
+							return resolve(result1);
+						}
+						return findGameThumbnail(gameName);
+					})
+					.then(function(result2) {
+						return resolve(result2);
 					})
 					.catch(function(err) {
 						return reject(err);
@@ -131,6 +137,27 @@ module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
 				return reject(err);
 			});
 		}
+	});
+}
+
+function findGameHijackedThumbnail(gameName) {
+	return new Promise(function(resolve, reject) {
+		return knex('thumbnails')
+		.where("game", "=", gameName)
+		.where("hijacked", "=", true)
+		.whereNull("hijacked_name")
+		.orderBy("created_at", "desc")
+		.limit(1)
+		.then(function(result) {
+			if (result.length == 0) {
+				return resolve(null);
+			} else {
+				return resolve(result[0].image_name);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 

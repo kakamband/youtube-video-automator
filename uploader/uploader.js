@@ -377,7 +377,7 @@ function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 		// Leave the game directory + create a new directory for these videos
 		shell.cd(toSavedDir);
 		var currDate = new Date();
-		var dirName = currDate.toString();
+		var dirName = currDate.getTime().toString();
 		shell.mkdir(dirName);
 		shell.cd(dirName + "/");
 
@@ -626,7 +626,7 @@ function uploadVideo(gameName, clips, fileName) {
 					title: vodTitle,
 					description: vodDescription,
 					tags: getKeywords(gameName, clips),
-					categoryId: "22", // Gaming
+					categoryId: "20", // Gaming
 					defaultLanguage: "en"
 				};
 
@@ -816,6 +816,7 @@ function getTitle(gameName, clips, episodeNumber) {
 function getDescription(game, clips) {
 
 	var descr = "";
+	var askForSubLikesComments = "\n" + Attr.DEFAULT_LIKE_SUB_TEXT;
 	var creditsPortion = "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
 
 	// Check to see if there are overrides

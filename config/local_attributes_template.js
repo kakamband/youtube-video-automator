@@ -34,5 +34,8 @@ module.exports = {
 			]
 		],
 		// ADD MORE GAMES WITH TAGS HERE
-	])
+	]),
+
+	// Default text to ask for a like and subscribe
+	DEFAULT_LIKE_SUB_TEXT: "Please give a like if you enjoyed, and subscribe for more content! Thanks :)"
 };
