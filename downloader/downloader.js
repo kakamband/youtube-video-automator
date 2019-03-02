@@ -2,12 +2,13 @@ var Promise = require('bluebird');
 var shell = require('shelljs');
 var cLogger = require('color-log');
 var dbController = require('../controller/db');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
 module.exports.downloadContent = function(content) {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video data directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/");
+		shell.cd(ORIGIN_PATH + "video_data/");
 
 		// Delete all the contents in this directory
 		shell.exec("rm -R */");
@@ -20,7 +21,7 @@ module.exports.downloadContent = function(content) {
 			shell.mkdir(gameName);
 
 			// Go into the game directory
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/" + gameName + "/");
+			shell.cd(ORIGIN_PATH + "video_data/" + gameName + "/");
 
 			return new Promise(function(res, rej) {
 				cLogger.mark("Starting to download clips for " + gameName);
@@ -42,7 +43,7 @@ module.exports.downloadContent = function(content) {
 		.then(function() {
 
 			// Leave the video data directory
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
+			shell.cd(ORIGIN_PATH);
 
 			return resolve(content);
 		})
@@ -61,7 +62,7 @@ function downloadEachClip(clips) {
 
 		return new Promise.mapSeries(clips, function(clip, index, len) {
 			return new Promise(function(res, rej) {
-				return shell.exec(process.env.YOUTUBE_AUTOMATOR_PATH + "youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader ffmpeg", function(code, stdout, stderr) {
+				return shell.exec(ORIGIN_PATH + "youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader " + ffmpegPath, function(code, stdout, stderr) {
 					if (code != 0) {
 						cLogger.error("Error downloading content: ", stderr);
 						return rej();

@@ -12,6 +12,9 @@ module.exports = {
 		// ADD THE GAMES YOU WANT TO POLL HERE
 		// DefinedGames.FORTNITE
 	],
+	VID_VISIBILITY: "private", // What visibility is the video, either 'private' or 'public'.
+	VID_CATEGORY: "20", // What category is the video under (https://gist.github.com/dgp/1b24bf2961521bd75d6c)
+	VID_LANGUAGE: "en", // What language is the video
 	MAX_VIDEO_LENGTH: 650, // WHAT IS THE MAX VIDEO LENGTH IN SECONDS
 	MIN_VIDEO_LENGTH: 420, // WHAT IS THE MIN VIDEO LENGTH IN SECONDS
 	FINISHED_FILE_NAME: "ENTER THE FILE NAME FOR FINISHED COMBINATION VIDEOS. DO NOT INCLUDE A FILE TYPE! (EXAMPLE: 'finished')",

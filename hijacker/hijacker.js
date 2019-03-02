@@ -8,6 +8,7 @@ const { getVideoDurationInSeconds } = require('get-video-duration');
 var fs = require('fs');
 var Combiner = require('../combiner/combiner');
 var Uploader = require('../uploader/uploader');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
 module.exports.startHijacking = function() {
 	return new Promise(function(resolve, reject) {
@@ -18,7 +19,7 @@ module.exports.startHijacking = function() {
 		});
 
 		// Go into the video_data_hijacks directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/");
+		shell.cd(ORIGIN_PATH + "video_data_hijacks/");
 
 		return rl.question('Enter the Twitch TV stream you want to hijack (ex. \"https://www.twitch.tv/tfue\"): ', (twitchStream) => {
 			cLogger.info("The user entered: " + twitchStream);
@@ -90,16 +91,16 @@ function attemptUpload(gameName) {
 								return renameSingleContent(content);
 							})
 							.then(function(content) {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH); // Leave the game directory, and the video_data_hijacks directory.
+								shell.cd(ORIGIN_PATH); // Leave the game directory, and the video_data_hijacks directory.
 								return Uploader.uploadHijackedVideos(content);
 							})
 							.then(function() {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
+								shell.cd(ORIGIN_PATH + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
 								cLogger.info("Done uploading video! Deleting the file now to save space and to not reupload.");
 								return deleteFinishedVod();
 							})
 							.then(function() {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH); // Leave the video_data_hijacks directory
+								shell.cd(ORIGIN_PATH); // Leave the video_data_hijacks directory
 								return resolve();
 							})
 							.catch(function(err) {
@@ -108,7 +109,7 @@ function attemptUpload(gameName) {
 						} else { // More than one video, so combining is needed.
 							return buildContent(videosToCombine, gameName)
 							.then(function(content) {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH); // Leave the game directory, and the video_data_hijacks directory.
+								shell.cd(ORIGIN_PATH); // Leave the game directory, and the video_data_hijacks directory.
 								return Combiner.combineHijackedContent(content);
 							})
 							.then(function(content) {
@@ -116,12 +117,12 @@ function attemptUpload(gameName) {
 								return Uploader.uploadHijackedVideos(content);
 							})
 							.then(function() {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
+								shell.cd(ORIGIN_PATH + "video_data_hijacks/" + gameName + "/"); // Enter the game directory
 								cLogger.info("Done uploading video! Deleting the file now to save space and to not reupload.");
 								return deleteFinishedVod();
 							})
 							.then(function() {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH); // Leave the video_data_hijacks directory
+								shell.cd(ORIGIN_PATH); // Leave the video_data_hijacks directory
 								return resolve();
 							})
 							.catch(function(err) {
@@ -201,7 +202,7 @@ function processHijack(gameName, twitchStream) {
 				cLogger.info("No folder for " + gameName + " creating it.");
 			}
 
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/" + gameName + "/");
+			shell.cd(ORIGIN_PATH + "video_data_hijacks/" + gameName + "/");
 
 			// Ask to initiate the hijack
 			cLogger.mark("\nPress any key to start hijacking.\n");
@@ -234,7 +235,7 @@ function processHijack(gameName, twitchStream) {
 			  		var epoch = (new Date).getTime();
 			  		fileName = "finished-" + epoch;
 
-			  		cProcess = shell.exec('ffmpeg -i $(' + process.env.YOUTUBE_AUTOMATOR_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
+			  		cProcess = shell.exec(ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
 			  	}
 			  	process.stdin.setRawMode(false);
 			});

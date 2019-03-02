@@ -30,7 +30,7 @@ const youtubeVideoPrefix = "https://www.youtube.com/watch?v=";
 module.exports.uploadRecoveredVideos = function() {
 	return new Promise(function(resolve, reject) {
 		// Go into the video data saved directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
+		shell.cd(ORIGIN_PATH + "video_data_saved/");
 
 		return shell.exec("ls", function(code, stdout, stderr) {
 			if (code != 0) {
@@ -43,7 +43,7 @@ module.exports.uploadRecoveredVideos = function() {
 				cLogger.info("Backfill uploading the following directory: " + item);
 
 				return new Promise(function(res, rej) {
-					shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/" + item + "/");
+					shell.cd(ORIGIN_PATH + "video_data_saved/" + item + "/");
 
 					return fs.readFile("overview.txt", function(err, data) {
 						if (err) {
@@ -57,7 +57,7 @@ module.exports.uploadRecoveredVideos = function() {
 						.then(function() {
 
 							// Leave this directory
-							shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
+							shell.cd(ORIGIN_PATH + "video_data_saved/");
 							return shell.exec("rm -R \"" + item + "\"/", function(code, stdout, stderr) {
 								return res();
 							});
@@ -159,7 +159,7 @@ module.exports.changeThumbnail = function(videoID, clips, gameName) {
 				auth: oauth2Client
 			});
 			const youtube = google.youtube({ version:'v3'});
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/Fortnite/");
+			shell.cd(ORIGIN_PATH + "video_data_hijacks/Fortnite/");
 			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
 			.then(function() {
 				return resolve();
@@ -184,7 +184,7 @@ function uploadVideos(content) {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video_data directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + VIDEO_DATA_DIRECTORY);
+		shell.cd(ORIGIN_PATH + VIDEO_DATA_DIRECTORY);
 
 		var uploadedVideos = [];
 
@@ -194,7 +194,7 @@ function uploadVideos(content) {
 
 			return new Promise(function(res, rej) {
 				// Go into the game directory
-				shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + VIDEO_DATA_DIRECTORY + gameName + "/");
+				shell.cd(ORIGIN_PATH + VIDEO_DATA_DIRECTORY + gameName + "/");
 
 				return _uploadVideo(gameName, clips)
 				.then(function(vidID) {
@@ -231,7 +231,7 @@ function uploadVideos(content) {
 					return addToDB(uploadedVideos)
 					.then(function() {
 						// Before we terminate make sure to move all of the untracked videos to a new folder
-						return recoverAllRemainingVideos(content, gameName, (process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/"))
+						return recoverAllRemainingVideos(content, gameName, (ORIGIN_PATH + "video_data_saved/"))
 						.then(function() {
 							cLogger.info("Succesfully saved videos + information for backfilling next time.");
 							return reject(err);
@@ -243,7 +243,7 @@ function uploadVideos(content) {
 					.catch(function(err) {
 						cLogger.error("Error adding videos to db: " + err);
 						// Before we terminate make sure to move all of the untracked videos to a new folder
-						return recoverAllRemainingVideos(content, gameName, (process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/"))
+						return recoverAllRemainingVideos(content, gameName, (ORIGIN_PATH + "video_data_saved/"))
 						.then(function() {
 							cLogger.info("Succesfully saved videos + information for backfilling next time.");
 							return reject(err);
@@ -257,7 +257,7 @@ function uploadVideos(content) {
 		})
 		.then(function() {
 			// Leave the video_data directory
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
+			shell.cd(ORIGIN_PATH);
 
 			// Add all of these youtube videos to the db
 			return addToDB(uploadedVideos);
@@ -626,8 +626,8 @@ function uploadVideo(gameName, clips, fileName) {
 					title: vodTitle,
 					description: vodDescription,
 					tags: getKeywords(gameName, clips),
-					categoryId: "20", // Gaming
-					defaultLanguage: "en"
+					categoryId: Attr.VIDEO_CATEGORY,
+					defaultLanguage: Attr.VIDEO_LANGUAGE
 				};
 
 				return youtube.videos.insert({
@@ -636,7 +636,7 @@ function uploadVideo(gameName, clips, fileName) {
 					requestBody: {
 						snippet: snippetObj,
 						status: {
-							privacyStatus: 'public',
+							privacyStatus: Attr.VIDEO_VISIBILITY,
 						},
 					},
 					media: {
@@ -713,7 +713,7 @@ function attemptToAddThumbnail(youtube, videoID, clips, gameName) {
 				cLogger.info("No thumbnail found. Countinuing.");
 				return resolve();
 			} else {
-				shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "thumbnails/"); // Leave the game directory and into the thumbnails directory
+				shell.cd(ORIGIN_PATH + "thumbnails/"); // Leave the game directory and into the thumbnails directory
 				return youtube.thumbnails.set({
 					videoId: videoID,
 					media: {
