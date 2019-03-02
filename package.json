@@ -8,7 +8,8 @@
     "recover": "node ./bin/www --recover-upload",
     "stream-hijack": "node ./bin/www --stream-hijack",
     "test": "node ./bin/www --test",
-    "change-thumbnail": "node ./bin/www --change-thumbnail"
+    "oauth": "node ./bin/www",
+    "rm-oauth": "node ./bin/www"
   },
   "dependencies": {
     "base64url": "^3.0.1",

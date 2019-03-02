@@ -16,6 +16,8 @@ var Uploader = require('./uploader/uploader');
 var shell = require('shelljs');
 var Recover = require('./recover/recover');
 var Hijacker = require('./hijacker/hijacker');
+var TesterHelper = require('./test_helper/helpers');
+var OauthFlow = require('./oauth/oauth_flow');
 var Promise = require('bluebird');
 const readline = require('readline');
 
@@ -53,8 +55,11 @@ if (process.argv.length == 3) {
 		case "test":
 			processType = 4;
 			break;
-		case "change-thumbnail":
+		case "oauth":
 			processType = 5;
+			break;
+		case "rm-oauth":
+			processType = 6;
 			break;
 		default:
 			processType = 0;
@@ -167,9 +172,44 @@ switch (processType) {
 			cLogger.info("Did connect succesfully to db.\n");
 			return Models.initialize(knex);
 		}).then(function() {
-			//return Uploader.testAddThumbnail();
+			return TesterHelper.Test();
+		}).then(function(result) {
+			cLogger.info("Done Testing. Possible result: " + result);
+			process.exit();
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Oauth Init initializes the db with a refresh token for future use. This should be run first before anything.
+	case 5:
+	cLogger.info("Starting OAuth Init Process.");
+	knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
 		}).then(function() {
-			cLogger.info("Done Testing.");
+			return OauthFlow.init();
+		}).then(function(result) {
+			cLogger.info("Done OAuth Init. Hanging while we wait for the user to authenticate in the browser, and for google to callback to us.");
+		}).catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
+		break;
+
+	// Oauth RM removes the refresh token from the database.
+	case 6:
+	cLogger.info("Starting OAuth RM Process.");
+	knex.raw('select 1+1 as result')
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		}).then(function() {
+			return OauthFlow.invalidateToken();
+		}).then(function(result) {
+			cLogger.info("Done OAuth RM. Possible result: " + result);
 			process.exit();
 		}).catch(function(err) {
 			cLogger.error("Error during process: " + err);

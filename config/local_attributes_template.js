@@ -37,5 +37,15 @@ module.exports = {
 	]),
 
 	// Default text to ask for a like and subscribe
-	DEFAULT_LIKE_SUB_TEXT: "Please give a like if you enjoyed, and subscribe for more content! Thanks :)"
+	DEFAULT_LIKE_SUB_TEXT: "Please give a like if you enjoyed, and subscribe for more content! Thanks :)",
+
+	// Default comment to apply to all uploaded videos
+	MAKE_DEFAULT_COMMENT: false,
+	DEFAULT_COMMENT_TEXT: new Map([
+		[
+			"Fortnite", [
+				"Leave a like and subscribe!",
+			]
+		],
+	]),
 };

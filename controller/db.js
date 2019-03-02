@@ -212,6 +212,20 @@ module.exports.addRefreshToken = function(clientID, refreshTkn, accessTkn) {
 	});
 }
 
+module.exports.deleteRefreshToken = function(clientID) {
+	return new Promise(function(resolve, reject) {
+		knex('user_tokens')
+		.where("client_id", "=", clientID)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getRefreshToken = function(clientID) {
 	return new Promise(function(resolve, reject) {
 		knex('user_tokens')

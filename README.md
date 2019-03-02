@@ -19,6 +19,18 @@ npm start recover
 # Recovers the content. (This is used if there is ever an error with youtube upload and
 # the content isn't automatically salvaged.
 npm start recover-content
+
+# Hijacks a Twitch live stream. You start and stop downloading the live stream and saving it to a file.
+npm start stream-hijack
+
+# Oauth Init gets a refresh token from the user. This should be run before anything for personal use.
+npm start oauth
+
+# Oauth RM gets rid of the refresh token for the user in the DB. After this is run you will need to re-authenticate with 'npm start oauth'.
+npm start rm-oauth
+
+# Tests a feature that is currently in development
+npm start test
 ```
 
 ## Dependencies
@@ -61,7 +73,8 @@ Node Dependencies Needed:
 4) Run `npm install`
 5) Change the config/basic_config.js file to how you see fit (or leave it, as the defaults are fine).
 6) Fill out the config/local_attributes_template.js file and save it as config/local_attributes.js.
-7) Run `npm start`. The first time around you will need to authenticate with Youtube, this will be done by opening up a web browser on your computer.
+7) Run 'npm start oauth' to authenticate for the first time.
+8) Run `npm start`. The first time around you will need to authenticate with Youtube, this will be done by opening up a web browser on your computer.
 
 ## Future Plans + Notes
 ### Future Plans

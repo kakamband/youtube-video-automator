@@ -7,6 +7,8 @@ const fs = require('fs');
 const _cliProgress = require('cli-progress');
 const _colors = require('colors');
 var dbController = require('../controller/db');
+var Commenter = require('../commenter/commenter');
+var OAuthFlow = require('../oauth/oauth_flow');
 const readline = require('readline');
 const opn = require('opn');
 const base64url = require('base64url');
@@ -18,6 +20,165 @@ var VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
 
 // Constants
 const youtubeVideoPrefix = "https://www.youtube.com/watch?v=";
+
+// --------------------------------------------
+// Exported compartmentalized functions below.
+// --------------------------------------------
+
+// uploadRecoveredVideos
+// Looks into the video_data_saved/ file for recovered videos (when youtube hits the quota cap.) and starts to upload them in order.
+module.exports.uploadRecoveredVideos = function() {
+	return new Promise(function(resolve, reject) {
+		// Go into the video data saved directory
+		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
+
+		return shell.exec("ls", function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			var directories = stdout.split("\n");
+			directories.pop(); // Remove the extra empty directory
+			return new Promise.mapSeries(directories, function(item, index, len) {
+				cLogger.info("Backfill uploading the following directory: " + item);
+
+				return new Promise(function(res, rej) {
+					shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/" + item + "/");
+
+					return fs.readFile("overview.txt", function(err, data) {
+						if (err) {
+							return reject(err);
+						}
+
+						var numberOfUploads = data.toString().split("\n")[0];
+						cLogger.info("Have to backfill " + numberOfUploads + " video in this folder.");
+
+						return backfillVideos(numberOfUploads)
+						.then(function() {
+
+							// Leave this directory
+							shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
+							return shell.exec("rm -R \"" + item + "\"/", function(code, stdout, stderr) {
+								return res();
+							});
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					});
+				});
+			})
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		})
+	});
+}
+
+// recoverAllVideos
+// When youtube rejects a video for whatever reason (usually hitting the quota cap) we need to make sure to recover all of the remaining
+// content. However at the same time not recovering the content that has succesfully been uploaded (if any has been.)
+// This function will recover all of the videos starting at an initial game.
+module.exports.recoverAllVideos = function(content, startingGame, toSavedDir) {
+	return recoverAllRemainingVideos(content, startingGame, toSavedDir);
+}
+
+// recoverAllVideosWrapper
+// The same as above however recovers all of the content (ie. startingGame is the first element)
+module.exports.recoverAllVideosWrapper = function(content, toSavedDir) {
+	var firstEntry = content.entries().next().value;
+	var startingGame = "";
+	if (firstEntry != undefined && firstEntry.length > 0) {
+		startingGame = firstEntry[0];
+	}
+
+	return recoverAllRemainingVideos(content, startingGame, toSavedDir);
+}
+
+// startUploadingWithToken
+// Starts uploading content in Base64 format. This function is called immediately after an OAuth2 accept callback.
+// The code is used to get the refresh token.
+module.exports.startUploadingWithToken = function(code, contentSTR) {
+	return new Promise(function(resolve, reject) {
+		var contentJSONStr = base64url.decode(contentSTR);
+		var content = new Map(JSON.parse(contentJSONStr));
+
+		return OAuthFlow.initCallback(code)
+		.then(function() {
+			return uploadVideos(content)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// startUploadProcess
+// Start the upload process, using a source directory of 'video_data'
+module.exports.startUploadProcess = function(content) {
+	VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
+	return initUpload(content);
+}
+
+// uploadHijackedVideos
+// Start the upload process, using a source directory of 'video_data_hijacks'
+module.exports.uploadHijackedVideos = function(content) {
+	VIDEO_DATA_DIRECTORY = VIDEO_DATA_HIJACKED_DIR;
+	return initUpload(content);
+}
+
+// changeThumbnail
+// Gets a refresh token, then 
+module.exports.changeThumbnail = function(videoID, clips, gameName) {
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		Secrets.GOOGLE_API_REDIRECT_URI
+	);
+
+	return new Promise(function(resolve, reject) {
+		return getRefreshToken(Secrets.GOOGLE_API_CLIENT_ID)
+		.then(function(tokens) {
+			if (tokens == null) {
+				return reject(new Error("Could not find a refresh token. Please re-auth first."));
+			}
+
+			oauth2Client.setCredentials({
+				refresh_token: tokens.refresh_token
+			});
+			google.options({
+				auth: oauth2Client
+			});
+			const youtube = google.youtube({ version:'v3'});
+			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/Fortnite/");
+			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// --------------------------------------------
+// Exported compartmentalized functions above.
+// --------------------------------------------
+// Helper functions below.
+// --------------------------------------------
 
 function uploadVideos(content) {
 	return new Promise(function(resolve, reject) {
@@ -111,57 +272,6 @@ function uploadVideos(content) {
 		.catch(function(err) {
 			return reject(err);
 		});
-	});
-}
-
-module.exports.uploadRecoveredVideos = function() {
-	return new Promise(function(resolve, reject) {
-		// Go into the video data saved directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
-
-		return shell.exec("ls", function(code, stdout, stderr) {
-			if (code != 0) {
-				return reject(stderr);
-			}
-
-			var directories = stdout.split("\n");
-			directories.pop(); // Remove the extra empty directory
-			return new Promise.mapSeries(directories, function(item, index, len) {
-				cLogger.info("Backfill uploading the following directory: " + item);
-
-				return new Promise(function(res, rej) {
-					shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/" + item + "/");
-
-					return fs.readFile("overview.txt", function(err, data) {
-						if (err) {
-							return reject(err);
-						}
-
-						var numberOfUploads = data.toString().split("\n")[0];
-						cLogger.info("Have to backfill " + numberOfUploads + " video in this folder.");
-
-						return backfillVideos(numberOfUploads)
-						.then(function() {
-
-							// Leave this directory
-							shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/");
-							return shell.exec("rm -R \"" + item + "\"/", function(code, stdout, stderr) {
-								return res();
-							});
-						})
-						.catch(function(err) {
-							return reject(err);
-						});
-					});
-				});
-			})
-			.then(function() {
-				return resolve();
-			})
-			.catch(function(err) {
-				return reject(err);
-			});
-		})
 	});
 }
 
@@ -366,10 +476,6 @@ function resetFileName(item, count) {
 	})
 }
 
-module.exports.recoverAllVideos = function(content, startingGame, toSavedDir) {
-	return recoverAllRemainingVideos(content, startingGame, toSavedDir);
-}
-
 function recoverAllRemainingVideos(content, lastGame, toSavedDir) {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Starting to save videos for another time since youtube is probably restricting upload.");
@@ -470,123 +576,17 @@ function addYTVideo(item) {
 	});
 }
 
-// Get access token
-function getAccessToken(content) {
-    return new Promise(function(resolve, reject) {
-    	cLogger.info("Looking for refresh tokens.");
-    	return dbController.getRefreshToken(Secrets.GOOGLE_API_CLIENT_ID)
-    	.then(function(obj) {
-			const oauth2Client = new google.auth.OAuth2(
-				Secrets.GOOGLE_API_CLIENT_ID,
-				Secrets.GOOGLE_API_CLIENT_SECRET,
-				Secrets.GOOGLE_API_REDIRECT_URI
-			);
-
-    		if (obj == null) { // We dont have any saved refresh tokens, so ask for them
-    			cLogger.info("ATTENTION WE NEED YOU TO AUTHENTICATE TO UPLOAD YOUR YOUTUBE VIDEO!");
-
-				const scopes = [
-					"https://www.googleapis.com/auth/youtube"
-				]
-
-				var contentStringified = JSON.stringify([...content]);
-				var encodedContent = base64url(contentStringified);
-
-				const url = oauth2Client.generateAuthUrl({
-					access_type: 'offline',
-					scope: scopes,
-					state: encodedContent
-				});
-
-				opn(url);
-				return resolve();
-    		}
-
-    		cLogger.info("Have saved refresh tokens.");
-    		oauth2Client.setCredentials({
-    			refresh_token: obj.refresh_token
-    		});
-    		google.options({
-    			auth: oauth2Client
-    		});
-
-    		return uploadVideos(content)
-    		.then(function() {
-    			return resolve();
-    		})
-    		.catch(function(err) {
-    			return reject(err);
-    		});
-    	})
-    	.catch(function(err) {
-    		return reject(err);
-    	});
-    });
-}
-
-module.exports.startUploadingWithToken = function(code, contentSTR) {
-	return new Promise(function(resolve, reject) {
-		var contentJSONStr = base64url.decode(contentSTR);
-		var content = new Map(JSON.parse(contentJSONStr));
-
-		const oauth2Client = new google.auth.OAuth2(
-			Secrets.GOOGLE_API_CLIENT_ID,
-			Secrets.GOOGLE_API_CLIENT_SECRET,
-			Secrets.GOOGLE_API_REDIRECT_URI
-		);
-
-		// First thing we need to do is get an access and refresh token
-		oauth2Client.getToken(code);
-		oauth2Client.on('tokens', (tokens) => {
-			oauth2Client.setCredentials(tokens);
-			google.options({
-    			auth: oauth2Client
-    		});
-
-			if (!tokens.refresh_token) {
-				cLogger.warn("Could not find a refresh token! This means each time we need to upload we need user interaction.");
-				return uploadVideos(content)
-				.then(function() {
-					return resolve();
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else {
-				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token)
-				.then(function() {
-					cLogger.info("Added the refresh & access token to the DB for future use.");
-
-					return uploadVideos(content)
-					.then(function() {
-						return resolve();
-					})
-					.catch(function(err) {
-						return reject(err);
-					});
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			}
-		});
-	});
-}
-
-module.exports.startUploadProcess = function(content) {
-	VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
-	return initUpload(content);
-}
-
-module.exports.uploadHijackedVideos = function(content) {
-	VIDEO_DATA_DIRECTORY = VIDEO_DATA_HIJACKED_DIR;
-	return initUpload(content);
-}
-
 function initUpload(content) {
 	return new Promise(function(resolve) {
-		return getAccessToken(content)
-		.then(function(result) {
+		return OAuthFlow.getAccessToken(content)
+		.then(function(canContinue) {
+			if (!canContinue) {
+				cLogger.info("Getting authorization from the user. This process is gonna pop off the stack.");
+				return resolve();
+			}
+			return uploadVideos(content);
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
@@ -653,6 +653,7 @@ function uploadVideo(gameName, clips, fileName) {
 
 					let data = res.data;
 					let videoID = data.id;
+					let channelID = data.snippet.channelId;
 
 					// Now try to add the playlist if it exists
 					return addToYoutubePlaylist(youtube, videoID, playlistID)
@@ -661,6 +662,9 @@ function uploadVideo(gameName, clips, fileName) {
 						// Now try to add the thumbnail if it exists
 						return attemptToAddThumbnail(youtube, videoID, clips, gameName)
 						.then(function() {
+							return Commenter.addDefaultComment(youtube, videoID, channelID, gameName);
+						})
+						.catch(function(err) {
 							return resolve(videoID);
 						})
 						.catch(function(err) {
@@ -679,42 +683,6 @@ function uploadVideo(gameName, clips, fileName) {
 					bar1.stop();
 					return reject(err);
 				});
-			})
-			.catch(function(err) {
-				return reject(err);
-			});
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
-	});
-}
-
-module.exports.changeThumbnail = function(videoID, clips, gameName) {
-	const oauth2Client = new google.auth.OAuth2(
-		Secrets.GOOGLE_API_CLIENT_ID,
-		Secrets.GOOGLE_API_CLIENT_SECRET,
-		Secrets.GOOGLE_API_REDIRECT_URI
-	);
-
-	return new Promise(function(resolve, reject) {
-		return getRefreshToken(Secrets.GOOGLE_API_CLIENT_ID)
-		.then(function(tokens) {
-			if (tokens == null) {
-				return reject(new Error("Could not find a refresh token."));
-			}
-
-			oauth2Client.setCredentials({
-				refresh_token: tokens.refresh_token
-			});
-			google.options({
-				auth: oauth2Client
-			});
-			const youtube = google.youtube({ version:'v3'});
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_hijacks/Fortnite/");
-			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
-			.then(function() {
-				return resolve();
 			})
 			.catch(function(err) {
 				return reject(err);
@@ -760,7 +728,7 @@ function attemptToAddThumbnail(youtube, videoID, clips, gameName) {
 
 					cLogger.info("Thumbnail succesfully added!");
 					return resolve();
-				})
+				});
 			}
 		})
 		.catch(function(err) {
@@ -817,7 +785,7 @@ function getDescription(game, clips) {
 
 	var descr = "";
 	var askForSubLikesComments = "\n" + Attr.DEFAULT_LIKE_SUB_TEXT;
-	var creditsPortion = "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
+	var creditsPortion = askForSubLikesComments + "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
 
 	// Check to see if there are overrides
 	if (clips.length > 0 && clips[0].override_description) {
