@@ -26,6 +26,9 @@ var users = require('./routes/users');
 
 var app = express();
 
+global.ORIGIN_PATH = (shell.pwd() + "/");
+cLogger.info("The global path is: " + ORIGIN_PATH);
+
 var dbConfig = {
   client: 'pg',
   connection: Attr.PG_CONNECTION_STR,
@@ -138,7 +141,7 @@ switch (processType) {
 						return restart()
 						.then(function(redo) {
 							if (redo) {
-								shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
+								shell.cd(ORIGIN_PATH);
 								return next();
 							} else {
 								return resolve();

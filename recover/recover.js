@@ -8,7 +8,7 @@ module.exports.recoverFromNothing = function() {
 	return new Promise(function(resolve, reject) {
 
 		// Go into the video data directory
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/");
+		shell.cd(ORIGIN_PATH + "video_data/");
 
 		// Content
 		var content = new Map();
@@ -25,7 +25,7 @@ module.exports.recoverFromNothing = function() {
 				cLogger.info("Looking at directory: " + item);
 
 				return new Promise(function(res, rej) {
-					shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + "video_data/" + item + "/");
+					shell.cd(ORIGIN_PATH + "video_data/" + item + "/");
 
 					return dbController.getLatestClips(item)
 					.then(function(clips) {
@@ -44,7 +44,7 @@ module.exports.recoverFromNothing = function() {
 			})
 			.then(function() {
 				cLogger.mark("\nHave recovered the content. Now moving to a recovery directory.\n");
-				return Uploader.recoverAllVideos(content, firstEntry, (process.env.YOUTUBE_AUTOMATOR_PATH + "video_data_saved/"));
+				return Uploader.recoverAllVideos(content, firstEntry, (ORIGIN_PATH + "video_data_saved/"));
 			})
 			.then(function() {
 				return resolve();

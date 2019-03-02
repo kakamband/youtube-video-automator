@@ -3,6 +3,7 @@ var shell = require('shelljs');
 var cLogger = require('color-log');
 var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
 module.exports.combineHijackedContent = function(content) {
 	return _combineContent(content, "video_data_hijacks/");
@@ -15,7 +16,7 @@ module.exports.combineContent = function(content) {
 function _combineContent(content, dir) {
 	return new Promise(function(resolve, reject) {
 
-		shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + dir);
+		shell.cd(ORIGIN_PATH + dir);
 
 		return new Promise.mapSeries(content.entries(), function(item, ind, len) {
 			let gameName = item[0];
@@ -23,7 +24,7 @@ function _combineContent(content, dir) {
 			let count = clips.length;
 
 			// Enter the game directory
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH + dir + gameName + "/");
+			shell.cd(ORIGIN_PATH + dir + gameName + "/");
 
 			return new Promise(function(res, rej) {
 				cLogger.info("Combining " + count + " videos of " + gameName + " now.");
@@ -49,7 +50,7 @@ function _combineContent(content, dir) {
 		.then(function() {
 
 			// Leave the video data directory
-			shell.cd(process.env.YOUTUBE_AUTOMATOR_PATH);
+			shell.cd(ORIGIN_PATH);
 
 			return resolve(content);
 		})
@@ -61,7 +62,7 @@ function _combineContent(content, dir) {
 
 function executeCombining(count, maxWidth, maxHeight) {
 	return new Promise(function(resolve, reject) {
-		return shell.exec(createCommand(count, maxWidth, maxHeight), function(code, stdout, stderr) {
+		return shell.exec(ffmpegPath + createCommand(count, maxWidth, maxHeight), function(code, stdout, stderr) {
 			if (code != 0) {
 				cLogger.error("Error downloading content: ", stderr);
 				return reject(stderr);
@@ -101,7 +102,7 @@ function getDimensionSize(count) {
 }
 
 function createCommand(count, maxWidth, maxHeight) {
-	var str = "ffmpeg ";
+	var str = " ";
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "-i clip-" + i + ".mp4 ";
 	}
