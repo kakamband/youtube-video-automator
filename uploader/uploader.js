@@ -674,7 +674,9 @@ function uploadVideo(gameName, clips, fileName) {
 								return resolve(videoID);
 							})
 							.catch(function(err) {
-								return reject(err);
+								cLogger.info("Have encountered an error adding a default comment, however not terminating since its not worth.");
+								cLogger.error("The ignored error was: ", err);
+								return resolve(videoID);
 							});
 						});
 					})
