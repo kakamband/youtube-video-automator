@@ -234,7 +234,7 @@ function processHijack(gameName, twitchStream) {
 			  		var epoch = (new Date).getTime();
 			  		fileName = "finished-" + epoch;
 
-			  		cProcess = shell.exec('ffmpeg -i $(youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
+			  		cProcess = shell.exec('ffmpeg -i $(' + process.env.YOUTUBE_AUTOMATOR_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
 			  	}
 			  	process.stdin.setRawMode(false);
 			});
