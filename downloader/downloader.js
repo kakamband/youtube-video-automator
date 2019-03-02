@@ -61,7 +61,7 @@ function downloadEachClip(clips) {
 
 		return new Promise.mapSeries(clips, function(clip, index, len) {
 			return new Promise(function(res, rej) {
-				return shell.exec("youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader ffmpeg", function(code, stdout, stderr) {
+				return shell.exec(process.env.YOUTUBE_AUTOMATOR_PATH + "youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader ffmpeg", function(code, stdout, stderr) {
 					if (code != 0) {
 						cLogger.error("Error downloading content: ", stderr);
 						return rej();
