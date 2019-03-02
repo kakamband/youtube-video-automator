@@ -76,7 +76,7 @@ function smartParse(items) {
 			return new Promise(function(res1, rej1) {
 
 				// If we have the maximum duration we want already, return the clips to the high level promise.
-				if (currentDuration >= 100 /*MAX_VIDEO_DURATION*/)
+				if (currentDuration >= MAX_VIDEO_DURATION)
 					return resolve(chosenClips);
 
 				// If this isn't an english vod then skip it
