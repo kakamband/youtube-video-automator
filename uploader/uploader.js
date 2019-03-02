@@ -108,13 +108,10 @@ module.exports.startUploadingWithToken = function(code, contentSTR) {
 
 		return OAuthFlow.initCallback(code)
 		.then(function() {
-			return uploadVideos(content)
-			.then(function() {
-				return resolve();
-			})
-			.catch(function(err) {
-				return reject(err);
-			});
+			return uploadVideos(content);
+		})
+		.then(function() {
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);
@@ -160,6 +157,7 @@ module.exports.changeThumbnail = function(videoID, clips, gameName) {
 			});
 			const youtube = google.youtube({ version:'v3'});
 			shell.cd(ORIGIN_PATH + "video_data_hijacks/Fortnite/");
+
 			return attemptToAddThumbnail(youtube, videoID, clips, gameName)
 			.then(function() {
 				return resolve();
@@ -303,6 +301,7 @@ function backfillVideos(numberOfUploads) {
 			function next() {
 				var currFileName = Attr.FINISHED_FNAME + (count + 1);
 				cLogger.info("Looking at file " + currFileName + ".[mp4/txt]");
+
 				return handleBackfillFile(currFileName, numberOfUploads, count)
 				.then(function() {
 					if (count < numberOfUploads - 1) {
@@ -664,13 +663,19 @@ function uploadVideo(gameName, clips, fileName) {
 						.then(function() {
 							return Commenter.addDefaultComment(youtube, videoID, channelID, gameName);
 						})
-						.catch(function(err) {
+						.then(function() {
 							return resolve(videoID);
 						})
 						.catch(function(err) {
 							cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
 							cLogger.error("The ignored error was: ", err);
-							return resolve(videoID);
+							return Commenter.addDefaultComment(youtube, videoID, channelID, gameName)
+							.then(function() {
+								return resolve(videoID);
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
 						});
 					})
 					.catch(function(err) {
