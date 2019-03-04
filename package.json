@@ -9,7 +9,8 @@
     "stream-hijack": "node ./bin/www --stream-hijack",
     "test": "node ./bin/www --test",
     "oauth": "node ./bin/www",
-    "rm-oauth": "node ./bin/www"
+    "rm-oauth": "node ./bin/www",
+    "open": "node ./bin/www --open"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.0.17",

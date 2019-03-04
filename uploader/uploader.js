@@ -8,6 +8,7 @@ const _cliProgress = require('cli-progress');
 const _colors = require('colors');
 var dbController = require('../controller/db');
 var Commenter = require('../commenter/commenter');
+var Rater = require('../rater/rater');
 var OAuthFlow = require('../oauth/oauth_flow');
 const readline = require('readline');
 const opn = require('opn');
@@ -661,7 +662,13 @@ function uploadVideo(gameName, clips, fileName) {
 						// Now try to add the thumbnail if it exists
 						return attemptToAddThumbnail(youtube, videoID, clips, gameName)
 						.then(function() {
+							if (Attr.VIDEO_VISIBILITY == "private") { // Can't post a comment on a private video
+								return resolve(videoID);
+							}
 							return Commenter.addDefaultComment(youtube, videoID, channelID, gameName);
+						})
+						.then(function() {
+							return Rater.likeVideo(youtube, videoID);
 						})
 						.then(function() {
 							return resolve(videoID);
@@ -669,7 +676,16 @@ function uploadVideo(gameName, clips, fileName) {
 						.catch(function(err) {
 							cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
 							cLogger.error("The ignored error was: ", err);
+
+							// Can't post a comment on a private video
+							if (Attr.VIDEO_VISIBILITY == "private") {
+								return resolve(videoID);
+							}
+
 							return Commenter.addDefaultComment(youtube, videoID, channelID, gameName)
+							.then(function() {
+								return Rater.likeVideo(youtube, videoID);
+							})
 							.then(function() {
 								return resolve(videoID);
 							})
@@ -792,7 +808,8 @@ function getDescription(game, clips) {
 
 	var descr = "";
 	var askForSubLikesComments = "\n" + Attr.DEFAULT_LIKE_SUB_TEXT;
-	var creditsPortion = askForSubLikesComments + "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
+	var builtByBot = "\nThis video was clipped, encoded, and uploaded automatically by AutoTuber (twitchautomator.com).";
+	var creditsPortion = askForSubLikesComments + builtByBot + "\n\n.\n.\n.\n.\n.\n.\nCredits:\n";
 
 	// Check to see if there are overrides
 	if (clips.length > 0 && clips[0].override_description) {
