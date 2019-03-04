@@ -64,6 +64,9 @@ if (process.argv.length == 3) {
 		case "rm-oauth":
 			processType = 6;
 			break;
+		case "open":
+			processType = 7;
+			break;
 		default:
 			processType = 0;
 	}
@@ -218,6 +221,10 @@ switch (processType) {
 			cLogger.error("Error during process: " + err);
 			process.exit();
 		});
+		break;
+
+	case 7:
+		cLogger.info("Not running any process, just letting the node server run.");
 		break;
 
 	// Default and normal process to run. This process polls for the highest rated clips on twitch.

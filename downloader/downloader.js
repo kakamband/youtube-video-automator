@@ -26,7 +26,10 @@ module.exports.downloadContent = function(content) {
 			return new Promise(function(res, rej) {
 				cLogger.mark("Starting to download clips for " + gameName);
 				return downloadEachClip(clips)
-				.then(function() {
+				.then(function(resultingClips) {
+
+					// Update the clips
+					content.set(gameName, resultingClips);
 
 					// Leave the game directory
 					shell.cd("..");
@@ -57,20 +60,25 @@ function downloadEachClip(clips) {
 	return new Promise(function(resolve, reject) {
 		// If we couldn't find enough clips to make the video
 		if (clips.length == 0) {
-			return resolve();
+			return resolve(clips);
 		}
 
+		var offsetVal = 0;
+		var resultingClips = [];
 		return new Promise.mapSeries(clips, function(clip, index, len) {
 			return new Promise(function(res, rej) {
-				return shell.exec(ORIGIN_PATH + "youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + index + ".mp4 --external-downloader " + ffmpegPath, function(code, stdout, stderr) {
+				return shell.exec(ORIGIN_PATH + "youtube-dl -f best https://clips.twitch.tv/" + clip.vod_id + " -o clip-" + (index - offsetVal) + ".mp4 --external-downloader " + ffmpegPath, function(code, stdout, stderr) {
 					if (code != 0) {
 						cLogger.error("Error downloading content: ", stderr);
-						return rej();
+						cLogger.info("Not exitting, just not using this clip.");
+						offsetVal++;
+						return res();
 					}
 
+					resultingClips.push(clip);
 					return dbController.setUsed(clip)
 					.then(function() {
-						cLogger.info("Downloaded clip #" + index + " and added to used content in DB.");
+						cLogger.info("Downloaded clip #" + (index - offsetVal) + " and added to used content in DB.");
 						return res();
 					})
 					.catch(function(err) {
@@ -80,7 +88,7 @@ function downloadEachClip(clips) {
 			});
 		})
 		.then(function() {
-			return resolve();
+			return resolve(resultingClips);
 		})
 		.catch(function(err) {
 			return reject(err);
