@@ -8,6 +8,7 @@ const { getVideoDurationInSeconds } = require('get-video-duration');
 var fs = require('fs');
 var Combiner = require('../combiner/combiner');
 var Uploader = require('../uploader/uploader');
+var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
 module.exports.startHijacking = function() {
@@ -52,6 +53,103 @@ module.exports.startHijacking = function() {
 			
 			next();
 		});
+	});
+}
+
+module.exports.getClipGame = function(twitchStream) {
+	return getCurrentStreamGame(twitchStream);
+}
+
+module.exports.startHijack = function(userID, gameName, twitchStream) {
+	shell.cd(ORIGIN_PATH + "video_data_hijacks/");
+
+	return new Promise(function(resolve, reject) {
+		var lsCMD = ("ls | grep \"" + gameName + "\"");
+		cLogger.info("Running command: " + lsCMD);
+		return shell.exec(lsCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				shell.mkdir(gameName);
+				cLogger.info("No folder for " + gameName + " creating it.");
+			}
+
+			shell.cd(ORIGIN_PATH + "video_data_hijacks/" + gameName + "/");
+
+			var hijacking = false;
+			var cProcess = null;
+			var fileName = null;
+			var endingHijack = false;
+
+			function next() {
+				if (!hijacking) { // Start the hijack now.
+					cLogger.info("Starting the hijack! You will see some text appear shortly.");
+			  		hijacking = true;
+
+			  		var epoch = (new Date).getTime();
+			  		fileName = userID + "-finished-" + epoch;
+
+			  		cProcess = shell.exec(ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
+			  		
+			  		// Create the download object for the DB
+			  		var downloadObj = {
+			  			game: gameName,
+			  			user_id: userID,
+			  			twitch_link: twitchStream,
+			  			created_at: new Date(),
+			  			updated_at: new Date()
+			  		};
+
+			  		return dbController.addDownload(downloadObj)
+			  		.then(function() {
+			  			return next();
+			  		})
+			  		.catch(function(err) {
+			  			// Try again
+			  			return dbController.addDownload(downloadObj)
+			  			.then(function() {
+			  				return next();
+			  			})
+			  			.catch(function(err2) {
+			  				return reject(err2);
+			  			})
+			  		})
+				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
+					return stopHelper(userID, gameName, twitchStream)
+					.then(function() {
+						cProcess.kill();
+						return resolve();
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				}
+			}
+
+			return next();
+		});
+	});
+}
+
+function stopHelper(userID, gameName, twitchStream) {
+	return new Promise(function(resolve, reject) {
+		function next() {
+			cLogger.info("Checking if we need to stop.");
+			return dbController.needToStopDownload(userID, gameName, twitchStream)
+			.then(function(stop) {
+				if (stop) {
+					return resolve();
+				} else {
+					return Promise.delay(2000) // Delay 2 seconds between checks to terminate.
+					.then(function() {
+						return next();
+					});
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
 	});
 }
 

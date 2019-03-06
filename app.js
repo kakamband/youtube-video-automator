@@ -18,7 +18,7 @@ var Recover = require('./recover/recover');
 var Hijacker = require('./hijacker/hijacker');
 var TesterHelper = require('./test_helper/helpers');
 var OauthFlow = require('./oauth/oauth_flow');
-var Worker = require('./worker/worker');
+var Worker = require('./worker/worker_producer');
 var Promise = require('bluebird');
 const readline = require('readline');
 
@@ -225,10 +225,8 @@ switch (processType) {
 		break;
 
 	case 7:
-	return Worker.initProducers()
-		.then(function(workerChannels) {
-			global.workerChannels = workerChannels;
-			cLogger.info("Initialized worker queues.");
+		Worker.initProducers()
+		.then(function() {
 			return knex.raw('select 1+1 as result');
 		})
 		.then(function() {
@@ -239,7 +237,7 @@ switch (processType) {
 			// Setup twitch connection
 			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
 			global.twitch = twitch;
-			
+
 			cLogger.info("Not running any process, just letting the node server run.");
 		})
 		.catch(function(err) {

@@ -12,11 +12,12 @@ module.exports.START_CLIPPING = "/start/clip";
 module.exports.routes = new Map([
 	[this.START_CLIPPING, {
 		method: "post",
-		required_params: [
+		required_body: [
+			nameAndType("user_id", "string"),
 			nameAndType("twitch_link", "string"),
 		],
 		validateParams: function(body, params) {
-			return validateHelper(body, params, null, this.required_params);
+			return validateHelper(body, params, this.required_body, null);
 		}
 	}],
 ]);

@@ -4,7 +4,8 @@ var uploader = require('../uploader/uploader');
 var OauthFlow = require('../oauth/oauth_flow');
 var router = express.Router();
 var Models = require('./models');
-var Worker = require('../worker/worker');
+var Worker = require('../worker/worker_producer');
+var Hijacker = require('../hijacker/hijacker');
 // -------------------
 
 function validFirst(route, req, res, next, continuation) {
@@ -49,7 +50,27 @@ router.get('/oauthcallback/init', function(req, res, next) {
 
 router.post(Models.START_CLIPPING, function(req, res, next) {
 	validFirst(Models.START_CLIPPING, req, res, next, function() {
-		Worker.addDownloadingTask()
+		return Hijacker.getClipGame(req.body.twitch_link)
+		.then(function(gameName) {
+			return Worker.addDownloadingTask(req.body.user_id, req.body.twitch_link, gameName)
+			.then(function() {
+				return res.json({
+					success: true
+				});
+			})
+			.catch(function(err) {
+				return res.json({
+					success: false,
+					reason: "Error starting clip. Please contact the AutoTuber Help. Sorry for the inconvenience."
+				});
+			});
+		})
+		.catch(function(err) {
+			return res.json({
+				success: false,
+				reason: "The stream link was invalid, or not live."
+			});
+		});
 	});
 });
 

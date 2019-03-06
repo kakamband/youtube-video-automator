@@ -5,4 +5,5 @@ thumbnails/
 node_modules/
 video_data/
 video_data_saved/
+video_data_hijacks/
 test_helper/helpers_tester.js

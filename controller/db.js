@@ -1,4 +1,5 @@
 var Promise = require('bluebird');
+var cLogger = require('color-log');
 
 module.exports.alreadyUsed = function(game, id, trackingID) {
 	return new Promise(function(resolve, reject) {
@@ -15,6 +16,50 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 		.catch(function(err) {
 			return reject(err);
 		})
+	});
+}
+
+module.exports.needToStopDownload = function(userID, gameName, twitchLink) {
+	var stop = true;
+	var dontStop = false;
+
+	return new Promise(function(resolve, reject) {
+		knex('downloads')
+		.where("user_id", "=", userID)
+		.where("game", "=", gameName)
+		.where("twitch_link", "=", twitchLink)
+		.orderBy("updated_at", "desc")
+		.limit(1)
+		.then(function(results) {
+			if (results.length == 0) {
+				cLogger.info("Can't seem to find a download db attribute??");
+				// TODO add sentry error here
+
+				return resolve(stop);
+			}
+
+			if (results[0].state != "init-stop") {
+				return resolve(dontStop);
+			} else {
+				return resolve(stop);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addDownload = function(downloadObj) {
+	return new Promise(function(resolve, reject) {
+		knex('downloads')
+		.insert(downloadObj)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 

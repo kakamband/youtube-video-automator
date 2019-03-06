@@ -69,6 +69,15 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('downloads', function(table) {
+			table.increments();
+			table.string("game").notNullable();
+			table.string("user_id").notNullable();
+			table.string("state").default("started").notNullable();
+			table.string("twitch_link").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		console.log = oldLogger;
 		cLogger.info("Succesfully setup tables!\n");
 		return Promise.resolve();
