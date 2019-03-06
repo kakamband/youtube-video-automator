@@ -18,6 +18,7 @@ var Recover = require('./recover/recover');
 var Hijacker = require('./hijacker/hijacker');
 var TesterHelper = require('./test_helper/helpers');
 var OauthFlow = require('./oauth/oauth_flow');
+var Worker = require('./worker/worker');
 var Promise = require('bluebird');
 const readline = require('readline');
 
@@ -224,7 +225,27 @@ switch (processType) {
 		break;
 
 	case 7:
-		cLogger.info("Not running any process, just letting the node server run.");
+	return Worker.initProducers()
+		.then(function(workerChannels) {
+			global.workerChannels = workerChannels;
+			cLogger.info("Initialized worker queues.");
+			return knex.raw('select 1+1 as result');
+		})
+		.then(function() {
+			cLogger.info("Did connect succesfully to db.\n");
+			return Models.initialize(knex);
+		})
+		.then(function() {
+			// Setup twitch connection
+			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
+			global.twitch = twitch;
+			
+			cLogger.info("Not running any process, just letting the node server run.");
+		})
+		.catch(function(err) {
+			cLogger.error("Error during process: " + err);
+			process.exit();
+		});
 		break;
 
 	// Default and normal process to run. This process polls for the highest rated clips on twitch.

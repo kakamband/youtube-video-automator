@@ -1,6 +1,9 @@
 var LocalAttr = require('./local_attributes.js'); // Fill out this file with your local attributes
 
 module.exports = {
+	ENCODING_AMQP_CHANNEL_NAME: "ENCODING_CHANNEL_NO_EXP",
+	UPLOADING_AMQP_CHANNEL_NAME: "UPLOADING_CHANNEL_NO_EXP",
+	DOWNLOADING_AMQP_CHANNEL_NAME: "DOWNLOADING_CHANNEL_NO_EXP",
 	PG_CONNECTION_STR: process.env.DATABASE_URL || LocalAttr.PG_CONNECTION,
 	POLLED_GAMES: LocalAttr.POLLED_GAMES || [],
 	VIDEO_VISIBILITY: LocalAttr.VID_VISIBILITY || "private",
