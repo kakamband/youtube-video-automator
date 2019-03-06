@@ -19,12 +19,13 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 	});
 }
 
-module.exports.needToStopDownload = function(userID, gameName, twitchLink) {
+module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	var stop = true;
 	var dontStop = false;
 
 	return new Promise(function(resolve, reject) {
 		knex('downloads')
+		.where("id", "=", ID)
 		.where("user_id", "=", userID)
 		.where("game", "=", gameName)
 		.where("twitch_link", "=", twitchLink)
@@ -54,8 +55,9 @@ module.exports.addDownload = function(downloadObj) {
 	return new Promise(function(resolve, reject) {
 		knex('downloads')
 		.insert(downloadObj)
-		.then(function(results) {
-			return resolve();
+		.returning('id')
+		.then(function(id) {
+			return resolve(id[0]);
 		})
 		.catch(function(err) {
 			return reject(err);

@@ -134,9 +134,9 @@ function makeSmartDownloadChoice(queueInfo, msgOptions) {
 	return new Promise(function(resolve, reject) {
 		return isThereEmptyQueue(queueInfo)
 		.then(function(emptyQ) {
-			if (emptyQ) {
+			if (emptyQ >= 0) {
 				cLogger.info("Found an empty queue. Adding to the first empty queue.");
-				return postToFirstEmptyQ(queueInfo, msgOptions);
+				return postToFirstEmptyQ(queueInfo, msgOptions, emptyQ);
 			} else {
 				cLogger.warn("Didn't find a any empty queues. This is EXTREMELY DANGEROUS! This will result in customers not getting clips started at the correct time.");
 				// TODO: Log this to Sentry
@@ -177,32 +177,8 @@ function postToLowestDownloadQ(queueInfo, msgOptions) {
 	});
 }
 
-function postToFirstEmptyQ(queueInfo, msgOptions) {
-	return new Promise(function(resolve, reject) {
-		var index = 0;
-
-		function next() {
-			// This should never be reached
-			if (queueInfo.length <= index) {
-				return reject(new Error("Trying to post to an empty queue, however didnt find any? This is very unlikely."));
-			}
-
-			if (queueInfo[index].queueSize == 0) {
-				return makeDownloadPost(queueInfo[index].queueName, msgOptions)
-				.then(function() {
-					return resolve();
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else {
-				index++;
-				return next();
-			}
-		}
-
-		return next();
-	});
+function postToFirstEmptyQ(queueInfo, msgOptions, emptyQ) {
+	return makeDownloadPost(queueInfo[emptyQ].queueName, msgOptions);
 }
 
 function makeDownloadPost(queueName, msgOptions) {
@@ -226,13 +202,15 @@ function makeDownloadPost(queueName, msgOptions) {
 function isThereEmptyQueue(queueInfo) {
 	return new Promise(function(resolve, reject) {
 		for (var i = 0; i < queueInfo.length; i++) {
-			if (queueInfo[i].queueSize == 0) {
-				return resolve(true);
+			var condition1 = (queueInfo[i].queueSize == 0 && queueInfo[i].consumerCount > 0);
+			var condition2 = (queueInfo[i].consumerCount > 0 && (queueInfo[i].consumerCount - queueInfo[i].queueSize) > 0);
+			if (condition1 || condition2) {
+				return resolve(i);
 			}
 		}
 
 		// TODO: Log this to Sentry.
-		return resolve(false);
+		return resolve(-1);
 	});
 }
 
@@ -244,7 +222,7 @@ function getQueueMeta(){
 		var queueSize = [];
 		var downloadingQSize = [];
 		var completeBackQSize = [];
-		return shell.exec("rabbitmqctl list_queues", function(code, stdout, stderr) {
+		return shell.exec("rabbitmqctl list_queues name messages consumers", function(code, stdout, stderr) {
 			if (code != 0) {
 				return reject(stderr);
 			}
@@ -257,28 +235,34 @@ function getQueueMeta(){
 				// If this is a queue we are watching for
 				if (watchingQueues.indexOf(queueName) != -1) {
 					var obj = {queueName: queueName};
-					if (tmp.length >= 2) {
+					if (tmp.length >= 3) {
 						var qs = parseInt(tmp[1]);
+						var consumerCount = parseInt(tmp[2]);
 						if (!isNaN(qs)) {
 							obj.queueSize = qs;
+							obj.consumerCount = consumerCount;
 							queueSize.push(obj);
 						}
 					}
 				} else if (downloadingQueues.indexOf(queueName) != -1) {
 					var obj = {queueName: queueName};
-					if (tmp.length >= 2) {
+					if (tmp.length >= 3) {
 						var qs = parseInt(tmp[1]);
+						var consumerCount = parseInt(tmp[2]);
 						if (!isNaN(qs)) {
 							obj.queueSize = qs;
+							obj.consumerCount = consumerCount;
 							downloadingQSize.push(obj);
 						}
 					}
 				} else if (mustBeInBack.indexOf(queueName) != -1) {
 					var obj = {queueName: queueName};
-					if (tmp.length >= 2) {
+					if (tmp.length >= 3) {
 						var qs = parseInt(tmp[1]);
+						var consumerCount = parseInt(tmp[2]);
 						if (!isNaN(qs)) {
 							obj.queueSize = qs;
+							obj.consumerCount = consumerCount;
 							completeBackQSize.push(obj);
 						}
 					}
@@ -287,7 +271,19 @@ function getQueueMeta(){
 
 			var finalQueueInfo = queueSize.concat(downloadingQSize);
 			finalQueueInfo = finalQueueInfo.concat(completeBackQSize);
-			return resolve(finalQueueInfo.sort(queueInfoSort));
+
+			// Sanity check
+			if (finalQueueInfo.length == 0) {
+				var errMsg = "We found no open queues!";
+				cLogger.error(errMsg);
+				return reject(new Error(errMsg));
+			}
+
+			var initialMessagesSort = finalQueueInfo.sort(queueInfoSort);
+			var secondaryConsumersSort = initialMessagesSort.sort(queueInfoSort2);
+
+			console.log("secondaryConsumersSort: ", secondaryConsumersSort);
+			return resolve(secondaryConsumersSort);
 		});
 	});
 }
@@ -296,6 +292,14 @@ function queueInfoSort(a, b) {
 	if (a.queueSize < b.queueSize)
 		return -1;
 	if (a.queueSize > b.queueSize)
+		return 1;
+	return 0;
+}
+
+function queueInfoSort2(a, b) {
+	if (a.consumerCount > b.consumerCount)
+		return -1;
+	if (a.consumerCount < b.consumerCount)
 		return 1;
 	return 0;
 }

@@ -89,7 +89,7 @@ function handleMessage(message, msg, ch, knex) {
         ch.ack(msg);
       }).catch(function(err) {
         errMsg(message, msg, message, err);
-        safeRetry(message, ch, msg, message);
+        //safeRetry(message, ch, msg, message);
       });
     break;
   }

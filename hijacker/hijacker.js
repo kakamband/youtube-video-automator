@@ -78,6 +78,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 			var cProcess = null;
 			var fileName = null;
 			var endingHijack = false;
+			var downloadID = null;
 
 			function next() {
 				if (!hijacking) { // Start the hijack now.
@@ -99,7 +100,8 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 			  		};
 
 			  		return dbController.addDownload(downloadObj)
-			  		.then(function() {
+			  		.then(function(id) {
+			  			downloadID = id;
 			  			return next();
 			  		})
 			  		.catch(function(err) {
@@ -113,7 +115,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 			  			})
 			  		})
 				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
-					return stopHelper(userID, gameName, twitchStream)
+					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {
 						cProcess.kill();
 						return resolve();
@@ -129,11 +131,11 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 	});
 }
 
-function stopHelper(userID, gameName, twitchStream) {
+function stopHelper(userID, gameName, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
 		function next() {
 			cLogger.info("Checking if we need to stop.");
-			return dbController.needToStopDownload(userID, gameName, twitchStream)
+			return dbController.needToStopDownload(userID, gameName, twitchStream, downloadID)
 			.then(function(stop) {
 				if (stop) {
 					return resolve();
