@@ -53,12 +53,15 @@ router.post(Models.START_CLIPPING, function(req, res, next) {
 		return Hijacker.getClipGame(req.body.twitch_link)
 		.then(function(gameName) {
 			return Worker.addDownloadingTask(req.body.user_id, req.body.twitch_link, gameName)
-			.then(function() {
+			.then(function(downloadID) {
 				return res.json({
-					success: true
+					success: true,
+					download_id: downloadID
 				});
 			})
 			.catch(function(err) {
+			// TODO log this to Sentry.
+			
 				return res.json({
 					success: false,
 					reason: "Error starting clip. Please contact the AutoTuber Help. Sorry for the inconvenience."
@@ -66,9 +69,29 @@ router.post(Models.START_CLIPPING, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
+			// TODO log this to Sentry.
+
 			return res.json({
 				success: false,
 				reason: "The stream link was invalid, or not live."
+			});
+		});
+	});
+});
+
+router.post(Models.END_CLIPPING, function(req, res, next) {
+	validFirst(Models.END_CLIPPING, req, res, next, function() {
+		return Hijacker.endHijacking(req.body.user_id, req.body.twitch_link, parseInt(req.body.download_id))
+		.then(function() {
+			return res.json({
+				success: true
+			});
+		})
+		.catch(function(err) {
+			// TODO log this to Sentry.
+
+			return res.json({
+				success: false
 			});
 		});
 	});

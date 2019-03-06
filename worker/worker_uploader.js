@@ -81,9 +81,10 @@ function handleMessage(message, msg, ch, knex) {
       var userID = msg.properties.correlationId;
       var gameName = msg.properties.contentType;
       var twitchStream = msg.properties.contentEncoding;
+      var downloadID = parseInt(msg.properties.messageId);
       cLogger.info("Starting a downloading task.");
 
-      return Helpers.downloadContent(userID, gameName, twitchStream)
+      return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
       .then(function() {
         successMsg(message);
         ch.ack(msg);

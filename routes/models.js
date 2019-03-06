@@ -6,6 +6,9 @@ var Promise = require('bluebird');
 // Starts the clip
 module.exports.START_CLIPPING = "/start/clip";
 
+// Ends the clip
+module.exports.END_CLIPPING = "/end/clip";
+
 // -------------------
 
 // Route definitions
@@ -15,6 +18,17 @@ module.exports.routes = new Map([
 		required_body: [
 			nameAndType("user_id", "string"),
 			nameAndType("twitch_link", "string"),
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.END_CLIPPING, {
+		method: "post",
+		required_body: [
+			nameAndType("user_id", "string"),
+			nameAndType("twitch_link", "string"),
+			nameAndType("download_id", "string"),
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

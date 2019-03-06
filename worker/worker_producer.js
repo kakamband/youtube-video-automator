@@ -3,6 +3,7 @@ var cLogger = require('color-log');
 var amqp = require('amqplib/callback_api');
 var Secrets = require('../config/secrets');
 var Attr = require('../config/attributes');
+var dbController = require('../controller/db');
 var shell = require('shelljs');
 
 // --------------------------------------------
@@ -89,12 +90,26 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 			contentEncoding: twitchLink
 		};
 
-		return getQueueMeta()
+		var downloadObj = {
+			game: gameName,
+			user_id: userID,
+			twitch_link: twitchLink,
+			created_at: new Date(),
+			updated_at: new Date()
+		};
+		var downloadObjID = null;
+
+		return dbController.addDownload(downloadObj)
+		.then(function(downloadID) {
+			downloadObjID = downloadID;
+			msgOptions.messageId = downloadObjID + "";
+			return getQueueMeta()
+		})
 		.then(function(queueInfo) {
 			return makeSmartDownloadChoice(queueInfo, msgOptions);
 		})
 		.then(function() {
-			return resolve();
+			return resolve(downloadObjID);
 		})
 		.catch(function(err) {
 			return reject(err);
@@ -282,7 +297,6 @@ function getQueueMeta(){
 			var initialMessagesSort = finalQueueInfo.sort(queueInfoSort);
 			var secondaryConsumersSort = initialMessagesSort.sort(queueInfoSort2);
 
-			console.log("secondaryConsumersSort: ", secondaryConsumersSort);
 			return resolve(secondaryConsumersSort);
 		});
 	});

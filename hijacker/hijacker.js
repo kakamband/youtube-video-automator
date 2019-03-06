@@ -60,7 +60,19 @@ module.exports.getClipGame = function(twitchStream) {
 	return getCurrentStreamGame(twitchStream);
 }
 
-module.exports.startHijack = function(userID, gameName, twitchStream) {
+module.exports.endHijacking = function(userID, twitchStream, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return dbController.initDownloadStop(userID, twitchStream, downloadID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
 	shell.cd(ORIGIN_PATH + "video_data_hijacks/");
 
 	return new Promise(function(resolve, reject) {
@@ -78,7 +90,6 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 			var cProcess = null;
 			var fileName = null;
 			var endingHijack = false;
-			var downloadID = null;
 
 			function next() {
 				if (!hijacking) { // Start the hijack now.
@@ -89,36 +100,23 @@ module.exports.startHijack = function(userID, gameName, twitchStream) {
 			  		fileName = userID + "-finished-" + epoch;
 
 			  		cProcess = shell.exec(ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
-			  		
-			  		// Create the download object for the DB
-			  		var downloadObj = {
-			  			game: gameName,
-			  			user_id: userID,
-			  			twitch_link: twitchStream,
-			  			created_at: new Date(),
-			  			updated_at: new Date()
-			  		};
 
-			  		return dbController.addDownload(downloadObj)
-			  		.then(function(id) {
-			  			downloadID = id;
+			  		return setTimeout(function() {
 			  			return next();
-			  		})
-			  		.catch(function(err) {
-			  			// Try again
-			  			return dbController.addDownload(downloadObj)
-			  			.then(function() {
-			  				return next();
-			  			})
-			  			.catch(function(err2) {
-			  				return reject(err2);
-			  			})
-			  		})
+			  		}, 5000);
 				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
 					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {
 						cProcess.kill();
-						return resolve();
+						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID)
+						.then(function() {
+							return resolve();
+						})
+						.catch(function(err) {
+							// TODO: Log to Sentry
+
+							return reject(err);
+						});
 					})
 					.catch(function(err) {
 						return reject(err);

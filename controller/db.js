@@ -19,6 +19,43 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 	});
 }
 
+module.exports.finishedDownloading = function(userID, gameName, twitchStream, downloadID) {
+	return new Promise(function(resolve, reject) {
+		knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.where("twitch_link", "=", twitchStream)
+		.where("game", "=", gameName)
+		.update({
+			state: "done",
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
+	return new Promise(function(resolve, reject) {
+		knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.where("twitch_link", "=", twitchLink)
+		.update({
+			state: "init-stop",
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	var stop = true;
 	var dontStop = false;
