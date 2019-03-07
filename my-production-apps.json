@@ -6,24 +6,24 @@
             "args" : "start open"
         },
         {
-            "name": "worker-encoder-1",
+            "name": "worker-encoder",
             "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
-            "args" : "encoder"
+            "args" : "encoder-prod"
         },
         {
-            "name": "worker-uploader-1",
+            "name": "worker-uploader",
             "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
-            "args" : "uploader"
+            "args" : "uploader-prod"
         },
         {
-            "name": "worker-downloader-1",
+            "name": "worker-downloader",
             "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
-            "args" : "downloader"
+            "args" : "downloader-prod"
         },
         {
-            "name": "worker-fallback-1",
+            "name": "worker-fallback",
             "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
-            "args" : "fallback"
+            "args" : "fallback-prod"
         },
         {
         	"nginx": "nginx-layer",
