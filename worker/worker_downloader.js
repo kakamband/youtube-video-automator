@@ -50,9 +50,7 @@ function safeRetry(workerActivity, ch, msg, message) {
 
   console.log("Retrying this message (" + message + ")");
   ch.ack(msg);
-  ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), {
-    persistent: true
-  });
+  ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), msg.properties);
   retriesMap[message] = retriesMap[message] + 1;
 }
 
@@ -81,7 +79,7 @@ function handleMessage(message, msg, ch, knex) {
       var userID = msg.properties.correlationId;
       var gameName = msg.properties.contentType;
       var twitchStream = msg.properties.contentEncoding;
-      var downloadID = msg.properties.messageId;
+      var downloadID = parseInt(msg.properties.messageId);
       cLogger.info("Starting a downloading task.");
 
       return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)

@@ -50,9 +50,7 @@ function safeRetry(workerActivity, ch, msg, message) {
 
   console.log("Retrying this message (" + message + ")");
   ch.ack(msg);
-  ch.sendToQueue(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, new Buffer(message), {
-    persistent: true
-  });
+  ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), msg.properties);
   retriesMap[message] = retriesMap[message] + 1;
 }
 

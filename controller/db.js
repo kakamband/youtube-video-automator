@@ -19,7 +19,7 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 	});
 }
 
-module.exports.finishedDownloading = function(userID, gameName, twitchStream, downloadID) {
+module.exports.finishedDownloading = function(userID, gameName, twitchStream, downloadID, fileLocation) {
 	return new Promise(function(resolve, reject) {
 		knex('downloads')
 		.where("id", "=", downloadID)
@@ -28,6 +28,7 @@ module.exports.finishedDownloading = function(userID, gameName, twitchStream, do
 		.where("game", "=", gameName)
 		.update({
 			state: "done",
+			downloaded_file: fileLocation
 		})
 		.then(function(results) {
 			return resolve();
@@ -163,9 +164,10 @@ module.exports.getLatestClips = function(gameName) {
 	});
 }
 
-module.exports.getPlaylist = function(gameName) {
+module.exports.getPlaylist = function(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		knex('playlists')
+		.where("user_id", "=", userID)
 		.where("game", "=", gameName)
 		.limit(1)
 		.then(function(result) {
@@ -181,10 +183,11 @@ module.exports.getPlaylist = function(gameName) {
 	});
 }
 
-module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
+module.exports.getThumbnail = function(userID, gameName, hijacked, hijackedName) {
 	return new Promise(function(resolve, reject) {
 		if (hijacked) {
 			return knex('thumbnails')
+			.where("user_id", "=", userID)
 			.where("game", "=", gameName)
 			.where("hijacked", "=", true)
 			.where("hijacked_name", "=", hijackedName)
@@ -192,12 +195,12 @@ module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
 			.limit(1)
 			.then(function(result) {
 				if (result.length == 0) {
-					return findGameHijackedThumbnail(gameName)
+					return findGameHijackedThumbnail(gameName, userID)
 					.then(function(result1) {
 						if (result1 != null) {
 							return resolve(result1);
 						}
-						return findGameThumbnail(gameName);
+						return findGameThumbnail(gameName, userID);
 					})
 					.then(function(result2) {
 						return resolve(result2);
@@ -213,7 +216,7 @@ module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
 				return reject(err);
 			});
 		} else {
-			return findGameThumbnail(gameName)
+			return findGameThumbnail(gameName, userID)
 			.then(function(result) {
 				return resolve(result);
 			})
@@ -224,9 +227,10 @@ module.exports.getThumbnail = function(gameName, hijacked, hijackedName) {
 	});
 }
 
-function findGameHijackedThumbnail(gameName) {
+function findGameHijackedThumbnail(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
+		.where("user_id", "=", userID)
 		.where("game", "=", gameName)
 		.where("hijacked", "=", true)
 		.whereNull("hijacked_name")
@@ -245,9 +249,10 @@ function findGameHijackedThumbnail(gameName) {
 	});
 }
 
-function findGameThumbnail(gameName) {
+function findGameThumbnail(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
+		.where("user_id", "=", userID)
 		.where("game", "=", gameName)
 		.orderBy("created_at", "desc")
 		.limit(1)
@@ -277,10 +282,11 @@ module.exports.addYoutubeVideo = function(youtubeObj) {
 	});
 }
 
-module.exports.addRefreshToken = function(clientID, refreshTkn, accessTkn) {
+module.exports.addRefreshToken = function(clientID, refreshTkn, accessTkn, userID) {
 	return new Promise(function(resolve, reject) {
 		knex('user_tokens')
 		.insert({
+			user_id: userID,
 			client_id: clientID,
 			refresh_token: refreshTkn,
 			access_token: accessTkn,

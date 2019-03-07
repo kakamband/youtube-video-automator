@@ -116,7 +116,7 @@ module.exports.initCallback = function(code) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
 				return resolve();
 			} else {
-				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token)
+				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, "LOCAL")
 				.then(function() {
 					cLogger.info("Added the refresh & access token to the DB for future use.");
 					return resolve();

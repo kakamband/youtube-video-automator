@@ -217,6 +217,7 @@ function uploadVideos(content) {
 
 					cLogger.info("Uploaded video and obtained ID of: " + vidID);
 					uploadedVideos.push({
+						user_id: "LOCAL",
 						url: (youtubeVideoPrefix + vidID),
 						game: dbGameName,
 						created_at: new Date(),
@@ -347,6 +348,7 @@ function handleBackfillFile(currFileName, numberOfUploads, index) {
 			.then(function(vidID) {
 
 				var videoObj = {
+					user_id: "LOCAL",
 					url: (youtubeVideoPrefix + vidID),
 					game: gameName,
 					created_at: new Date(),
@@ -617,7 +619,7 @@ function uploadVideo(gameName, clips, fileName) {
 
 		return dbController.episodeCount(gameName)
 		.then(function(episodeNumber) {
-			return dbController.getPlaylist(gameName)
+			return dbController.getPlaylist(gameName, "LOCAL")
 			.then(function(playlistID) {
 
 				var vodTitle = getTitle(gameName, clips, episodeNumber);

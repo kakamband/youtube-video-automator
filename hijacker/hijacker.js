@@ -73,18 +73,14 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 }
 
 module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
-	shell.cd(ORIGIN_PATH + "video_data_hijacks/");
-
 	return new Promise(function(resolve, reject) {
-		var lsCMD = ("ls | grep \"" + gameName + "\"");
+		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameName + "\"");
 		cLogger.info("Running command: " + lsCMD);
 		return shell.exec(lsCMD, function(code, stdout, stderr) {
 			if (code != 0) {
 				shell.mkdir(gameName);
 				cLogger.info("No folder for " + gameName + " creating it.");
 			}
-
-			shell.cd(ORIGIN_PATH + "video_data_hijacks/" + gameName + "/");
 
 			var hijacking = false;
 			var cProcess = null;
@@ -97,7 +93,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		hijacking = true;
 
 			  		var epoch = (new Date).getTime();
-			  		fileName = userID + "-finished-" + epoch;
+			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameName + "/") + userID + "-finished-" + epoch;
 
 			  		cProcess = shell.exec(ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
 
@@ -108,7 +104,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {
 						cProcess.kill();
-						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID)
+						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID, fileName)
 						.then(function() {
 							return resolve();
 						})
@@ -130,6 +126,10 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 }
 
 function stopHelper(userID, gameName, twitchStream, downloadID) {
+	var pollingInterval = 2000; // 2 seconds
+	var maxPolls = 750; // 25 minutes max. Maybe change this in the future for Professional Youtubers.
+	var currentPolls = 0;
+
 	return new Promise(function(resolve, reject) {
 		function next() {
 			cLogger.info("Checking if we need to stop.");
@@ -137,9 +137,15 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 			.then(function(stop) {
 				if (stop) {
 					return resolve();
+				} else if (currentPolls >= maxPolls) { // Timeout
+					cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
+					// TODO: log to Sentry
+
+					return resolve();
 				} else {
-					return Promise.delay(2000) // Delay 2 seconds between checks to terminate.
+					return Promise.delay(pollingInterval) // Delay 2 seconds between checks to terminate.
 					.then(function() {
+						currentPolls++;
 						return next();
 					});
 				}

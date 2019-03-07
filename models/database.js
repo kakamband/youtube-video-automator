@@ -20,6 +20,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('used_content', function(table) {
 			table.increments();
+			table.string("user_id");
 			table.string("game").notNullable();
 			table.string("vod_id").notNullable();
 			table.string("tracking_id").notNullable();
@@ -40,6 +41,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('youtube_videos', function(table) {
 			table.increments();
+			table.string("user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("url").notNullable();
 			table.timestamps();
@@ -47,6 +49,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('user_tokens', function(table) {
 			table.increments();
+			table.string("user_id").notNullable();
 			table.string("client_id").notNullable();
 			table.string("access_token").notNullable();
 			table.string("refresh_token").notNullable();
@@ -55,6 +58,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('playlists', function(table) {
 			table.increments();
+			table.string("user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("playlist_id").notNullable();
 			table.timestamps();
@@ -62,6 +66,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('thumbnails', function(table) {
 			table.increments();
+			table.string("user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("image_name").notNullable();
 			table.boolean("hijacked").default(false);
@@ -75,6 +80,7 @@ module.exports.initialize = function(knex) {
 			table.string("user_id").notNullable();
 			table.string("state").default("started").notNullable();
 			table.string("twitch_link").notNullable();
+			table.string("downloaded_file");
 			table.timestamps();
 		});
 	}).then(function() {

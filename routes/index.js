@@ -37,10 +37,10 @@ router.get('/oauthcallback', function(req, res, next) {
 });
 
 router.get('/oauthcallback/init', function(req, res, next) {
-	res.render('index2', { title: 'Thanks for linking your Youtube Account!' });
 	OauthFlow.initCallback(req.query.code)
 	.then(function() {
 		cLogger.info("Done adding refresh token to the DB. You can now perform any automated Youtube uploads. Terminating now.");
+		res.redirect('https://www.twitchautomator.com/how-it-works');
 		process.exit();
 	})
 	.catch(function(err) {
