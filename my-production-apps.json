@@ -7,22 +7,22 @@
         },
         {
             "name": "worker-encoder-1",
-            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
             "args" : "encoder"
         },
         {
             "name": "worker-uploader-1",
-            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
             "args" : "uploader"
         },
         {
             "name": "worker-downloader-1",
-            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
             "args" : "downloader"
         },
         {
             "name": "worker-fallback-1",
-            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
             "args" : "fallback"
         },
         {
