@@ -82,3 +82,9 @@ Node Dependencies Needed:
 1) Scale out to an [EC2 AWS Machine](https://aws.amazon.com/ec2/pricing/on-demand/) ([storage sizes](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html))
 2) Use Selenium to automate browser uploading to guarantee we can always upload.
 3) [Example](https://www.quora.com/Is-there-a-way-to-allow-someone-else-to-upload-videos-to-my-channel-without-giving-them-my-login-credentials) of how users will need to allow our account to post for them.
+
+
+### Installing onto AWS EC2 Box
+1) https://hackernoon.com/deploying-a-node-app-on-amazon-ec2-d2fb9a6757eb
+2) https://gist.github.com/dstroot/2920991
+3) https://gist.github.com/ihor/5705626

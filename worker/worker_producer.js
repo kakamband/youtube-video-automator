@@ -129,7 +129,7 @@ function createChannels() {
 
 function createChannel(queueNames) {
 	return new Promise(function(resolve, reject) {
-		amqp.connect(Secrets.RABBITMQ_SERVER, function(err, conn) {
+		amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
 		  conn.createChannel(function(err, ch) {
 		    for (var i = 0; i < queueNames.length; i++) {
 		    	ch.assertQueue(queueNames[i], {durable: true, maxPriority: 10});

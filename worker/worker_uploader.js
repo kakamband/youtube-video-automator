@@ -98,7 +98,7 @@ shell.cd("..");
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);
 
-amqp.connect(Secrets.rabbitmq_server, function(err, conn) {
+amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
   conn.createChannel(function(err, ch) {
 
     // Initialize sentry
