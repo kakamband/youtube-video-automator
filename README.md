@@ -88,3 +88,13 @@ Node Dependencies Needed:
 1) https://hackernoon.com/deploying-a-node-app-on-amazon-ec2-d2fb9a6757eb
 2) https://gist.github.com/dstroot/2920991
 3) https://gist.github.com/ihor/5705626
+
+### Running on the AWS EC2 Box
+1) Make sure you have the Rabbitmq server running (sudo service rabbitmq-server start)
+2) Make sure you have the PostgreSQL server running (sudo service postgresql start)
+3) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
+4) Make sure the above files are filled out correctly.
+5) Make sure you make the migrations directory.
+6) Test to see that you can run the server initially without issue (npm start open).
+7) Start production services: pm2 start my-production-apps.json
+8) Monitor which services are up: pm2 list

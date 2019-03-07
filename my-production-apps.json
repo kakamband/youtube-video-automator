@@ -24,6 +24,11 @@
             "name": "worker-fallback-1",
             "script": "./worker/runWorker.sh",
             "args" : "fallback"
+        },
+        {
+        	"nginx": "nginx-layer",
+        	"script": "nginx",
+        	"args": "start"
         }
     ]
 }
