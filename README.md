@@ -85,9 +85,10 @@ Node Dependencies Needed:
 
 
 ### Installing onto AWS EC2 Box
-1) https://hackernoon.com/deploying-a-node-app-on-amazon-ec2-d2fb9a6757eb
-2) https://gist.github.com/dstroot/2920991
-3) https://gist.github.com/ihor/5705626
+1) [Node, NPM, Git, PM2](https://hackernoon.com/deploying-a-node-app-on-amazon-ec2-d2fb9a6757eb)
+2) [PostgreSQL](https://gist.github.com/dstroot/2920991)
+3) [RabbitMQ](https://gist.github.com/ihor/5705626)
+4) [NGINX](https://gist.github.com/nrollr/56e933e6040820aae84f82621be16670)
 
 ### PM2 Cheatsheat
 http://pm2.keymetrics.io/docs/usage/quick-start/
