@@ -55,9 +55,19 @@ function safeRetry(workerActivity, ch, msg, message) {
 }
 
 function knexConnection() {
+  var dbConnection = {
+    host: Attr.PG_CONNECTION_HOST,
+    database: Attr.PG_CONNECTION_DB_NAME
+  };
+
+  if (Attr.PG_REQ_USER) {
+    dbConnection.user = Attr.PG_USER_NAME;
+    dbConnection.password = Attr.PG_USER_PASSWORD;
+  }
+
   var dbConfig = {
     client: 'pg',
-    connection: Attr.PG_CONNECTION_STR,
+    connection: dbConnection,
     searchPath: ['knex', 'public']
   };
 
