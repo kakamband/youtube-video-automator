@@ -96,10 +96,13 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 ### Running on the AWS EC2 Box
 1) Make sure you have the Rabbitmq server running (sudo service rabbitmq-server start)
 2) Make sure you have the PostgreSQL server running (sudo service postgresql start)
-3) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
-4) Make sure the above files are filled out correctly.
-5) Make sure you make the migrations directory.
-6) Test to see that you can run the server initially without issue (npm start open).
-7) Start production services: pm2 start my-production-apps.json
-8) Monitor which services are up: pm2 list
+3) Make sure you have the SSL certificates in the correct place. (Look at nginx_default.conf for location)
+4) Make sure you have set the /etc/nginx/nginx.conf to be the nginx_default.conf file.
+5) Make sure you have the NGinx server running (sudo service nginx start)
+6) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
+7) Make sure the above files are filled out correctly.
+8) Make sure you make the migrations directory.
+9) Test to see that you can run the server initially without issue (npm start open).
+10) Start production services: pm2 start my-production-apps.json
+11) Monitor which services are up: pm2 list
 

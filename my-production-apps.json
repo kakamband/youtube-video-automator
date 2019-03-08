@@ -24,11 +24,6 @@
             "name": "worker-fallback",
             "script": "/home/ec2-user/Documents/youtube-video-automator/worker/runWorker.sh",
             "args" : "fallback-prod"
-        },
-        {
-        	"nginx": "nginx-layer",
-        	"script": "nginx",
-        	"args": "start"
         }
     ]
 }

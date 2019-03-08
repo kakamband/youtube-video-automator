@@ -2,6 +2,7 @@ config/secrets.js
 config/autotuber-key-pair.pem
 config/youtube-secrets.json
 config/local_attributes.js
+config/local_attributes_prod.js
 thumbnails/
 node_modules/
 video_data/

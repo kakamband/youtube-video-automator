@@ -25,6 +25,12 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+router.get('/health', function(req, res, next) {  
+	res.json({
+  		alive: true,
+  	});
+});
+
 router.get('/oauthcallback', function(req, res, next) {
 	res.render('index', { title: 'Thanks for linking your Youtube Account!' });
 	uploader.startUploadingWithToken(req.query.code, req.query.state)
