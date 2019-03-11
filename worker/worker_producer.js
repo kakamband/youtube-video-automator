@@ -229,8 +229,45 @@ function isThereEmptyQueue(queueInfo) {
 	});
 }
 
+function getMessagesAndConsumers(queueName) {
+	return new Promise(function(resolve, reject) {
+		amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
+		  conn.createChannel(function(err, ch) {
+		    	ch.assertQueue(queueName, {durable: true, maxPriority: 10}, function(err, ok) {
+			      console.log(ok);
+			      return resolve([ok.messageCount, ok.consumerCount]);
+			    });
+	    	});
+		});
+	});
+}
+
 function getQueueMeta(){
-	var mustBeInBack = [Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME];
+	return new Promise(function(resolve, reject) {
+		var eInfo, uInfo, dnInfo, fbInfo = null;
+
+		return getMessagesAndConsumers(Attr.ENCODING_AMQP_CHANNEL_NAME)
+		.then(function(encodinginfo) {
+			eInfo = encodinginfo;
+			return getMessagesAndConsumers(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+		})
+		.then(function(uploadingInfo) {
+			uInfo = uploadingInfo;
+			return getMessagesAndConsumers(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+		})
+		.then(function(downloadingInfo) {
+			dnInfo = downloadingInfo;
+			return getMessagesAndConsumers(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+		})
+		.then(function(fallbackInfo) {
+			fbInfo = fallbackInfo;
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+
+	/*var mustBeInBack = [Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME];
 	var downloadingQueues = [Attr.DOWNLOADING_AMQP_CHANNEL_NAME]; // We need to try to make these at the end before sorting.
 	var watchingQueues = [Attr.ENCODING_AMQP_CHANNEL_NAME, Attr.UPLOADING_AMQP_CHANNEL_NAME];
 	return new Promise(function(resolve, reject) {
@@ -299,7 +336,7 @@ function getQueueMeta(){
 
 			return resolve(secondaryConsumersSort);
 		});
-	});
+	});*/
 }
 
 function queueInfoSort(a, b) {

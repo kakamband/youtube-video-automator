@@ -65,6 +65,10 @@ function knexConnection() {
     dbConnection.password = Attr.PG_USER_PASSWORD;
   }
 
+  if (Attr.PG_CONNECTION_PORT) {
+    dbConnection.port = Attr.PG_CONNECTION_PORT;
+  }
+
   var dbConfig = {
     client: 'pg',
     connection: dbConnection,

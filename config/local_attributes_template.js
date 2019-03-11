@@ -9,6 +9,7 @@ var DefinedGames = {
 module.exports = {
 	PG_CONNECTION: 'CONNECTION HOST FOR POSTGRESQL HERE',
 	PG_DATABASE_NAME: "POSTGRESQL DATABASE NAME HERE",
+	PG_CONNECTION_PORT: undefined, // Leave as undefined if this doesnt exist
 	PG_USER_REQ: false, // IF YOU NEED TO LOGIN TO POSTGRES
 	PG_USER_NAME: "", // FILL OUT IF PG_USER_REQ=true
 	PG_USER_PASSWORD: "", // FILL OUT IF PG_USER_REQ=true
