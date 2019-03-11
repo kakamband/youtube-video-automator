@@ -40,9 +40,10 @@ module.exports.routes = new Map([
 	[this.USER_INTRO, {
 		method: "post",
 		required_body: [
+			nameAndType("username", "string"),
 			nameAndType("user_id", "string"),
-			nameAndType("subscription_plan_id", "string"),
-			nameAndType("status", "string"),
+			nameAndType("email", "string"),
+			nameAndType("subscriptions", "object")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
@@ -65,6 +66,8 @@ function validType(type, val) {
 			return (typeof val == "number");
 		case "bool":
 			return (typeof val == "boolean");
+		case "object":
+			return (typeof val == "object");
 		return true;
 	}
 }
