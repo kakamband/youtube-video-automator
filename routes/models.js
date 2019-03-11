@@ -43,7 +43,7 @@ module.exports.routes = new Map([
 			nameAndType("username", "string"),
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
-			nameAndType("subscriptions", "object")
+			nameAndType("subscriptions", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
