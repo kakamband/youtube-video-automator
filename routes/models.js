@@ -9,6 +9,9 @@ module.exports.START_CLIPPING = "/start/clip";
 // Ends the clip
 module.exports.END_CLIPPING = "/end/clip";
 
+// Introduces a new user to the server
+module.exports.USER_INTRO = "/user/create";
+
 // -------------------
 
 // Route definitions
@@ -29,6 +32,17 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("twitch_link", "string"),
 			nameAndType("download_id", "string"),
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.USER_INTRO, {
+		method: "post",
+		required_body: [
+			nameAndType("user_id", "string"),
+			nameAndType("subscription_plan_id", "string"),
+			nameAndType("status", "string"),
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
