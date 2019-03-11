@@ -72,14 +72,14 @@ function validType(type, val) {
 function validateHelper(body, params, neededBody, neededParams) {
 	var missingBody = [];
 	for (var i = 0; neededBody && i < neededBody.length; i++) {
-		if (!body.hasOwnProperty(neededBody[i].name)) {
+		if (!Object.prototype.hasOwnProperty.call(body, neededBody[i].name)) {
 			missingBody.push(neededBody[i].name);
 		}
 	}
 
 	var badTypeParams = [];
 	for (var i = 0; neededBody && i < neededBody.length; i++) {
-		if (body.hasOwnProperty(neededBody[i].name)) {
+		if (Object.prototype.hasOwnProperty.call(body, neededBody[i].name)) {
 			if (!validType(neededBody[i].type, body[neededBody[i].name])) {
 				badTypeParams.push(neededBody[i].name + "(" + neededBody[i].type + ")");
 			}
@@ -88,7 +88,7 @@ function validateHelper(body, params, neededBody, neededParams) {
 
 	var missingParams = [];
 	for (var i = 0; neededParams && i < neededParams.length; i++) {
-		if (!params.hasOwnProperty(neededParams[i])) {
+		if (!Object.prototype.hasOwnProperty.call(body, neededParams[i])) {
 			missingParams.push(neededParams[i]);
 		}
 	}
