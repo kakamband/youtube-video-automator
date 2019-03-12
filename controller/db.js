@@ -57,6 +57,39 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 	});
 }
 
+module.exports.createOrUpdateUser = function(username, ID, email, password, subs) {
+	var subscriptions = JSON.parse(subs);
+
+	return new Promise(function(resolve, reject) {
+		knex('users')
+		.where('username', '=', username)
+		.where('pms_user_id', '=', ID)
+		.where('email', '=', email)
+		.where('password', '=', password)
+		.limit(1)
+		.then(function(users) {
+			console.log("The users are: ",users);
+			console.log("The subscriptions are: ", subscriptions);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+		/*knex('users')
+		.insert({
+			"username": username,
+			"pms_user_id": ID,
+			"email": email,
+			"password": password,
+			"created_at": new Date(),
+			"updated_at": new Date()
+		})
+		.returning("id")
+		.then(function(result) {
+
+		})*/
+	});
+}
+
 module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	var stop = true;
 	var dontStop = false;

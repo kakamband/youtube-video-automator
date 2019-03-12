@@ -6,6 +6,7 @@ var router = express.Router();
 var Models = require('./models');
 var Worker = require('../worker/worker_producer');
 var Hijacker = require('../hijacker/hijacker');
+var Users = require('../users/users');
 // -------------------
 
 function validFirst(route, req, res, next, continuation) {
@@ -106,22 +107,17 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
 		console.log("The request was: ", req.body);
-		return res.json({
-			success: true
-		});
-		/*return Hijacker.endHijacking(req.body.user_id, req.body.twitch_link, parseInt(req.body.download_id))
+		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.subscriptions)
 		.then(function() {
 			return res.json({
 				success: true
 			});
 		})
 		.catch(function(err) {
-			// TODO log this to Sentry.
-
-			return res.json({
-				success: false
-			});
-		});*/
+			var err = new Error("Failed creating user: " + err);
+    		err.status = 400;
+    		return next(err);
+		});
 	});
 });
 

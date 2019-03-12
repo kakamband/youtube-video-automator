@@ -84,6 +84,32 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('users', function(table) {
+			table.increments();
+			table.string("username").notNullable();
+			table.string("pms_user_id").notNullable();
+			table.string("email").notNullable();
+			table.string("password").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('defined_subscriptions', function(table) {
+			table.string("subscription_id").notNullable();
+			table.boolean("active").default(false).notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('user_subscriptions', function(table) {
+			table.increments();
+			table.string("user_id").notNullable();
+			table.string("subscription_id").notNullable();
+			table.string("status").notNullable();
+			table.date("start_date").notNullable();
+			table.date("expiration_date").notNullable();
+			table.string("payment_profile_id");
+			table.timestamps();
+		});
+	}).then(function() {
 		console.log = oldLogger;
 		cLogger.info("Succesfully setup tables!\n");
 		return Promise.resolve();
