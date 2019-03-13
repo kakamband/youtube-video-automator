@@ -44,11 +44,10 @@ router.get('/oauthcallback', function(req, res, next) {
 });
 
 router.get('/oauthcallback/init', function(req, res, next) {
-	OauthFlow.initCallback(req.query.code)
+	OauthFlow.initCallback(req.query.code, req.query.state)
 	.then(function() {
-		cLogger.info("Done adding refresh token to the DB. You can now perform any automated Youtube uploads. Terminating now.");
-		res.redirect('https://www.twitchautomator.com/how-it-works');
-		process.exit();
+		cLogger.info("Successfully authenticated with users youtube.");
+		res.redirect('https://www.twitchautomator.com/dashboard?done_auth=true');
 	})
 	.catch(function(err) {
 		cLogger.error("Error adding refresh token to DB: ", err);
