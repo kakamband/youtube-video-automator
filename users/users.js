@@ -1,6 +1,7 @@
 var Promise = require('bluebird');
 var cLogger = require('color-log');
 var dbController = require('../controller/db');
+var OAuthFlow = require('../oauth/oauth_flow');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -22,7 +23,7 @@ module.exports.createUser = function(username, ID, email, password, payments, su
 };
 
 // hasUserToken
-// Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
+// Returns whether a user has a token stored already. Or not. This is an authenticated route.
 module.exports.hasUserToken = function(username, ID, email, password) {
     return new Promise(function(resolve, reject) {
     	return validateUserAndGetID(username, ID, email, password)
@@ -34,6 +35,23 @@ module.exports.hasUserToken = function(username, ID, email, password) {
     			return resolve(false);
     		}
     		return resolve(true);
+    	})
+    	.catch(function(err) {
+    		return reject(err);
+    	});
+    });
+};
+
+// getTokenLink
+// Returns a link to authenticate with Youtube
+module.exports.getTokenLink = function(username, ID, email, password) {
+    return new Promise(function(resolve, reject) {
+    	return validateUserAndGetID(username, ID, email, password)
+    	.then(function(id) {
+            return OAuthFlow.initLink(id);
+    	})
+    	.then(function(url) {
+    		return resolve(url);
     	})
     	.catch(function(err) {
     		return reject(err);

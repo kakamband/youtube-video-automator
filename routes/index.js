@@ -44,11 +44,10 @@ router.get('/oauthcallback', function(req, res, next) {
 });
 
 router.get('/oauthcallback/init', function(req, res, next) {
-	OauthFlow.initCallback(req.query.code)
+	OauthFlow.initCallback(req.query.code, req.query.state)
 	.then(function() {
-		cLogger.info("Done adding refresh token to the DB. You can now perform any automated Youtube uploads. Terminating now.");
-		res.redirect('https://www.twitchautomator.com/how-it-works');
-		process.exit();
+		cLogger.info("Successfully authenticated with users youtube.");
+		res.redirect('https://www.twitchautomator.com/dashboard?done_auth=true');
 	})
 	.catch(function(err) {
 		cLogger.error("Error adding refresh token to DB: ", err);
@@ -106,7 +105,6 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
-		console.log("The request was: ", req.body);
 		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions)
 		.then(function() {
 			return res.json({
@@ -121,11 +119,25 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 
 router.post(Models.USER_HAS_TOKEN, function(req, res, next) {
 	validFirst(Models.USER_HAS_TOKEN, req, res, next, function() {
-		console.log("The request was: ", req.body);
 		return Users.hasUserToken(req.body.username, req.body.user_id, req.body.email, req.body.password)
 		.then(function(hasToken) {
 			return res.json({
 				exists: hasToken
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
+router.post(Models.USER_TOKEN_LINK, function(req, res, next) {
+	validFirst(Models.USER_TOKEN_LINK, req, res, next, function() {
+		console.log("The request was: ", req.body);
+		return Users.getTokenLink(req.body.username, req.body.user_id, req.body.email, req.body.password)
+		.then(function(tokenLink) {
+			return res.json({
+				link: tokenLink
 			});
 		})
 		.catch(function(err) {

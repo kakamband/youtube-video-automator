@@ -6,7 +6,12 @@ var DefinedGames = {
 	APEX_LEGENDS: "Apex Legends"
 };
 
+// Possible environment types
+const devENV = "development";
+const prodENV = "production";
+
 module.exports = {
+	ENV: devENV, // Needs to be one of the two specified above
 	PG_CONNECTION: 'CONNECTION HOST FOR POSTGRESQL HERE',
 	PG_DATABASE_NAME: "POSTGRESQL DATABASE NAME HERE",
 	PG_CONNECTION_PORT: undefined, // Leave as undefined if this doesnt exist

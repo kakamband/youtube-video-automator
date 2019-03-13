@@ -1,4 +1,5 @@
 var Promise = require('bluebird');
+var Attr = require('../config/attributes');
 var Secrets = require('../config/secrets');
 var cLogger = require('color-log');
 const {google} = require('googleapis');
@@ -82,7 +83,8 @@ module.exports.init = function() {
 
 			const url = oauth2Client.generateAuthUrl({
 				access_type: 'offline',
-				scope: scopes
+				scope: scopes,
+				state: "LOCAL"
 			});
 
 			opn(url);
@@ -94,29 +96,55 @@ module.exports.init = function() {
 	});
 }
 
-// initCallback
-// This function is called when the user performs the OAuth2 authorization flow that was initialized in the 'init' function above.
-// This function just uploads the content to the DB, then terminates the process.
-module.exports.initCallback = function(code) {
+// initLink
+// Same as init above, however doesn't open the link on the personal computer. Just returns the link to it.
+module.exports.initLink = function(userID) {
+	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
+	if (Attr.SERVER_ENVIRONMENT == "production") {
+		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+	}
+
 	const oauth2Client = new google.auth.OAuth2(
 		Secrets.GOOGLE_API_CLIENT_ID,
 		Secrets.GOOGLE_API_CLIENT_SECRET,
-		Secrets.GOOGLE_API_REDIRECT_URI2
+		redirectLink
+	);
+
+	return new Promise(function(resolve, reject) {
+
+		const url = oauth2Client.generateAuthUrl({
+			access_type: 'offline',
+			scope: scopes,
+			state: userID
+		});
+
+		return resolve(url);
+	});
+}
+
+// initCallback
+// This function is called when the user performs the OAuth2 authorization flow that was initialized in the 'init' function above.
+// This function just uploads the content to the DB, then terminates the process.
+module.exports.initCallback = function(code, userID) {
+	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
+	if (Attr.SERVER_ENVIRONMENT == "production") {
+		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+	}
+
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		redirectLink
 	);
 
 	return new Promise(function(resolve, reject) {
 		oauth2Client.getToken(code);
 		oauth2Client.on('tokens', (tokens) => {
-			oauth2Client.setCredentials(tokens);
-			google.options({
-    			auth: oauth2Client
-    		});
-
 			if (!tokens.refresh_token) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
 				return resolve();
 			} else {
-				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, "LOCAL")
+				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)
 				.then(function() {
 					cLogger.info("Added the refresh & access token to the DB for future use.");
 					return resolve();
