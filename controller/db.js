@@ -1,5 +1,8 @@
 var Promise = require('bluebird');
 var cLogger = require('color-log');
+var Secrets = require('../config/secrets');
+const stripeProd = require('stripe')(Secrets.STRIPE_PROD_SECRET);
+const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
 
 module.exports.alreadyUsed = function(game, id, trackingID) {
 	return new Promise(function(resolve, reject) {
@@ -57,7 +60,45 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 	});
 }
 
-module.exports.createOrUpdateUser = function(username, ID, email, password, subs) {
+module.exports.doesUserExist = function(username, pmsID, email, password) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where('username', '=', username)
+		.where('pms_user_id', '=', pmsID)
+		.where('email', '=', email)
+		.where('password', '=', password)
+		.returning("id")
+		.then(function(user) {
+			if (user.length > 0) {
+				return resolve(user[0]);
+			} else {
+				return resolve(undefined);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		})
+	});
+}
+
+module.exports.hasUserToken = function(ID) {
+	return new Promise(function(resolve, reject) {
+		return knex('user_tokens')
+		.where('user_id', '=', ID)
+		.then(function(result) {
+			if (result.length > 0) {
+				return resolve(result[0]);
+			} else {
+				return resolve(undefined);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.createOrUpdateUser = function(username, ID, email, password, payments, subs) {
 	var subscriptions = JSON.parse(subs);
 
 	return new Promise(function(resolve, reject) {
@@ -68,25 +109,285 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, subs
 		.where('password', '=', password)
 		.limit(1)
 		.then(function(users) {
-			console.log("The users are: ",users);
-			console.log("The subscriptions are: ", subscriptions);
+			if (users.length == 0) { // New User
+				cLogger.info("Creating new user.");
+				return knex('users')
+				.insert({
+					username: username,
+					pms_user_id: ID,
+					email: email,
+					password: password,
+					created_at: new Date(),
+					updated_at: new Date()
+				})
+				.then(function() {
+					return Promise.resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else { // Update User
+				cLogger.info("Updating user.");
+				return knex('users')
+				.where('pms_user_id', '=', ID)
+				.update({
+					username: username,
+					email: email,
+					password: password,
+					updated_at: new Date()
+				})
+				.then(function() {
+					return Promise.resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.then(function() {
+			return addNewSubscriptions(ID, subscriptions);
+		})
+		.then(function() {
+			return addNewPayments(ID, payments);
+		})
+		.then(function() {
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);
 		});
-		/*knex('users')
-		.insert({
-			"username": username,
-			"pms_user_id": ID,
-			"email": email,
-			"password": password,
-			"created_at": new Date(),
-			"updated_at": new Date()
-		})
-		.returning("id")
-		.then(function(result) {
+	});
+}
 
-		})*/
+function addNewPayments(ID, paymentsRAW) {
+	var payments = JSON.parse(paymentsRAW);
+
+	return new Promise(function(resolve, reject) {
+		if (payments.length == 0) {
+			return resolve();
+		}
+
+		var count = 0;
+		function next() {
+			return knex('payments')
+			.where('pms_user_id', '=', ID)
+			.where('subscription_id', '=', payments[count].subscription_plan_id)
+			.where('payment_gateway', '=', payments[count].payment_gateway)
+			.then(function(result) {
+				if (result.length == 0) {
+					cLogger.info("Payment doesn't exist, verifying payment integrity with Stripe first.");
+					return stripePaymentExists(payments[count].transaction_id)
+					.then(function() {
+						return insertPayment(ID, payments[count])
+						.then(function() {
+							count++;
+							if (count < payments.length - 1) {
+								return next();
+							} else {
+								return resolve();
+							}
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					})
+					.catch(function(err) {
+						// This charge doesn't actually exist. Something fishy is happening...
+						// Just continue for now, however don't add the charge to the db.
+						count++;
+						if (count < payments.length - 1) {
+							return next();
+						} else {
+							return resolve();
+						}
+					});
+				} else { // Already exists, so just update
+					cLogger.info("Payment already exists. Updating and Continuing.");
+					return knex('payments')
+					.where('pms_user_id', '=', ID)
+					.where('subscription_id', '=', payments[count].subscription_plan_id)
+					.where('payment_gateway', '=', payments[count].payment_gateway)
+					.update({
+						status: payments[count].status
+					})
+					.then(function() {
+						count++;
+						if (count < payments.length - 1) {
+							return next();
+						} else {
+							return resolve();
+						}
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				}
+ 			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function insertPayment(ID, payment) {
+	return new Promise(function(resolve, reject) {
+		return knex('payments')
+		.insert({
+			pms_user_id: ID,
+			subscription_id: payment.subscription_plan_id,
+			amount: payment.amount,
+			status: payment.status,
+			date: payment.date,
+			payment_gateway: payment.payment_gateway,
+			transaction_id: payment.transaction_id,
+			ip_address: payment.ip_address,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(result) {
+			cLogger.info("Added payment to db.");
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function stripePaymentExists(transactionID) {
+	return new Promise(function(resolve, reject) {
+		// First check in production stripe
+		stripeProd.charges.retrieve(
+			transactionID,
+			function(err, transaction) {
+				if (err) {
+					stripeTest.charges.retrieve(
+						transactionID,
+						function(err1, transaction1) {
+							if (err1) {
+								return reject();
+							} else {
+								cLogger.info("Found charge in testing environment!");
+								if (validCharge(transaction1)) {
+									return resolve();
+								} else {
+									return reject();
+								}
+							}
+						}
+					);
+				} else {
+					cLogger.info("Found charge in production environment!");
+					if (validCharge(transaction)) {
+						return resolve();
+					} else {
+						return reject();
+					}
+				}
+			}
+		);
+	});
+}
+
+function validCharge(charge) {
+	if (charge.amount == 0) {
+		cLogger.info("This charge was for nothing, seems suspicous. Not adding as legit charge.");
+		return false;
+	}
+	if (charge.description == "Casual" && charge.amount != 699) {
+		cLogger.info("This charge has a price mismatch, the Casual amount needs to be 699 however we found: " + transaction1.amount);
+		return false;
+	}
+	if (charge.description == "Professional" && charge.amount != 1999) {
+		cLogger.info("This charge has a price mismatch, the Professional amount needs to be 1999 however we found: " + transaction1.amount);
+		return false;
+	}
+	if (charge.failure_code != null || charge.failure_message != null) {
+		cLogger.info("This charge has a failure code (" + charge.failure_code + ") or message: " + charge.failure_message);
+		return false;
+	}
+	if (charge.refunded) {
+		cLogger.info("This charge was refunded.");
+		return false;
+	}
+	if (charge.status != "succeeded") {
+		cLogger.info("The status of this charge is not succeeded, it is: " + charge.status);
+		return false;
+	}
+
+	// Passes all of the conditions
+	return true;
+}
+
+function addNewSubscriptions(pmsID, subs) {
+	return new Promise(function(resolve, reject) {
+		if (subs.length == 0) {
+			return resolve();
+		}
+
+		var count = 0;
+		function next() {
+			return knex('user_subscriptions')
+			.where('pms_user_id', '=', pmsID)
+			.where('subscription_id', '=', subs[count].subscription_plan_id)
+			.limit(1)
+			.then(function(result) {
+				if (result.length == 0) { // Doesn't exist yet
+					cLogger.info("Creating a new subscription (" + subs[count].subscription_plan_id + ") for " + pmsID);
+					return knex('user_subscriptions')
+					.insert({
+						pms_user_id: pmsID,
+						subscription_id: subs[count].subscription_plan_id,
+						status: subs[count].status,
+						start_date: subs[count].start_date,
+						payment_profile_id: subs[count].payment_profile_id,
+						created_at: new Date(),
+						updated_at: new Date()
+					})
+					.then(function() {
+						count++;
+						if (count < subs.length - 1) {
+							return next();
+						} else {
+							return resolve();
+						}
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				} else {
+					cLogger.info("Updating a subscription (" + subs[count].subscription_plan_id + ") for " + pmsID);
+					return knex('user_subscriptions')
+					.where('pms_user_id', '=', pmsID)
+					.where('subscription_id', '=', subs[count].subscription_plan_id)
+					.update({
+						status: subs[count].status,
+						start_date: subs[count].start_date,
+						payment_profile_id: subs[count].payment_profile_id,
+						updated_at: new Date()
+					})
+					.then(function() {
+						count++;
+						if (count < subs.length - 1) {
+							return next();
+						} else {
+							return resolve();
+						}
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
 	});
 }
 

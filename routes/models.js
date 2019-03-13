@@ -12,6 +12,9 @@ module.exports.END_CLIPPING = "/end/clip";
 // Introduces a new user to the server
 module.exports.USER_INTRO = "/user/create";
 
+// Asks if a user has a token stored
+module.exports.USER_HAS_TOKEN = "/user/has-token";
+
 // -------------------
 
 // Route definitions
@@ -44,6 +47,20 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
 			nameAndType("subscriptions", "string"),
+			nameAndType("payments", "string"),
+			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.USER_HAS_TOKEN, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
 			nameAndType("password", "string")
 		],
 		validateParams: function(body, params) {
