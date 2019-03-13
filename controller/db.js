@@ -173,6 +173,7 @@ function addNewPayments(ID, paymentsRAW) {
 			.where('pms_user_id', '=', ID)
 			.where('subscription_id', '=', payments[count].subscription_plan_id)
 			.where('payment_gateway', '=', payments[count].payment_gateway)
+			.returning('status')
 			.then(function(result) {
 				if (result.length == 0) {
 					cLogger.info("Payment doesn't exist, verifying payment integrity with Stripe first.");
@@ -202,25 +203,35 @@ function addNewPayments(ID, paymentsRAW) {
 						}
 					});
 				} else { // Already exists, so just update
-					cLogger.info("Payment already exists. Updating and Continuing.");
-					return knex('payments')
-					.where('pms_user_id', '=', ID)
-					.where('subscription_id', '=', payments[count].subscription_plan_id)
-					.where('payment_gateway', '=', payments[count].payment_gateway)
-					.update({
-						status: payments[count].status
-					})
-					.then(function() {
+					if (result[0].status != payments[count].status) {
+						cLogger.info("Payment already exists. Updating and Continuing.");
+						return knex('payments')
+						.where('pms_user_id', '=', ID)
+						.where('subscription_id', '=', payments[count].subscription_plan_id)
+						.where('payment_gateway', '=', payments[count].payment_gateway)
+						.update({
+							status: payments[count].status
+						})
+						.then(function() {
+							count++;
+							if (count < payments.length - 1) {
+								return next();
+							} else {
+								return resolve();
+							}
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					} else {
+						cLogger.info("Payment already exists. Not updating since status is the same, Continuing.");
 						count++;
 						if (count < payments.length - 1) {
 							return next();
 						} else {
 							return resolve();
 						}
-					})
-					.catch(function(err) {
-						return reject(err);
-					});
+					}
 				}
  			})
 			.catch(function(err) {
@@ -333,6 +344,7 @@ function addNewSubscriptions(pmsID, subs) {
 			return knex('user_subscriptions')
 			.where('pms_user_id', '=', pmsID)
 			.where('subscription_id', '=', subs[count].subscription_plan_id)
+			.returning("status")
 			.limit(1)
 			.then(function(result) {
 				if (result.length == 0) { // Doesn't exist yet
@@ -359,27 +371,37 @@ function addNewSubscriptions(pmsID, subs) {
 						return reject(err);
 					});
 				} else {
-					cLogger.info("Updating a subscription (" + subs[count].subscription_plan_id + ") for " + pmsID);
-					return knex('user_subscriptions')
-					.where('pms_user_id', '=', pmsID)
-					.where('subscription_id', '=', subs[count].subscription_plan_id)
-					.update({
-						status: subs[count].status,
-						start_date: subs[count].start_date,
-						payment_profile_id: subs[count].payment_profile_id,
-						updated_at: new Date()
-					})
-					.then(function() {
+					if (result[0].status != subs[count].status) {
+						cLogger.info("Updating a subscription (" + subs[count].subscription_plan_id + ") for " + pmsID);
+						return knex('user_subscriptions')
+						.where('pms_user_id', '=', pmsID)
+						.where('subscription_id', '=', subs[count].subscription_plan_id)
+						.update({
+							status: subs[count].status,
+							start_date: subs[count].start_date,
+							payment_profile_id: subs[count].payment_profile_id,
+							updated_at: new Date()
+						})
+						.then(function() {
+							count++;
+							if (count < subs.length - 1) {
+								return next();
+							} else {
+								return resolve();
+							}
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					} else {
+						cLogger.info("Not updating subscription because the status is the same.");
 						count++;
 						if (count < subs.length - 1) {
 							return next();
 						} else {
 							return resolve();
 						}
-					})
-					.catch(function(err) {
-						return reject(err);
-					});
+					}
 				}
 			})
 			.catch(function(err) {

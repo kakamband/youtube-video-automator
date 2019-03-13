@@ -1,4 +1,5 @@
 var Promise = require('bluebird');
+var Attr = require('../config/attributes');
 var Secrets = require('../config/secrets');
 var cLogger = require('color-log');
 const {google} = require('googleapis');
@@ -91,6 +92,32 @@ module.exports.init = function() {
     	.catch(function(err) {
     		return reject(err);
     	});
+	});
+}
+
+// initLink
+// Same as init above, however doesn't open the link on the personal computer. Just returns the link to it.
+module.exports.initLink = function(userID) {
+	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
+	if (Attr.SERVER_ENVIRONMENT == "production") {
+		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+	}
+
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		redirectLink
+	);
+
+	return new Promise(function(resolve, reject) {
+
+		const url = oauth2Client.generateAuthUrl({
+			access_type: 'offline',
+			scope: scopes,
+			state: userID
+		});
+
+		return resolve(url);
 	});
 }
 
