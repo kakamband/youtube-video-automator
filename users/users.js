@@ -62,7 +62,6 @@ function validateUserAndGetID(username, ID, email, password) {
 			}
 
 			// The user exists, return the id of the user.
-			console.log("user is: ", user);
 			return resolve(user.id);
 		})
 		.catch(function(err) {

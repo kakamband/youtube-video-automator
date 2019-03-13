@@ -20,7 +20,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('used_content', function(table) {
 			table.increments();
-			table.string("pms_user_id");
+			table.string("user_id");
 			table.string("game").notNullable();
 			table.string("vod_id").notNullable();
 			table.string("tracking_id").notNullable();
