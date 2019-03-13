@@ -34,6 +34,7 @@
     "pug": "2.0.0-beta11",
     "serve-favicon": "~2.4.5",
     "shelljs": "^0.8.3",
+    "stripe": "^6.26.0",
     "twitch-api-v5": "^2.0.4"
   }
 }

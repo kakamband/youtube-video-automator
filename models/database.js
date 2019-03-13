@@ -20,7 +20,7 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('used_content', function(table) {
 			table.increments();
-			table.string("user_id");
+			table.string("pms_user_id");
 			table.string("game").notNullable();
 			table.string("vod_id").notNullable();
 			table.string("tracking_id").notNullable();
@@ -101,12 +101,24 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('user_subscriptions', function(table) {
 			table.increments();
-			table.string("user_id").notNullable();
+			table.string("pms_user_id").notNullable();
 			table.string("subscription_id").notNullable();
 			table.string("status").notNullable();
 			table.date("start_date").notNullable();
-			table.date("expiration_date").notNullable();
 			table.string("payment_profile_id");
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('payments', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("subscription_id").notNullable();
+			table.string("amount").notNullable();
+			table.string("status").notNullable();
+			table.date("date").notNullable();
+			table.string("payment_gateway").notNullable();
+			table.string("transaction_id");
+			table.string("ip_address");
 			table.timestamps();
 		});
 	}).then(function() {
