@@ -50,7 +50,7 @@ router.get('/oauthcallback/init', function(req, res, next) {
 		let reason = results[1];
 
 		cLogger.info("Successfully authenticated with users youtube.");
-		res.redirect('https://www.twitchautomator.com/dashboard?done_auth=' + success + "&reason=" + reason);
+		res.redirect('https://www.twitchautomator.com/dashboard?done_auth=' + success + "&reason=" + btoa(reason));
 	})
 	.catch(function(err) {
 		cLogger.error("Error adding refresh token to DB: ", err);

@@ -152,7 +152,7 @@ module.exports.initCallback = function(code, userID) {
 				// TODO: Log this to sentry, we will need to manually support this person.
 				// Reference link: https://stackoverflow.com/questions/10827920/not-receiving-google-oauth-refresh-token
 
-				return resolve([false, "Looks like you have already been approved for this app? We need you to go to the following link and remove access and retry: https://myaccount.google.com/u/0/permissions . We appologize for the inconvenience."]);
+				return resolve([false, "Looks like you have already been approved for this app. We need you to go to the following link and remove access and retry: https://myaccount.google.com/u/0/permissions . We appologize for the inconvenience."]);
 			} else {
 				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)
 				.then(function() {
