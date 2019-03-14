@@ -140,9 +140,11 @@ module.exports.initCallback = function(code, userID) {
 	return new Promise(function(resolve, reject) {
 		oauth2Client.getToken(code);
 		oauth2Client.on('tokens', (tokens) => {
-			console.log("The tokens are: ", tokens);
 			if (!tokens.refresh_token) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
+				// TODO: Log this to sentry, we will need to manually support this person.
+				// Reference link: https://stackoverflow.com/questions/10827920/not-receiving-google-oauth-refresh-token
+
 				return resolve();
 			} else {
 				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)

@@ -42,8 +42,28 @@ module.exports.hasUserToken = function(username, ID, email, password) {
     });
 };
 
+// hasNewUserToken
+// Returns whether a user has a token stored today. Or not. This is an authenticated route.
+module.exports.hasNewUserToken = function(username, ID, email, password) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, ID, email, password)
+        .then(function(id) {
+            return dbController.hasNewUserToken(id);
+        })
+        .then(function(userToken) {
+            if (userToken == undefined) {
+                return resolve(false);
+            }
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+};
+
 // getTokenLink
-// Returns a link to authenticate with Youtube
+// Returns a link to authenticate with Youtube. This is an authenticated route.
 module.exports.getTokenLink = function(username, ID, email, password) {
     return new Promise(function(resolve, reject) {
     	return validateUserAndGetID(username, ID, email, password)

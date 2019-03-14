@@ -18,6 +18,9 @@ module.exports.USER_HAS_TOKEN = "/user/has-token";
 // Asks for a link to get a token
 module.exports.USER_TOKEN_LINK = "/user/token/link";
 
+// Asks if a user has created an auth token today
+module.exports.USER_HAS_NEW_TOKEN = "/user/has-new-token";
+
 // -------------------
 
 // Route definitions
@@ -71,6 +74,19 @@ module.exports.routes = new Map([
 		}
 	}],
 	[this.USER_TOKEN_LINK, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.USER_HAS_NEW_TOKEN, {
 		method: "post",
 		required_body: [
 			// The default required for authenticated requests.
