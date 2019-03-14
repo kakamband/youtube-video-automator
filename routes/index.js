@@ -44,6 +44,10 @@ router.get('/oauthcallback', function(req, res, next) {
 });
 
 router.get('/oauthcallback/init', function(req, res, next) {
+	if (req.query == undefined) {
+		res.redirect('https://www.twitchautomator.com/dashboard?done_auth=' + false + "&reason=" + Buffer.from("User has cancelled authentication. Please retry.").toString('base64'));
+	}
+
 	OauthFlow.initCallback(req.query.code, req.query.state)
 	.then(function(results) {
 		let success = results[0];
