@@ -98,6 +98,24 @@ module.exports.hasUserToken = function(ID) {
 	});
 }
 
+module.exports.hasNewUserToken = function(ID) {
+	return new Promise(function(resolve, reject) {
+		return knex('user_tokens')
+		.where('user_id', '=', ID)
+		.whereRaw("created_at >= (select DATE \'today\')")
+		.then(function(result) {
+			if (result.length > 0) {
+				return resolve(result[0]);
+			} else {
+				return resolve(undefined);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.createOrUpdateUser = function(username, ID, email, password, payments, subs) {
 	var subscriptions = JSON.parse(subs);
 

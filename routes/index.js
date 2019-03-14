@@ -133,11 +133,24 @@ router.post(Models.USER_HAS_TOKEN, function(req, res, next) {
 
 router.post(Models.USER_TOKEN_LINK, function(req, res, next) {
 	validFirst(Models.USER_TOKEN_LINK, req, res, next, function() {
-		console.log("The request was: ", req.body);
 		return Users.getTokenLink(req.body.username, req.body.user_id, req.body.email, req.body.password)
 		.then(function(tokenLink) {
 			return res.json({
 				link: tokenLink
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
+router.post(Models.USER_HAS_NEW_TOKEN, function(req, res, next) {
+	validFirst(Models.USER_HAS_NEW_TOKEN, req, res, next, function() {
+		return Users.hasNewUserToken(req.body.username, req.body.user_id, req.body.email, req.body.password)
+		.then(function(hasToken) {
+			return res.json({
+				success: hasToken
 			});
 		})
 		.catch(function(err) {
