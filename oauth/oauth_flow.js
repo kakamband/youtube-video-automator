@@ -140,17 +140,24 @@ module.exports.initCallback = function(code, userID) {
 	return new Promise(function(resolve, reject) {
 		oauth2Client.getToken(code);
 		oauth2Client.on('tokens', (tokens) => {
+			// Loop through the scopes and make sure they are all present.
+			for (var i = 0; i < scopes.length; i++) {
+				if (tokens.scope.search(scopes[i]) < 0) {
+					return resolve([false, ("Missing the following scope: " + scopes[i])]);
+				}
+			}
+
 			if (!tokens.refresh_token) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
 				// TODO: Log this to sentry, we will need to manually support this person.
 				// Reference link: https://stackoverflow.com/questions/10827920/not-receiving-google-oauth-refresh-token
 
-				return resolve();
+				return resolve([false, "Looks like you have already been approved for this app? We need you to go to the following link and remove access and retry: https://myaccount.google.com/u/0/permissions . We appologize for the inconvenience."]);
 			} else {
 				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)
 				.then(function() {
 					cLogger.info("Added the refresh & access token to the DB for future use.");
-					return resolve();
+					return resolve([true, ""]);
 				})
 				.catch(function(err) {
 					return reject(err);
