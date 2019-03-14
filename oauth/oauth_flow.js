@@ -150,7 +150,7 @@ module.exports.initCallback = function(code, userID) {
 				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)
 				.then(function() {
 					cLogger.info("Added the refresh & access token to the DB for future use.");
-					return resolve(true);
+					return resolve();
 				})
 				.catch(function(err) {
 					return reject(err);
