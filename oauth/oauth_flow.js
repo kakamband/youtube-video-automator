@@ -140,6 +140,7 @@ module.exports.initCallback = function(code, userID) {
 	return new Promise(function(resolve, reject) {
 		oauth2Client.getToken(code);
 		oauth2Client.on('tokens', (tokens) => {
+			console.log("The tokens are: ", tokens);
 			if (!tokens.refresh_token) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
 				return resolve();
