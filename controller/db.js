@@ -123,8 +123,7 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 		knex('users')
 		.where('username', '=', username)
 		.where('pms_user_id', '=', ID)
-		.where('email', '=', email)
-		.where('password', '=', password)
+		.returning(["email", "password"])
 		.limit(1)
 		.then(function(users) {
 			if (users.length == 0) { // New User
@@ -145,21 +144,25 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 					return reject(err);
 				});
 			} else { // Update User
-				cLogger.info("Updating user.");
-				return knex('users')
-				.where('pms_user_id', '=', ID)
-				.update({
-					username: username,
-					email: email,
-					password: password,
-					updated_at: new Date()
-				})
-				.then(function() {
+				if (users[0].email != email || users[0].password) {
+					cLogger.info("Updating user, email or password is different.");
+					return knex('users')
+					.where('pms_user_id', '=', ID)
+					.update({
+						username: username,
+						email: email,
+						password: password,
+						updated_at: new Date()
+					})
+					.then(function() {
+						return Promise.resolve();
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				} else {
 					return Promise.resolve();
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
+				}
 			}
 		})
 		.then(function() {
@@ -169,7 +172,31 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 			return addNewPayments(ID, payments);
 		})
 		.then(function() {
-			return resolve();
+			return getCurrentActiveSubscription(ID);
+		})
+		.then(function(activeSubscription) {
+			return resolve(activeSubscription);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function getCurrentActiveSubscription(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('payments')
+		.returning("subscription_id")
+		.where("pms_user_id", "=", pmsID)
+		.whereRaw("updated_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
+		.orderBy("subscription_id", "DESC")
+		.limit(1)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve(-1);
+			}
+
+			return resolve(results[0].subscription_id);
 		})
 		.catch(function(err) {
 			return reject(err);

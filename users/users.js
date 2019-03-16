@@ -11,10 +11,9 @@ var OAuthFlow = require('../oauth/oauth_flow');
 // Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
 module.exports.createUser = function(username, ID, email, password, payments, subs) {
     return new Promise(function(resolve, reject) {
-    	cLogger.info("Creating a user.");
     	return dbController.createOrUpdateUser(username, ID, email, password, payments, subs)
-    	.then(function() {
-    		return resolve();
+    	.then(function(activeSubscription) {
+    		return resolve(activeSubscription);
     	})
     	.catch(function(err) {
     		return reject(err);
