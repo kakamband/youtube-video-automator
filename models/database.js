@@ -6,18 +6,8 @@ module.exports.initialize = function(knex) {
 	var oldLogger = console.log;
 
 	return new Promise(function(resolve, reject) {
-		return knex.migrate.latest()
-		.then(function() {
-			cLogger.info("Completed all migrations.");
+		console.log = function() {};
 
-			// Hide output here (fuck seeing these warnings)
-			console.log = function() {};
-
-			return resolve();
-		}).catch(function(err) {
-			return reject(err);
-		});
-	}).then(function() {
 		return knex.schema.createTableIfNotExists('used_content', function(table) {
 			table.increments();
 			table.string("user_id");
@@ -33,10 +23,10 @@ module.exports.initialize = function(knex) {
 			table.string("vod_url").notNullable();
 			table.timestamps();
 		}).then(function() {
-			return Promise.resolve();
+			return resolve();
 		}).catch(function(err) {
 			// Need to do this because of this bug: https://github.com/tgriesser/knex/issues/322
-			return Promise.resolve();
+			return resolve();
 		})
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('youtube_videos', function(table) {
@@ -94,7 +84,10 @@ module.exports.initialize = function(knex) {
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('defined_subscriptions', function(table) {
+			table.increments();
 			table.string("subscription_id").notNullable();
+			table.string("price").notNullable();
+			table.integer("uploads").notNullable();
 			table.boolean("active").default(false).notNullable();
 			table.timestamps();
 		});
@@ -121,6 +114,8 @@ module.exports.initialize = function(knex) {
 			table.string("ip_address");
 			table.timestamps();
 		});
+	}).then(function() {
+		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;
 		cLogger.info("Succesfully setup tables!\n");

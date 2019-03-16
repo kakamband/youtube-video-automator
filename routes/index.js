@@ -113,9 +113,10 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
 		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions)
-		.then(function() {
+		.then(function(activeSubscription) {
 			return res.json({
-				success: true
+				success: true,
+				active_subscription: activeSubscription
 			});
 		})
 		.catch(function(err) {
