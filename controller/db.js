@@ -134,11 +134,12 @@ module.exports.seenNotification = function(pmsID, notificationName) {
 	});
 }
 
-module.exports.getDashboardNotifications = function(pmsID) {
+function getNotifications(pmsID, notificationNames) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
 		.where("seen", "=", false)
+		.whereIn("notification", notificationNames)
 		.then(function(results) {
 			if (results.length == 0) {
 				return resolve([]);
@@ -159,6 +160,14 @@ module.exports.getDashboardNotifications = function(pmsID) {
 	});
 }
 
+module.exports.getVideosNotifications = function(pmsID) {
+	return getNotifications(pmsID, ["videos-intro"]);
+}
+
+module.exports.getDashboardNotifications = function(pmsID) {
+	return getNotifications(pmsID, ["dashboard-intro"]);
+}
+
 function createNewUserNotifications(pmsID) {
 	var dashboardNotification = {
 		pms_user_id: pmsID,
@@ -166,10 +175,16 @@ function createNewUserNotifications(pmsID) {
 		created_at: new Date(),
 		updated_at: new Date()
 	};
+	var videosNotification = {
+		pms_user_id: pmsID,
+		notification: "videos-intro",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
 
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
-		.insert([dashboardNotification])
+		.insert([dashboardNotification, videosNotification])
 		.then(function() {
 			return resolve();
 		})
