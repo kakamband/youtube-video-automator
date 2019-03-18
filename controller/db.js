@@ -168,6 +168,10 @@ module.exports.getDashboardNotifications = function(pmsID) {
 	return getNotifications(pmsID, ["dashboard-intro"]);
 }
 
+module.exports.getAccountNotifications = function(pmsID) {
+	return getNotifications(pmsID, ["account-intro"]);
+}
+
 function createNewUserNotifications(pmsID) {
 	var dashboardNotification = {
 		pms_user_id: pmsID,
@@ -181,10 +185,16 @@ function createNewUserNotifications(pmsID) {
 		created_at: new Date(),
 		updated_at: new Date()
 	};
+	var accountNotification = {
+		pms_user_id: pmsID,
+		notification: "account-intro",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
 
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
-		.insert([dashboardNotification, videosNotification])
+		.insert([dashboardNotification, videosNotification, accountNotification])
 		.then(function() {
 			return resolve();
 		})
