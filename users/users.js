@@ -9,12 +9,23 @@ var OAuthFlow = require('../oauth/oauth_flow');
 
 // createUser
 // Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
-module.exports.createUser = function(username, ID, email, password, payments, subs) {
+module.exports.createUser = function(username, ID, email, password, payments, subs, currentRoute) {
+    var activeSubscriptionNum = -1;
+
     return new Promise(function(resolve, reject) {
     	return dbController.createOrUpdateUser(username, ID, email, password, payments, subs)
     	.then(function(activeSubscription) {
-    		return resolve(activeSubscription);
+            activeSubscriptionNum = activeSubscription;
+
+            if (currentRoute == null) {
+                return resolve([activeSubscription, []]);
+            } else {
+                return getCurrentRouteNotifications(ID, currentRoute);
+            }
     	})
+        .then(function(notifications) {
+            return resolve([activeSubscriptionNum, notifications]);
+        })
     	.catch(function(err) {
     		return reject(err);
     	});
@@ -78,11 +89,45 @@ module.exports.getTokenLink = function(username, ID, email, password) {
     });
 };
 
+// seenNotification
+// Marks a notification as seen
+module.exports.seenNotification = function(username, ID, email, password, notifName) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, ID, email, password)
+        .then(function(id) {
+            return dbController.seenNotification(ID, notifName);
+        })
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        })
+    });
+};
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function getCurrentRouteNotifications(ID, currentRoute) {
+    return new Promise(function(resolve, reject) {
+        switch(currentRoute) {
+            case "dashboard":
+                return dbController.getDashboardNotifications(ID)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            default:
+                return resolve([]);
+        }
+    });
+}
 
 function validateUserAndGetID(username, ID, email, password) {
 	return new Promise(function(resolve, reject) {

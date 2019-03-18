@@ -116,6 +116,70 @@ module.exports.hasNewUserToken = function(ID) {
 	});
 }
 
+module.exports.seenNotification = function(pmsID, notificationName) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.where("pms_user_id", "=", pmsID)
+		.where("notification", "=", notificationName)
+		.update({
+			seen: true,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getDashboardNotifications = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.returning(["notification", "id"])
+		.where("pms_user_id", "=", pmsID)
+		.where("seen", "=", false)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				for (var i = 0; i < results.length; i++) {
+					delete results[i].pms_user_id;
+					delete results[i].seen;
+					delete results[i].created_at;
+					delete results[i].updated_at;
+				}
+
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function createNewUserNotifications(pmsID) {
+	var dashboardNotification = {
+		pms_user_id: pmsID,
+		notification: "dashboard-intro",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.insert([dashboardNotification])
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.createOrUpdateUser = function(username, ID, email, password, payments, subs) {
 	var subscriptions = JSON.parse(subs);
 
@@ -136,6 +200,9 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 					password: password,
 					created_at: new Date(),
 					updated_at: new Date()
+				})
+				.then(function() {
+					return createNewUserNotifications(ID);
 				})
 				.then(function() {
 					return Promise.resolve();

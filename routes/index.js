@@ -112,11 +112,18 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
-		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions)
-		.then(function(activeSubscription) {
+		// If the optional paramter of route was passed
+		var currentRoute = null;
+		if (req.body.current_route) {
+			currentRoute = req.body.current_route;
+		}
+
+		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions, currentRoute)
+		.then(function(results) {
 			return res.json({
 				success: true,
-				active_subscription: activeSubscription
+				active_subscription: results[0],
+				notifications: results[1]
 			});
 		})
 		.catch(function(err) {
@@ -159,6 +166,20 @@ router.post(Models.USER_HAS_NEW_TOKEN, function(req, res, next) {
 		.then(function(hasToken) {
 			return res.json({
 				success: hasToken
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
+router.post(Models.SEEN_NOTIFICATION, function(req, res, next) {
+	validFirst(Models.SEEN_NOTIFICATION, req, res, next, function() {
+		return Users.seenNotification(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.notifiation_name)
+		.then(function() {
+			return res.json({
+				success: true
 			});
 		})
 		.catch(function(err) {
