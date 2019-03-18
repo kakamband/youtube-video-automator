@@ -21,6 +21,9 @@ module.exports.USER_TOKEN_LINK = "/user/token/link";
 // Asks if a user has created an auth token today
 module.exports.USER_HAS_NEW_TOKEN = "/user/has-new-token";
 
+// They have marked that they have seen a notification
+module.exports.SEEN_NOTIFICATION = "/user/notification/seen";
+
 // -------------------
 
 // Route definitions
@@ -94,6 +97,21 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
 			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.SEEN_NOTIFICATION, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("notifiation_name", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

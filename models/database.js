@@ -115,6 +115,14 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('notifications', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("notification").notNullable();
+			table.boolean("seen").default(false).notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;
