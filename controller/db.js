@@ -210,7 +210,7 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 					return reject(err);
 				});
 			} else { // Update User
-				if (users[0].email != email || users[0].password) {
+				if (users[0].email != email || users[0].password != password) {
 					cLogger.info("Updating user, email or password is different.");
 					return knex('users')
 					.where('pms_user_id', '=', ID)
