@@ -137,7 +137,6 @@ module.exports.seenNotification = function(pmsID, notificationName) {
 module.exports.getDashboardNotifications = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
-		.returning(["notification", "id"])
 		.where("pms_user_id", "=", pmsID)
 		.where("seen", "=", false)
 		.then(function(results) {
