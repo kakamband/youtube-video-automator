@@ -71,10 +71,33 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
           case "account-intro":
             $(".account-notification-container").hide();
             break;
+          case "defaults-intro":
+            $(".defaults-intro-notification").hide();
+            break;
         }
       },
       dataType: "json"
     });
+}
+
+// Toggles the defaults notifications if they are set or not
+function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
+  var removeNotification = true;
+  if (result.notifications.length > 0) {
+    for (var i = 0; i < result.notifications.length; i++) {
+     if (result.notifications[i].notification == "defaults-intro") {
+       removeNotification = false;
+     }
+    }
+  }
+  
+  if (removeNotification) {
+    $(".defaults-intro-notification").hide();
+  } else {
+    $(".close-notification").click(function() {
+      closeNotification($, "defaults-intro", username, ID, email, passwordHash); 
+    });
+  }
 }
 
 // Toggles the account notifications if they are set or not
@@ -310,10 +333,16 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
         if (result.success) {
 		      toggleProfessionalPrompt($, result);
           
-          if (route == "videos") {
-          	toggleVideosNotification($, result, username, ID, email, passwordHash);
-          } else if (route == "account") {
-            toggleAccountNotification($, result, username, ID, email, passwordHash);
+          switch (route) {
+            case "videos":
+              toggleVideosNotification($, result, username, ID, email, passwordHash);
+              break;
+            case "account":
+              toggleAccountNotification($, result, username, ID, email, passwordHash);
+              break;
+            case "defaults":
+              toggleDefaultsNotification($, result, username, ID, email, passwordHash);
+              break;
           }
         } else {
           console.log("Unsuccesfully authenticated.");
@@ -394,6 +423,8 @@ jQuery(document).ready(function( $ ){
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "videos");
     } else if (pageURL[1].startsWith("account")) { // Account route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
+    } else if (pageURL[1].startsWith("defaults")) { // Defaults route
+        notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
     } else {
       if (canAuth) {
       	authenticateWithAutoTuberHost($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);

@@ -139,6 +139,14 @@ function getCurrentRouteNotifications(ID, currentRoute) {
                 .catch(function(err) {
                     return reject(err);
                 });
+            case "defaults":
+                return dbController.getDefaultsNotifications(ID)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return resolve([]);
         }
