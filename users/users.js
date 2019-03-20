@@ -249,6 +249,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "game-playlists":
                 var setting = JSON.parse(settingJSON);
 
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
                 var count = 0;
                 function next1() {
                     if (setting.length < count || 
@@ -275,6 +279,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 return next1();
             case "remove-game-playlists":
                 var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
 
                 var count = 0;
                 function next2() {
@@ -303,6 +311,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "default-comments":
                 var setting = JSON.parse(settingJSON);
 
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
                 var count = 0;
                 function next3() {
                     if (setting.length < count || 
@@ -329,6 +341,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 return next3();
             case "remove-default-comments":
                 var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
 
                 var count = 0;
                 function next4() {
@@ -384,6 +400,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "default-signature":
                 var setting = JSON.parse(settingJSON);
 
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
                 var count = 0;
                 function next5() {
                     if (setting.length < count || 
@@ -410,6 +430,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 return next5();
             case "remove-default-signature":
                 var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
 
                 var count = 0;
                 function next6() {
@@ -438,6 +462,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "default-tags":
                 var setting = JSON.parse(settingJSON);
 
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
                 var count = 0;
                 function next7() {
                     if (setting.length < count || 
@@ -464,6 +492,10 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 return next7();
             case "remove-default-tags":
                 var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
 
                 var count = 0;
                 function next8() {

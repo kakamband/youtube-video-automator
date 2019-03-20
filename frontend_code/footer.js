@@ -34,6 +34,7 @@ function toggleProfessionalPrompt($, result) {
   }
 }
 
+var settingsOverview = null;
 var gamePlaylistsCombo = [];
 var gameCommentsCombo = [];
 var gameDescriptionsCombo = [];
@@ -41,7 +42,6 @@ var gameTagsCombo = [];
 
 // Function to be called from frontend, to handle deleting a setting
 function deleteAddedSetting(name, index) {
-  console.log("Clicked this: " + name + " and index: " + index);
   var arr = null;
   switch (name) {
     case "playlist":
@@ -63,6 +63,7 @@ function deleteAddedSetting(name, index) {
   var elem = document.getElementById(name + "-" + index);
   elem.parentNode.removeChild(elem);
   arr[parseInt(index)].userRemoved = true;
+  arr[parseInt(index)].uploaded = false;
  }
 
 // draws the playlists that are in the gamePlaylistsCombo box
@@ -76,9 +77,145 @@ function drawOptions($, arr, anchor, name) {
   }
 }
 
-// Updates a setting in the backend
-function updateSetting($, username, ID, email, pass) {
+// Updates the default values based on what was returned from the backend
+function updateDefaultValues($, values) {
+  settingsOverview = values;
+  $("#min-vid-value").text(values.min_vid_length);
+  $("#min-vid-input").val(values.min_vid_length);
+  $("#max-vid-value").text(values.max_vid_length);
+  $("#max-vid-input").val(values.max_vid_length);
+  $("#playlists-count-value").text(values.playlists_count);
+  $("#comments-count-value").text(values.comments_count);
+  if (values.default_like == "true") {
+    $("#like-default-value").text("Yes");
+  } else if (values.default_like == "false") {
+    $("#like-default-value").text("No");
+  }
+  $("#thumbnails-count-value").text(values.thumbnails_count);
+  $("#category-default-value").text(values.default_category);
+  $("#description-count-value").text(values.signatures_count);
+  $("#tags-count-value").text(values.tags_count);
+  $("#default-language-value").text(values.default_language);
+}
 
+// Calls the server for the playlist items, and then once returned updates the view
+function getAndUpdatePlaylistView($, username, ID, email, pass) {
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/setting",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+        "scope": "game-playlists"
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        if (result.results == null) return;
+
+        for (var i = 0; i < result.results.length; i++) {
+          gamePlaylistsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].playlist_id, drawn: false, userRemoved: false, uploaded: true});
+        }
+        drawOptions($, gamePlaylistsCombo, "#playlists-set-header", "playlist");
+      },
+      dataType: "json"
+  });
+}
+
+// Calls to find the default values for this user, and then updates them on the screen.
+function toggleDefaultSavedValues($, username, ID, email, pass) {
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/setting",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+        "scope": "overview"
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        console.log("Found a result of: ", result);
+        if (result.results != null) {
+          updateDefaultValues($, result.results);
+        } else {
+          console.log("Found no default settings for this user.");
+        }
+      },
+      dataType: "json"
+  });
+}
+
+// updates a setting in the database
+function updateSetting($, username, ID, email, pass, setting, settingJSON) {
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/setting/update",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+        "setting_name": setting,
+        "setting_json": settingJSON
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        console.log("Succesfully updated.");
+      },
+      dataType: "json"
+  });
+}
+
+// updates a setting, and then deletes the some of the same setting. This is done syncronously to 
+// make sure there are no race conditions (etc).
+function updateSettingAndDelete($, username, ID, email, pass, setting, settingJSON, setting2, settingJSON2) {
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/setting/update",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+        "setting_name": setting,
+        "setting_json": settingJSON
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        console.log("Succesfully updated #1.");
+        $.ajax({
+            type: "POST",
+            url: autoTuberURL + "user/setting/update",
+            data: {
+              "username": username,
+              "user_id": ID,
+              "email": email,
+              "password": pass,
+              "setting_name": setting2,
+              "setting_json": settingJSON2
+            },
+            error: function(xhr,status,error) {
+              console.log("Error: ", error);
+            },
+            success: function(result,status,xhr) {
+              console.log("Succesfully updated #2.");
+            },
+            dataType: "json"
+        });
+      },
+      dataType: "json"
+  });
 }
 
 // Watches the default settings for changes
@@ -92,14 +229,15 @@ function defaultSettings($, username, ID, email, pass) {
       $(".invalid-min-vid-prompt").hide();
       var stepParsed = parseInt(stepVal);
       if (stepParsed < 2) {
-        $("#min-vid-input").attr("value", "2");
+        $("#min-vid-input").val("2");
         stepParsed = 2;
       } else if (stepParsed > 24) {
-        $("#min-vid-input").attr("value", "24");
+        $("#min-vid-input").val("24");
         stepParsed = 24;
       }
 
       $("#min-vid-value").text(stepParsed);
+      updateSetting($, username, ID, email, pass, "minimum-length", stepParsed + "");
     } else {
       $(".invalid-min-vid-prompt").show();
       $(".invalid-min-vid-prompt").css('display','inline-block');
@@ -108,7 +246,33 @@ function defaultSettings($, username, ID, email, pass) {
   $("#max-vid-default-setting").click(function() {
     $("#max-vid-subsection").toggle();
   });
+  $("#save-max-vid-value").click(function() {
+    var stepVal = $("#max-vid-input").val();
+    if (stepVal != "") {
+      $(".invalid-max-vid-prompt").hide();
+      var stepParsed = parseInt(stepVal);
+      if (stepParsed < 3) {
+        $("#max-vid-input").val("3");
+        stepParsed = 3;
+      } else if (stepParsed > 25) {
+        $("#max-vid-input").val("25");
+        stepParsed = 25;
+      }
+
+      $("#max-vid-value").text(stepParsed);
+      updateSetting($, username, ID, email, pass, "maximum-length", stepParsed + "");
+    } else {
+      $(".invalid-max-vid-prompt").show();
+      $(".invalid-max-vid-prompt").css('display','inline-block');
+    }
+  });
   $("#playlists-default-setting").click(function() {
+    if (settingsOverview != null && settingsOverview.playlists_count > gamePlaylistsCombo.length) {
+      // This means its opened for the first time
+      // We can pretty much guarantee this since we never hard delete stored options
+      getAndUpdatePlaylistView($, username, ID, email, pass);
+    }
+
     $("#playlists-vid-subsection").toggle();
   });
   $("#add-playlist").click(function() {
@@ -126,11 +290,26 @@ function defaultSettings($, username, ID, email, pass) {
       $(".max-playlists").hide();
       $(".invalid-playlist-combo").hide();
       $("#no-playlists-set").hide();
-      gamePlaylistsCombo.push({gameName: $("#playlist-game-input").val(), playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false});
+      gamePlaylistsCombo.push({gameName: $("#playlist-game-input").val(), playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false, uploaded: false});
       drawOptions($, gamePlaylistsCombo, "#playlists-set-header", "playlist");
       $("#playlist-game-input").val("");
       $("#playlist-id-input").val("");
     }
+  });
+  $("#add-playlist-value").click(function() {
+    var settingsArr = [];
+    var settingsRemoveArr = [];
+    for (var i = 0; i < gamePlaylistsCombo.length; i++) {
+      if (gamePlaylistsCombo[i].userRemoved == false && gamePlaylistsCombo[i].uploaded == false) { // New addition
+        settingsArr.push({gameName: gamePlaylistsCombo[i].gameName, playlistID: gamePlaylistsCombo[i].playlistID});
+        gamePlaylistsCombo[i].uploaded = true;
+      } else if (gamePlaylistsCombo[i].userRemoved == true && gamePlaylistsCombo[i].uploaded == false) { // New removal
+        settingsRemoveArr.push({gameName: gamePlaylistsCombo[i].gameName, playlistID: gamePlaylistsCombo[i].playlistID});
+        gamePlaylistsCombo[i].uploaded = true;
+      }
+    }
+
+    updateSettingAndDelete($, username, ID, email, pass, "game-playlists", JSON.stringify(settingsArr), "remove-game-playlists", JSON.stringify(settingsRemoveArr));
   });
   $("#comments-default-setting").click(function() {
     $("#comments-vid-subsection").toggle();
@@ -540,6 +719,7 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
               break;
             case "defaults":
               toggleDefaultsNotification($, result, username, ID, email, passwordHash);
+              toggleDefaultSavedValues($, username, ID, email, passwordHash);
               break;
           }
         } else {
