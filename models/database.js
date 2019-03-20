@@ -48,15 +48,39 @@ module.exports.initialize = function(knex) {
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('playlists', function(table) {
 			table.increments();
-			table.string("user_id").notNullable();
+			table.string("pms_user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("playlist_id").notNullable();
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('comments', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("game").notNullable();
+			table.string("comment").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('signatures', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("game").notNullable();
+			table.string("signature").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('tags', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("game").notNullable();
+			table.string("tag").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		return knex.schema.createTableIfNotExists('thumbnails', function(table) {
 			table.increments();
-			table.string("user_id").notNullable();
+			table.string("pms_user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("image_name").notNullable();
 			table.boolean("hijacked").default(false);
@@ -120,6 +144,14 @@ module.exports.initialize = function(knex) {
 			table.string("pms_user_id").notNullable();
 			table.string("notification").notNullable();
 			table.boolean("seen").default(false).notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('simple_default', function(table) {
+			table.increments();
+			table.string("pms_user_id").notNullable();
+			table.string("setting_name").notNullable();
+			table.string("value").notNullable();
 			table.timestamps();
 		});
 	}).then(function() {

@@ -188,4 +188,32 @@ router.post(Models.SEEN_NOTIFICATION, function(req, res, next) {
 	});
 });
 
+router.post(Models.UPDATE_SETTING, function(req, res, next) {
+	validFirst(Models.UPDATE_SETTING, req, res, next, function() {
+		return Users.updateSetting(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.setting_name, req.body.setting_json)
+		.then(function(ok) {
+			return res.json({
+				success: ok
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
+router.post(Models.GET_DEFAULT_SETTINGS, function(req, res, next) {
+	validFirst(Models.GET_DEFAULT_SETTINGS, req, res, next, function() {
+		return Users.getSettings(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.scope)
+		.then(function(results) {
+			return res.json({
+				results: results
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
 module.exports = router;

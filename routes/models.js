@@ -24,6 +24,12 @@ module.exports.USER_HAS_NEW_TOKEN = "/user/has-new-token";
 // They have marked that they have seen a notification
 module.exports.SEEN_NOTIFICATION = "/user/notification/seen";
 
+// Updates a users default setting
+module.exports.UPDATE_SETTING = "/user/setting/update";
+
+// Gets the default settings, based on scope will return different things.
+module.exports.GET_DEFAULT_SETTINGS = "/user/setting";
+
 // -------------------
 
 // Route definitions
@@ -112,6 +118,37 @@ module.exports.routes = new Map([
 			nameAndType("password", "string"),
 
 			nameAndType("notifiation_name", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.UPDATE_SETTING, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("setting_name", "string"),
+			nameAndType("setting_json", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.GET_DEFAULT_SETTINGS, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("scope", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
