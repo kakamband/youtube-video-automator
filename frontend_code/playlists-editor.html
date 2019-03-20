@@ -1,0 +1,31 @@
+<div class="default-subsection" id="playlists-vid-subsection">
+	Set up game playlists, resulting in automatically adding any videos of a certain game to a Youtube playlist. Essentially this allows users who stream multiple games to never worry about setting up custom playlists again. Define it here once, it will always happen.
+	</br>
+	</br>
+	This is completely optional. However it has been shown time and time again that grouping videos in playlists increases user retention.
+	</br>
+	</br>
+	To find your playlist ID navigate to your Youtube channel, go to Playlists, click the playlist you want. You should be redirected to a url that looks something like this: 'https://www.youtube.com/playlist?list=PL0_AOI...'. The playlist ID is part after 'list='.
+	</br>
+    </br>
+    Game names are case sensitive, please find all the specific game names <a href="https://www.twitch.tv/directory" target="_blank" rel="noopener noreferrer">here.</a>
+    </br>
+	</br>
+	<strong>Minimum Value: </strong> 0
+	</br>
+	<strong>Maximum Value: </strong> 15
+	</br>
+	<strong>Type: </strong> Game -> Playlist ID
+	</br>
+	<strong id="playlists-set-header">Already Set: </strong>
+	</br>
+	<span id="no-playlists-set">No Playlists set.</span>
+	</br>
+	<input type="text" id="playlist-game-input" placeholder="Game Name" style="border: 1px solid #2c2c2c; width: 150px; float: left">
+	<input type="text" id="playlist-id-input" placeholder="Playlist ID" style="border: 1px solid #2c2c2c; width: 150px;">
+	<span style="color: red" class="invalid-playlist-combo">Invalid input, please try again.</span>
+	<span style="color: red" class="max-playlists">Max number of playlists.</span>
+	</br>
+	<a id="add-playlist" class="save-default-setting" style="background-color: #6441A5; color: white !important;">Add Playlist</a>
+	<a class="save-default-setting">Save</a>
+</div>

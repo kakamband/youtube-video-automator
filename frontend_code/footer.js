@@ -34,9 +34,211 @@ function toggleProfessionalPrompt($, result) {
   }
 }
 
+var gamePlaylistsCombo = [];
+var gameCommentsCombo = [];
+var gameDescriptionsCombo = [];
+var gameTagsCombo = [];
+
+// Function to be called from frontend, to handle deleting a setting
+function deleteAddedSetting(name, index) {
+  console.log("Clicked this: " + name + " and index: " + index);
+  var arr = null;
+  switch (name) {
+    case "playlist":
+      arr = gamePlaylistsCombo;
+      break;
+    case "comment":
+      arr = gameCommentsCombo;
+      break;
+    case "description":
+      arr = gameDescriptionsCombo;
+      break;
+    case "tag":
+      arr = gameTagsCombo;
+      break;
+    default:
+      return;
+  }
+
+  var elem = document.getElementById(name + "-" + index);
+  elem.parentNode.removeChild(elem);
+  arr[parseInt(index)].userRemoved = true;
+ }
+
+// draws the playlists that are in the gamePlaylistsCombo box
+function drawOptions($, arr, anchor, name) {
+  for (var i = 0; i < arr.length; i++) {
+    if (!arr[i].drawn && !arr[i].userRemoved) {
+      var uniqueName = name + "-" + i;
+      $("<div id=\"" + uniqueName + "\"><strong>" + arr[i].gameName + ": </strong>" + arr[i].playlistID + "<span class=\"remove-defaults-cross\" style=\"display: inline-block; color: red; margin-left: 30px;\" onclick=\"deleteAddedSetting('" + name + "', " + i + ")\">&#10006;</span></div>").insertAfter(anchor);
+      arr[i].drawn = true;
+    }
+  }
+}
+
+// Updates a setting in the backend
+function updateSetting($, username, ID, email, pass) {
+
+}
+
+// Watches the default settings for changes
+function defaultSettings($, username, ID, email, pass) {
+  $("#min-vid-default-setting").click(function() {
+    $("#min-vid-subsection").toggle();
+  });
+  $("#save-min-vid-value").click(function() {
+    var stepVal = $("#min-vid-input").val();
+    if (stepVal != "") {
+      $(".invalid-min-vid-prompt").hide();
+      var stepParsed = parseInt(stepVal);
+      if (stepParsed < 2) {
+        $("#min-vid-input").attr("value", "2");
+        stepParsed = 2;
+      } else if (stepParsed > 24) {
+        $("#min-vid-input").attr("value", "24");
+        stepParsed = 24;
+      }
+
+      $("#min-vid-value").text(stepParsed);
+    } else {
+      $(".invalid-min-vid-prompt").show();
+      $(".invalid-min-vid-prompt").css('display','inline-block');
+    }
+  });
+  $("#max-vid-default-setting").click(function() {
+    $("#max-vid-subsection").toggle();
+  });
+  $("#playlists-default-setting").click(function() {
+    $("#playlists-vid-subsection").toggle();
+  });
+  $("#add-playlist").click(function() {
+    if ($("#playlist-game-input").val() == "" || $("#playlist-id-input").val() == "") {
+      $(".max-playlists").hide();
+      $(".invalid-playlist-combo").show();
+      if ($(".invalid-playlist-combo").is(':visible'))
+        $(".invalid-playlist-combo").css('display','inline-block');
+    } else if (gamePlaylistsCombo.length == 15) {
+      $(".invalid-playlist-combo").hide();
+      $(".max-playlists").show();
+      if ($(".max-playlists").is(':visible'))
+        $(".max-playlists").css('display','inline-block');
+    } else {
+      $(".max-playlists").hide();
+      $(".invalid-playlist-combo").hide();
+      $("#no-playlists-set").hide();
+      gamePlaylistsCombo.push({gameName: $("#playlist-game-input").val(), playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false});
+      drawOptions($, gamePlaylistsCombo, "#playlists-set-header", "playlist");
+      $("#playlist-game-input").val("");
+      $("#playlist-id-input").val("");
+    }
+  });
+  $("#comments-default-setting").click(function() {
+    $("#comments-vid-subsection").toggle();
+  });
+  $("#add-comment").click(function() {
+    if ($("#comments-game-input").val() == "" || $("#comments-id-input").val() == "") {
+      $(".max-comments").hide();
+      $(".invalid-comments-combo").show();
+      if ($(".invalid-comments-combo").is(':visible'))
+        $(".invalid-comments-combo").css('display','inline-block');
+    } else if (gameCommentsCombo.length == 45) {
+      $(".invalid-comments-combo").hide();
+      $(".max-comments").show();
+      if ($(".max-comments").is(':visible'))
+        $(".max-comments").css('display','inline-block');
+    } else {
+      $(".max-comments").hide();
+      $(".invalid-comments-combo").hide();
+      $("#no-comments-set").hide();
+      gameCommentsCombo.push({gameName: $("#comments-game-input").val(), playlistID: $("#comments-id-input").val(), drawn: false, userRemoved: false});
+      drawOptions($, gameCommentsCombo, "#comments-set-header", "comment");
+      $("#comments-game-input").val("");
+      $("#comments-id-input").val("");
+    }
+  });
+  $("#like-default-setting").click(function() {
+    $("#like-default-subsection").toggle();
+  });
+  $("#thumbnails-default-setting").click(function() {
+    $("#thumbnails-default-subsection").toggle();
+  });
+  $("#category-default-setting").click(function() {
+    $("#category-default-subsection").toggle();
+  });
+  $("#description-default-setting").click(function() {
+    $("#default-description-subsection").toggle();
+  });
+  $("#add-description").click(function() {
+    if ($("#descriptions-game-input").val() == "" || $("#descriptions-id-input").val() == "") {
+      $(".max-descriptions").hide();
+      $(".invalid-descriptions-combo").show();
+      if ($(".invalid-descriptions-combo").is(':visible'))
+        $(".invalid-descriptions-combo").css('display','inline-block');
+    } else if (gameCommentsCombo.length == 10) {
+      $(".invalid-descriptions-combo").hide();
+      $(".max-descriptions").show();
+      if ($(".max-descriptions").is(':visible'))
+        $(".max-descriptions").css('display','inline-block');
+    } else {
+      $(".max-descriptions").hide();
+      $(".invalid-descriptions-combo").hide();
+      $("#no-descriptions-set").hide();
+      gameDescriptionsCombo.push({gameName: $("#descriptions-game-input").val(), playlistID: $("#descriptions-id-input").val(), drawn: false, userRemoved: false});
+      drawOptions($, gameDescriptionsCombo, "#descriptions-set-header", "description");
+      $("#descriptions-game-input").val("");
+      $("#descriptions-id-input").val("");
+    }
+  });
+  $("#tags-default-setting").click(function() {
+    $("#default-tags-subsection").toggle();
+  });
+  $("#add-tag").click(function() {
+    if ($("#tags-game-input").val() == "" || $("#tags-id-input").val() == "") {
+      $(".max-tags").hide();
+      $(".invalid-tags-combo").show();
+      if ($(".invalid-tags-combo").is(':visible'))
+        $(".invalid-tags-combo").css('display','inline-block');
+    } else if (gameCommentsCombo.length == 100) {
+      $(".invalid-descriptions-tags").hide();
+      $(".max-tags").show();
+      if ($(".max-tags").is(':visible'))
+        $(".max-tags").css('display','inline-block');
+    } else {
+      $(".max-tags").hide();
+      $(".invalid-descriptions-tags").hide();
+      $("#no-tags-set").hide();
+      gameTagsCombo.push({gameName: $("#tags-game-input").val(), playlistID: $("#tags-id-input").val(), drawn: false, userRemoved: false});
+      drawOptions($, gameTagsCombo, "#tags-set-header", "tag");
+      $("#tags-game-input").val("");
+      $("#tags-id-input").val("");
+    }
+  });
+  $("#language-default-setting").click(function() {
+    $("#language-default-subsection").toggle();
+  });
+}
+
 // Specifies that the auth token has been found, and we don't need to authenticate with Youtube anymore.
 function foundAuth($, username, ID, email, pass) {
+  $("#bad-stream-link-text").hide();
   $(".dashboard-have-auth-token").show();
+  $("#stream-name-input").change(function() {
+    if ($("#stream-name-input").val().startsWith("https://twitch.tv/")) {
+      $("#stream-name-input").addClass("valid-stream-link");
+    } else {
+      $("#stream-name-input").removeClass("valid-stream-link");
+    }
+  });
+  $("#submit-stream-link").click(function() {
+    if ($("#stream-name-input").val().startsWith("https://twitch.tv/")) {
+      $("#bad-stream-link-text").hide();
+    } else {
+      $("#bad-stream-link-text").show();
+    }
+  });
+  $("#youtube-settings-link").click(function() {
+    window.location.href = "https://twitchautomator.com/defaults";
+  });
 }
 
 // Closes a notification
@@ -82,18 +284,17 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
 
 // Toggles the defaults notifications if they are set or not
 function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
-  var removeNotification = true;
+  var showNotification = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
-       removeNotification = false;
+       showNotification = true;
      }
     }
   }
   
-  if (removeNotification) {
-    $(".defaults-intro-notification").hide();
-  } else {
+  if (showNotification) {
+    $(".defaults-intro-notification").show();
     $(".close-notification").click(function() {
       closeNotification($, "defaults-intro", username, ID, email, passwordHash); 
     });
@@ -101,19 +302,18 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
 }
 
 // Toggles the account notifications if they are set or not
-function toggleAccountNotification($, result, username, ID, email, passwordHash) {
-  var removeNotification = true;
+function toggleAccountNotification($, result, username, ID, email, passwordHash) {  
+  var showNotification = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "account-intro") {
-       removeNotification = false;
+       showNotification = true;
      }
     }
   }
   
-  if (removeNotification) {
-    $(".account-notification-container").hide();
-  } else {
+  if (showNotification) {
+    $(".account-notification-container").show();
     $(".close-notification").click(function() {
       closeNotification($, "account-intro", username, ID, email, passwordHash); 
     });
@@ -121,19 +321,18 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
 }
 
 // Toggles the video notifications if they are set or not
-function toggleVideosNotification($, result, username, ID, email, passwordHash) {
-  var removeVideosNotification = true;
+function toggleVideosNotification($, result, username, ID, email, passwordHash) {  
+  var showNotification = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "videos-intro") {
-       removeVideosNotification = false;
+       showNotification = true;
      }
     }
   }
   
-  if (removeVideosNotification) {
-    $(".videos-notification-container").hide();
-  } else {
+  if (showNotification) {
+    $(".videos-notification-container").show();
     $(".close-notification").click(function() {
       closeNotification($, "videos-intro", username, ID, email, passwordHash); 
     });
@@ -141,19 +340,18 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
 }
 
 // Toggles the dashboard notifications if they are set or not
-function toggleDashboardNotification($, result, username, ID, email, passwordHash) {
-  var removeDashboardNotification = true;
+function toggleDashboardNotification($, result, username, ID, email, passwordHash) {  
+  var showNotification = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "dashboard-intro") {
-       removeDashboardNotification = false;
+       showNotification = true;
      }
     }
   }
   
-  if (removeDashboardNotification) {
-    $(".dashboard-into-notification").hide();
-  } else {
+  if (showNotification) {
+    $(".dashboard-into-notification").show();
     $(".close-notification").click(function() {
       closeNotification($, "dashboard-intro", username, ID, email, passwordHash); 
     });
@@ -425,6 +623,7 @@ jQuery(document).ready(function( $ ){
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
     } else if (pageURL[1].startsWith("defaults")) { // Defaults route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
+        defaultSettings($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier);
     } else {
       if (canAuth) {
       	authenticateWithAutoTuberHost($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);

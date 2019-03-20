@@ -176,6 +176,307 @@ module.exports.getDefaultsNotifications = function(pmsID) {
 	return getNotifications(pmsID, ["defaults-intro"]);
 }
 
+module.exports.settingsOverview = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex
+		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'minimum-length\') as min_vid_length'))
+		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'maximum-length\') as max_vid_length'))
+		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-like\') as default_like'))
+		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-category\') as default_category'))
+		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-language\') as default_language'))
+		.select(knex.raw('(select count(*) from playlists where pms_user_id=\'' + pmsID + '\') as playlists_count'))
+		.select(knex.raw('(select count(*) from comments where pms_user_id=\'' + pmsID + '\') as comments_count'))
+		.select(knex.raw('(select count(*) from signatures where pms_user_id=\'' + pmsID + '\') as signatures_count'))
+		.select(knex.raw('(select count(*) from tags where pms_user_id=\'' + pmsID + '\') as tags_count'))
+		.select(knex.raw('(select count(*) from thumbnails where pms_user_id=\'' + pmsID + '\') as thumbnails_count'))
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(results[0]);
+			} else {
+				return resolve(null);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getPlaylists = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('playlists')
+		.where("pms_user_id", "=", pmsID)
+		.then(function(results) {
+			if (results.length >= 0) {
+				return resolve(results);
+			} else {
+				return resolve([]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getComments = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('comments')
+		.where("pms_user_id", "=", pmsID)
+		.then(function(results) {
+			if (results.length >= 0) {
+				return resolve(results);
+			} else {
+				return resolve([]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getSignatures = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('signatures')
+		.where("pms_user_id", "=", pmsID)
+		.then(function(results) {
+			if (results.length >= 0) {
+				return resolve(results);
+			} else {
+				return resolve([]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getTags = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('tags')
+		.where("pms_user_id", "=", pmsID)
+		.then(function(results) {
+			if (results.length >= 0) {
+				return resolve(results);
+			} else {
+				return resolve([]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateSimpleSetting = function(pmsID, settingName, setting) {
+	return new Promise(function(resolve, reject) {
+		return knex('simple_default')
+		.where("pms_user_id", "=", pmsID)
+		.where("setting_name", "=", settingName)
+		.update({
+			value: setting,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addTag = function(pmsID, gameName, tag) {
+	return new Promise(function(resolve, reject) {
+		return knex('tags')
+		.insert({
+			pms_user_id: pmsID,
+			game: gameName,
+			tag: tag,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.removeTag = function(pmsID, gameName, tag) {
+	return new Promise(function(resolve, reject) {
+		return knex('tags')
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("tag", "=", tag)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addSignature = function(pmsID, gameName, signature) {
+	return new Promise(function(resolve, reject) {
+		return knex('signatures')
+		.insert({
+			pms_user_id: pmsID,
+			game: gameName,
+			signature: signature,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.removeSignature = function(pmsID, gameName, signature) {
+	return new Promise(function(resolve, reject) {
+		return knex('signatures')
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("signature", "=", signature)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addComment = function(pmsID, gameName, comment) {
+	return new Promise(function(resolve, reject) {
+		return knex('comments')
+		.insert({
+			pms_user_id: pmsID,
+			game: gameName,
+			comment: comment,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.removeComment = function(pmsID, gameName, comment) {
+	return new Promise(function(resolve, reject) {
+		return knex('comments')
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("comment", "=", comment)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addPlaylist = function(pmsID, gameName, playlistID) {
+	return new Promise(function(resolve, reject) {
+		return knex('playlists')
+		.insert({
+			pms_user_id: pmsID,
+			game: gameName,
+			playlist_id: playlistID,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.deletePlaylist = function(pmsID, gameName, playlistID) {
+	return new Promise(function(resolve, reject) {
+		return knex('playlists')
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("playlist_id", "=", playlistID)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function createNewUserDefaults(pmsID) {
+	var minVidLength = {
+		pms_user_id: pmsID,
+		setting_name: "minimum-length",
+		value: "7",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+	var maxVidLength = {
+		pms_user_id: pmsID,
+		setting_name: "maximum-length",
+		value: "11",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+	var defaultLike = {
+		pms_user_id: pmsID,
+		setting_name: "default-like",
+		value: "true",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+	var defaultCategory = {
+		pms_user_id: pmsID,
+		setting_name: "default-category",
+		value: "20",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+	var defaultLanguage = {
+		pms_user_id: pmsID,
+		setting_name: "default-language",
+		value: "en",
+		created_at: new Date(),
+		updated_at: new Date()
+	};
+
+	return new Promise(function(resolve, reject) {
+		return knex('simple_default')
+		.insert([minVidLength, maxVidLength, defaultLike, defaultCategory, defaultLanguage])
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 function createNewUserNotifications(pmsID) {
 	var dashboardNotification = {
 		pms_user_id: pmsID,
@@ -237,6 +538,9 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 				})
 				.then(function() {
 					return createNewUserNotifications(ID);
+				})
+				.then(function() {
+					return createNewUserDefaults(ID);
 				})
 				.then(function() {
 					return Promise.resolve();
