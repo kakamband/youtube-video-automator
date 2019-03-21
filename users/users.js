@@ -230,7 +230,6 @@ function getSettingsHelper(pmsID, scope) {
                         return dbController.settingsOverview(pmsID)
                         .then(function(results) {
                             var redisContent = JSON.stringify(results);
-                            console.log("Redis content: " + redisContent);
                             redis.set(redisKey, redisContent, "EX", userDefaultsOverviewTTL);
                             return resolve(results);
                         })
