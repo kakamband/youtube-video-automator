@@ -282,7 +282,13 @@ function getSettingsHelper(pmsID, scope) {
             case "default-language":
                 return reject(shouldHaveObtainedFromOverview());
             case "default-thumbnail":
-                return resolve(true);
+                return dbController.getThumbnails(pmsID)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return reject(invalidScope());
         }
@@ -619,7 +625,61 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     return reject(err);
                 });
             case "default-thumbnail":
-                return resolve(true);
+                var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
+                if (!validThumbnailItem(setting[0])) {
+                    return reject(invalidThumbnail());
+                }
+
+                // This is the preliminary work towards unique thumbnail to video images.
+                var hijacked = false;
+                var hijackedName = null; // If this exists it should be the download ID so we can match it with a unique video
+                if (setting[0].hijacked == true && setting[0].hijacked_name != undefined && setting[0].hijacked_name != "") {
+                    hijacked = true;
+                    hijackedName = setting[0].hijacked_name;
+                }
+
+                // Only one image can be uploaded at a time in this route.
+                return dbController.addThumbnail(pmsID, setting[0].gameName, setting[0].image, hijacked, hijackedName)
+                .then(function() {
+                    return resolve(true);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "remove-default-thumbnail":
+                var setting = JSON.parse(settingJSON);
+
+                if (setting.length == 0) {
+                    return resolve(true);
+                }
+
+                if (!validThumbnailItems(setting)) {
+                    return reject(invalidThumbnail());
+                }
+
+                // This does NOT care about anything except for image_name & pms_user_id, this is somewhat dangerous but intended.
+                var count = 0;
+                function next9() {
+                    return dbController.deleteThumbnail(pmsID, setting[count].gameName, setting[count].image)
+                    .then(function() {
+                        count++;
+                        if (count < setting.length) {
+                            return next9();
+                        } else {
+                            return resolve(true);
+                        }
+                    })
+                    .catch(function(err) {
+                        return reject(err);
+                    });
+                }
+
+                return next9();
             default:
                 return reject(invalidSetting());
         }
@@ -663,6 +723,22 @@ function isValidCategory(item) {
     ];
 
     return (categories.indexOf(parseInt(item)) >= 0);
+}
+
+function validThumbnailItems(items) {
+    for (var i = 0; i < items.length; i++) {
+        if (!validThumbnailItem(items[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function validThumbnailItem(item) {
+    var validGameName = (item.gameName != undefined && item.gameName != "");
+    var validImageName = (item.image != undefined && item.image != "");
+
+    return validGameName && validImageName;
 }
 
 function validLanguage(item) {
@@ -739,6 +815,12 @@ function validateUserAndGetID(username, ID, email, password) {
 			return reject(err);
 		});
 	});
+}
+
+function invalidThumbnail() {
+    var err = new Error("Invalid Thumbnail.");
+    err.status = 400;
+    return err;
 }
 
 function shouldHaveObtainedFromOverview() {

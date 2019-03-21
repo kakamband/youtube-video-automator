@@ -173,6 +173,45 @@ function updateDefaultValues($, values) {
   }
 }
 
+// Tells the backend server about a thumbnail image
+function uploadThumbnailToBackendServer($, username, ID, email, unique_identifier, thumbnailGame, fileName) {
+
+}
+
+// Calls the get popular games endpoint
+var alreadyPopulatedGames = false;
+function getAndPopulateGames($) {
+  if (alreadyPopulatedGames) return;
+
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "game/list",
+      data: {},
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        var games = result.games;
+        var initialVal = "Fortnite";
+        for (var i = 0; i < games.length; i++) {
+          if (i == 0) {
+            initialVal = games[i];
+          }
+
+          $(".game-selector-base").append("<option value=\"" + games[i] + "\">" + games[i] + "</option>");
+          $("#ugc-input-select-game").append("<option value=\"" + games[i] + "\">" + games[i] + "</option>");
+        }
+        $("#ugc-input-select-game").append("<option value=\"other\">Other</option>");
+        $(".game-selector-base").append("<option value=\"other\">Other</option>");
+        $("#ugc-input-select-game").val(initialVal);
+        $(".game-selector-base").val(initialVal);
+        alreadyPopulatedGames = true;
+      },
+      dataType: "json"
+  });
+}
+
+// Gets some specific setting, and then calls the callback
 function getAndUpdateHelper($, username, ID, email, pass, route, cb) {
   $.ajax({
       type: "POST",
@@ -207,6 +246,7 @@ function getAndUpdateCommentsView($, username, ID, email, pass) {
     $("#no-comments-set").hide();
 
     drawOptions($, gameCommentsCombo, "#comments-saved-table-body", "comment");
+    getAndPopulateGames($);
   });
 }
 
@@ -221,6 +261,7 @@ function getAndUpdateTagsView($, username, ID, email, pass) {
     $("#no-tags-set").hide();
 
     drawOptions($, gameTagsCombo, "#tags-saved-table-body", "tag");
+    getAndPopulateGames($);
   });
 }
 
@@ -235,6 +276,7 @@ function getAndUpdatePlaylistView($, username, ID, email, pass) {
     $("#no-playlists-set").hide();
 
     drawOptions($, gamePlaylistsCombo, "#playlists-saved-table-body", "playlist");
+    getAndPopulateGames($);
   });
 }
 
@@ -249,6 +291,7 @@ function getAndUpdateSignatureView($, username, ID, email, pass) {
     $("#no-descriptions-set").hide();
 
     drawOptions($, gameDescriptionsCombo, "#signatures-saved-table-body", "description");
+    getAndPopulateGames($);
   });
 }
 
@@ -292,7 +335,6 @@ function toggleDefaultSavedValues($, username, ID, email, pass) {
         console.log("Error: ", error);
       },
       success: function(result,status,xhr) {
-        console.log("Found a result of: ", result);
         if (result.results != null) {
           updateDefaultValues($, result.results);
         } else {
@@ -445,8 +487,15 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#playlists-vid-subsection").toggle();
   });
+  $("#game-selector-playlists").change(function() {
+    if ($("#game-selector-playlists").val() == "other") {
+      $("#playlist-other-game-input").show();
+    } else {
+      $("#playlist-other-game-input").hide();
+    }
+  });
   $("#add-playlist").click(function() {
-    if ($("#playlist-game-input").val() == "" || $("#playlist-id-input").val() == "") {
+    if ($("#game-selector-playlists").val() == "" || $("#playlist-id-input").val() == "") {
       $(".max-playlists").hide();
       $(".invalid-playlist-combo").show();
       if ($(".invalid-playlist-combo").is(':visible'))
@@ -460,11 +509,22 @@ function defaultSettings($, username, ID, email, pass) {
       $(".max-playlists").hide();
       $(".invalid-playlist-combo").hide();
       $("#no-playlists-set").hide();
-      gamePlaylistsCombo.push({gameName: $("#playlist-game-input").val(), playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+
+      var currGameName = $("#game-selector-playlists").val();
+      var clearOther = false;
+      if (currGameName == "other") {
+        clearOther = true;
+        currGameName = $("#playlist-other-game-input").val();
+      }
+
+      gamePlaylistsCombo.push({gameName: currGameName, playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
       $("#playlists-unsaved").show();
       drawOptions($, gamePlaylistsCombo, "#playlists-saved-table-body", "playlist");
-      $("#playlist-game-input").val("");
       $("#playlist-id-input").val("");
+
+      if (clearOther) {
+        $("#playlist-other-game-input").val("");
+      }
     }
   });
   $("#add-playlist-value").click(function() {
@@ -500,8 +560,15 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#comments-vid-subsection").toggle();
   });
+  $("#game-selector-comments").change(function() {
+    if ($("#game-selector-comments").val() == "other") {
+      $("#comments-other-game-input").show();
+    } else {
+      $("#comments-other-game-input").hide();
+    }
+  });
   $("#add-comment").click(function() {
-    if ($("#comments-game-input").val() == "" || $("#comments-id-input").val() == "") {
+    if ($("#game-selector-comments").val() == "" || $("#comments-id-input").val() == "") {
       $(".max-comments").hide();
       $(".invalid-comments-combo").show();
       if ($(".invalid-comments-combo").is(':visible'))
@@ -515,11 +582,22 @@ function defaultSettings($, username, ID, email, pass) {
       $(".max-comments").hide();
       $(".invalid-comments-combo").hide();
       $("#no-comments-set").hide();
-      gameCommentsCombo.push({gameName: $("#comments-game-input").val(), playlistID: $("#comments-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+
+      var currGameName = $("#game-selector-comments").val();
+      var clearOther = false;
+      if (currGameName == "other") {
+        clearOther = true;
+        currGameName = $("#comments-other-game-input").val();
+      }
+
+      gameCommentsCombo.push({gameName: currGameName, playlistID: $("#comments-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
       drawOptions($, gameCommentsCombo, "#comments-saved-table-body", "comment");
       $("#comments-unsaved").show();
-      $("#comments-game-input").val("");
       $("#comments-id-input").val("");
+
+      if (clearOther) {
+        $("#comments-other-game-input").val("");
+      }
     }
   });
   $("#add-comment-value").click(function() {
@@ -564,6 +642,7 @@ function defaultSettings($, username, ID, email, pass) {
     }
   });
   $("#thumbnails-default-setting").click(function() {
+    getAndPopulateGames($);
     $("#thumbnails-default-subsection").toggle();
   });
   $("#category-default-setting").click(function() {
@@ -590,8 +669,15 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#default-description-subsection").toggle();
   });
+  $("#game-selector-signatures").change(function() {
+    if ($("#game-selector-signatures").val() == "other") {
+      $("#signatures-other-game-input").show();
+    } else {
+      $("#signatures-other-game-input").hide();
+    }
+  });
   $("#add-description").click(function() {
-    if ($("#descriptions-game-input").val() == "" || $("#descriptions-id-input").val() == "") {
+    if ($("#game-selector-signatures").val() == "" || $("#descriptions-id-input").val() == "") {
       $(".max-descriptions").hide();
       $(".invalid-descriptions-combo").show();
       if ($(".invalid-descriptions-combo").is(':visible'))
@@ -605,11 +691,22 @@ function defaultSettings($, username, ID, email, pass) {
       $(".max-descriptions").hide();
       $(".invalid-descriptions-combo").hide();
       $("#no-descriptions-set").hide();
-      gameDescriptionsCombo.push({gameName: $("#descriptions-game-input").val(), playlistID: $("#descriptions-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+
+      var currGameName = $("#game-selector-signatures").val();
+      var clearOther = false;
+      if (currGameName == "other") {
+        clearOther = true;
+        currGameName = $("#signatures-other-game-input").val();
+      }
+
+      gameDescriptionsCombo.push({gameName: currGameName, playlistID: $("#descriptions-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
       drawOptions($, gameDescriptionsCombo, "#signatures-saved-table-body", "description");
       $("#signatures-unsaved").show();
-      $("#descriptions-game-input").val("");
       $("#descriptions-id-input").val("");
+
+      if (clearOther) {
+        $("#signatures-other-game-input").val("");
+      }
     }
   });
   $("#add-signature-value").click(function() {
@@ -645,8 +742,15 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#default-tags-subsection").toggle();
   });
+  $("#game-selector-tags").change(function() {
+    if ($("#game-selector-tags").val() == "other") {
+      $("#tags-other-game-input").show();
+    } else {
+      $("#tags-other-game-input").hide();
+    }
+  });
   $("#add-tag").click(function() {
-    if ($("#tags-game-input").val() == "" || $("#tags-id-input").val() == "") {
+    if ($("#game-selector-tags").val() == "" || $("#tags-id-input").val() == "") {
       $(".max-tags").hide();
       $(".invalid-tags-combo").show();
       if ($(".invalid-tags-combo").is(':visible'))
@@ -660,11 +764,22 @@ function defaultSettings($, username, ID, email, pass) {
       $(".max-tags").hide();
       $(".invalid-descriptions-tags").hide();
       $("#no-tags-set").hide();
-      gameTagsCombo.push({gameName: $("#tags-game-input").val(), playlistID: $("#tags-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+
+      var currGameName = $("#game-selector-tags").val();
+      var clearOther = false;
+      if (currGameName == "other") {
+        clearOther = true;
+        currGameName = $("#tags-other-game-input").val();
+      }
+
+      gameTagsCombo.push({gameName: currGameName, playlistID: $("#tags-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
       drawOptions($, gameTagsCombo, "#tags-saved-table-body", "tag");
       $("#tags-unsaved").show();
-      $("#tags-game-input").val("");
       $("#tags-id-input").val("");
+
+      if (clearOther) {
+        $("#tags-other-game-input").val("");
+      }
     }
   });
   $("#add-tag-value").click(function() {
@@ -705,6 +820,19 @@ function defaultSettings($, username, ID, email, pass) {
       $("#default-language-value").text(chosenLanguage);
     }
     updateSetting($, username, ID, email, pass, "default-language", chosenLanguage + "");
+  });
+  $("#my-thumbnail-submission").change(function() {
+    var currGameName = $("#ugc-input-select-game").val();
+    if (currGameName == "") {
+      currGameName = "None";
+    }
+    var fileName = $("#my-thumbnail-submission").val();
+
+    console.log("The game is: " + currGameName);
+    console.log("The file is: " + fileName);
+    var gameBtoa = btoa(currGameName);
+    var fileNameBtoa = btoa(fileName);
+    $("#ugc-input-success_page").val("https://twitchautomator.com/defaults/?thumbnail_upload=true&gameName=" + gameBtoa + "&fileName=" + fileNameBtoa);
   });
 }
 
@@ -1148,6 +1276,19 @@ jQuery(document).ready(function( $ ){
     } else if (pageURL[1].startsWith("account")) { // Account route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
     } else if (pageURL[1].startsWith("defaults")) { // Defaults route
+        var urlParams = new URLSearchParams(window.location.search);
+        var isThumbnailSuccess = urlParams.get("thumbnail_upload");
+        var thumbnailGame = urlParams.get("gameName");
+        var fileName = urlParams.get("fileName");
+        if (isThumbnailSuccess) {
+          if (isThumbnailSuccess == "true") {
+            getAndPopulateGames($);
+            $("#thumbnails-default-subsection").toggle();
+            $("html, body").animate({ scrollTop: $('#thumbnails-top-table').offset().top + 25}, 2000);
+            uploadThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, thumbnailGame, fileName);
+          }
+        }
+
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
         defaultSettings($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier);
     } else {
