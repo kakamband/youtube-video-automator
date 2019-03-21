@@ -202,6 +202,25 @@ module.exports.settingsOverview = function(pmsID) {
 	});
 }
 
+module.exports.getThumbnails = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('thumbnails')
+		.where("pms_user_id", "=", pmsID)
+		.then(function(results) {
+			for (var i = 0; i < results.length; i++) {
+				delete results[i].id;
+				delete results[i].updated_at;
+				delete results[i].pms_user_id;
+			}
+
+			return resolve(results);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getPlaylists = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('playlists')
@@ -315,6 +334,43 @@ module.exports.removeTag = function(pmsID, gameName, tag) {
 		.where("tag", "=", tag)
 		.del()
 		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.deleteThumbnail = function(pmsID, gameName, image) {
+	return new Promise(function(resolve, reject) {
+		return knex('thumbnails')
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("image_name", "=", image)
+		.del()
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.addThumbnail = function(pmsID, gameName, image, hijacked, hijackedName) {
+	return new Promise(function(resolve, reject) {
+		return knex('thumbnails')
+		.insert({
+			pms_user_id: pmsID,
+			game: gameName,
+			image_name: image,
+			hijacked: hijacked,
+			hijacked_name: hijackedName,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {

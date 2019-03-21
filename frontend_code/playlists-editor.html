@@ -8,8 +8,6 @@
 	To find your playlist ID navigate to your Youtube channel, go to Playlists, click the playlist you want. You should be redirected to a url that looks something like this: 'https://www.youtube.com/playlist?list=PL0_AOI...'. The playlist ID is part after 'list='.
 	</br>
     </br>
-    Game names are case sensitive, please find all the specific game names <a href="https://www.twitch.tv/directory" target="_blank" rel="noopener noreferrer">here.</a>
-    </br>
 	</br>
 	<strong>Minimum Value: </strong> 0
 	</br>
@@ -40,8 +38,9 @@
 	<span id="no-playlists-set">No Playlists set.</span>
 	<span id="playlists-unsaved">You have unsaved changes, don't forget to save!</span>
 	</br>
-	<input type="text" id="playlist-game-input" placeholder="Game Name" style="border: 1px solid #2c2c2c; width: 150px; width: 100%; color: #2c2c2c;">
-	<input type="text" id="playlist-id-input" placeholder="Playlist ID" style="border: 1px solid #2c2c2c;  width: 100%; color: #2c2c2c;">
+	<select id="game-selector-playlists" class="game-selector-base" style="width: 100%;"></select>
+	<input type="text" id="playlist-other-game-input" placeholder="Game Name (Case Sensitive)" style="border: 1px solid #2c2c2c;  width: 100%; color: #2c2c2c; margin-top: 10px;">	
+	<input type="text" id="playlist-id-input" placeholder="Playlist ID" style="border: 1px solid #2c2c2c;  width: 100%; color: #2c2c2c; margin-top: 10px;">
 	<span style="color: red" class="invalid-playlist-combo">Invalid input, please try again.</span>
 	<span style="color: red" class="max-playlists">Max number of playlists.</span>
 	</br>
