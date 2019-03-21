@@ -11,6 +11,9 @@ var Uploader = require('../uploader/uploader');
 var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
+const redisDownloadKey = "download_in_progress_id_";
+const redisDownloadTTL = 1800; // 30 Minutes.
+
 module.exports.startHijacking = function() {
 	return new Promise(function(resolve, reject) {
 		const rl = readline.createInterface({
@@ -62,6 +65,7 @@ module.exports.getClipGame = function(twitchStream) {
 
 module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
+		redis.set((redisDownloadKey + downloadID), "stop", "EX", redisDownloadTTL);
 		return dbController.initDownloadStop(userID, twitchStream, downloadID)
 		.then(function() {
 			return resolve();
@@ -90,6 +94,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			function next() {
 				if (!hijacking) { // Start the hijack now.
 					cLogger.info("Starting the hijack! You will see some text appear shortly.");
+					redis.set((redisDownloadKey + downloadID), "active", "EX", redisDownloadTTL);
 			  		hijacking = true;
 
 			  		var epoch = (new Date).getTime();
@@ -129,29 +134,52 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 	var pollingInterval = 2000; // 2 seconds
 	var maxPolls = 750; // 25 minutes max. Maybe change this in the future for Professional Youtubers.
 	var currentPolls = 0;
+	var redisKey = (redisDownloadKey + downloadID);
 
 	return new Promise(function(resolve, reject) {
 		function next() {
 			cLogger.info("Checking if we need to stop.");
-			return dbController.needToStopDownload(userID, gameName, twitchStream, downloadID)
-			.then(function(stop) {
-				if (stop) {
-					return resolve();
-				} else if (currentPolls >= maxPolls) { // Timeout
-					cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
-					// TODO: log to Sentry
+			return redis.get(redisKey, function(err, reply) {
+				if (!err && reply != null) {
+					if (reply.toString() == "active") {
+						if (currentPolls >= maxPolls) {
+							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
+							// TODO: log to Sentry
 
-					return resolve();
+							return resolve();
+						} else {
+							return Promise.delay(pollingInterval)
+							.then(function() {
+								currentPolls++;
+								return next();
+							});
+						}
+					} else {
+						redis.del(redisKey);
+						return resolve();
+					}
 				} else {
-					return Promise.delay(pollingInterval) // Delay 2 seconds between checks to terminate.
-					.then(function() {
-						currentPolls++;
-						return next();
+					return dbController.needToStopDownload(userID, gameName, twitchStream, downloadID)
+					.then(function(stop) {
+						if (stop) {
+							return resolve();
+						} else if (currentPolls >= maxPolls) { // Timeout
+							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
+							// TODO: log to Sentry
+
+							return resolve();
+						} else {
+							return Promise.delay(pollingInterval) // Delay 2 seconds between checks to terminate.
+							.then(function() {
+								currentPolls++;
+								return next();
+							});
+						}
+					})
+					.catch(function(err) {
+						return reject(err);
 					});
 				}
-			})
-			.catch(function(err) {
-				return reject(err);
 			});
 		}
 

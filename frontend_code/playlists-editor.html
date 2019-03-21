@@ -18,11 +18,30 @@
 	<strong>Type: </strong> Game -> Playlist ID
 	</br>
 	<strong id="playlists-set-header">Already Set: </strong>
+	<div class="defaults-tbl-header">
+	    <table cellpadding="0" cellspacing="0" border="0" class="defaults-table">
+	      <thead class="defaults-tbl-header">
+	        <tr>
+	          <th class="defaults-th">Game</th>
+	          <th class="defaults-th">Playlist ID</th>
+	          <th class="defaults-th">Delete</th>
+	          <th class="defaults-th">Uploaded</th>
+	        </tr>
+	      </thead>
+	    </table>
+  	</div>
+  	<div class="defaults-tbl-content">
+	    <table cellpadding="0" cellspacing="0" border="0" class="defaults-table">
+	      <tbody id="playlists-saved-table-body">
+	      </tbody>
+	    </table>
+  	</div>
 	</br>
 	<span id="no-playlists-set">No Playlists set.</span>
+	<span id="playlists-unsaved">You have unsaved changes, don't forget to save!</span>
 	</br>
-	<input type="text" id="playlist-game-input" placeholder="Game Name" style="border: 1px solid #2c2c2c; width: 150px; float: left">
-	<input type="text" id="playlist-id-input" placeholder="Playlist ID" style="border: 1px solid #2c2c2c; width: 150px;">
+	<input type="text" id="playlist-game-input" placeholder="Game Name" style="border: 1px solid #2c2c2c; width: 150px; width: 100%; color: #2c2c2c;">
+	<input type="text" id="playlist-id-input" placeholder="Playlist ID" style="border: 1px solid #2c2c2c;  width: 100%; color: #2c2c2c;">
 	<span style="color: red" class="invalid-playlist-combo">Invalid input, please try again.</span>
 	<span style="color: red" class="max-playlists">Max number of playlists.</span>
 	</br>

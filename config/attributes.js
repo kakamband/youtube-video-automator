@@ -12,6 +12,8 @@ module.exports = {
 	PG_REQ_USER: LocalAttr.PG_USER_REQ || false,
 	PG_USER_NAME: LocalAttr.PG_USER_NAME || "",
 	PG_USER_PASSWORD: LocalAttr.PG_USER_PASSWORD || "",
+	REDIS_HOST: LocalAttr.REDIS_HOST || "127.0.0.1",
+	REDIS_PORT: LocalAttr.REDIS_PORT || 6379,
 	RABBITMQ_CONNECTION_STR: process.env.RABBITMQ_URL || LocalAttr.RABBITMQ_CONNECTION,
 	POLLED_GAMES: LocalAttr.POLLED_GAMES || [],
 	VIDEO_VISIBILITY: LocalAttr.VID_VISIBILITY || "private",

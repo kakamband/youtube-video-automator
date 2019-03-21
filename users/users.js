@@ -4,6 +4,17 @@ var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
 
 // --------------------------------------------
+// Constants below.
+// --------------------------------------------
+
+const defaultTTL = 3600; // 1 hour.
+
+const topGamesRedisKey = "top_twitch_games";
+const topGamesRedisTTL = defaultTTL;
+const userDefaultsOverviewKey = "user_defaults_overview_";
+const userDefaultsOverviewTTL = defaultTTL;
+
+// --------------------------------------------
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
@@ -142,22 +153,91 @@ module.exports.getSettings = function(username, pmsID, email, password, scope) {
     });
 }
 
+// getGamesList
+// Returns the top 100 games from twitch
+// TODO: Add this to redis
+module.exports.getGamesList = function() {
+    return new Promise(function(resolve, reject) {
+        return checkIfInRedis(topGamesRedisKey)
+        .then(function(value) {
+            if (value != undefined) {
+                return resolve(JSON.parse(value));
+            }
+
+            return twitch.games.top({
+                limit: 100
+            }, (err, res) => {
+                if (err) {
+                    cLogger.error(err);
+                    return reject(err);
+                } else {
+                    var result = [];
+                    var unparsed = res.top;
+
+                    if (unparsed.length == 0) {
+                        return resolve([]);
+                    }
+
+                    var count = 0;
+
+                    function next() {
+                        result.push(unparsed[count].game.name);
+                        count++;
+                        if (count < unparsed.length) {
+                            return next();
+                        } else {
+                            redis.set(topGamesRedisKey, JSON.stringify(result), "EX", topGamesRedisTTL);
+                            return resolve(result);
+                        }
+                    }
+
+                    return next();
+                }
+            });
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
 
+function checkIfInRedis(key) {
+    return new Promise(function(resolve, reject) {
+        return redis.get(key, function(err, reply) {
+            if (!err && reply != null) {
+                return resolve(reply.toString());
+            } else {
+                return resolve(undefined);
+            }
+        });
+    });
+}
+
 function getSettingsHelper(pmsID, scope) {
     return new Promise(function(resolve, reject) {
         switch (scope) {
             case "overview":
-                return dbController.settingsOverview(pmsID)
-                .then(function(results) {
-                    return resolve(results);
-                })
-                .catch(function(err) {
-                    return reject(err);
+                var redisKey = userDefaultsOverviewKey + (pmsID + "");
+
+                return checkIfInRedis(redisKey)
+                .then(function(value) {
+                    if (value != undefined) {
+                        return resolve(JSON.parse(value));
+                    } else {
+                        return dbController.settingsOverview(pmsID)
+                        .then(function(results) {
+                            var redisContent = JSON.stringify(results);
+                            console.log("Redis content: " + redisContent);
+                            redis.set(redisKey, redisContent, "EX", userDefaultsOverviewTTL);
+                            return resolve(results);
+                        })
+                        .catch(function(err) {
+                            return reject(err);
+                        });
+                    }
                 });
             case "minimum-length":
                 return reject(shouldHaveObtainedFromOverview());
@@ -211,6 +291,10 @@ function getSettingsHelper(pmsID, scope) {
 
 function updateDefaultSetting(pmsID, settingName, settingJSON) {
     return new Promise(function(resolve, reject) {
+        var redisKey = userDefaultsOverviewKey + (pmsID + "");
+        // Always clear this if they update any settings
+        redis.del(redisKey);
+
         switch (settingName) {
             case "minimum-length":
                 var setting = JSON.parse(settingJSON);
