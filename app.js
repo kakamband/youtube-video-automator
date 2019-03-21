@@ -19,6 +19,7 @@ var Hijacker = require('./hijacker/hijacker');
 var TesterHelper = require('./test_helper/helpers');
 var OauthFlow = require('./oauth/oauth_flow');
 var Worker = require('./worker/worker_producer');
+var redis = require("redis");
 var Promise = require('bluebird');
 const readline = require('readline');
 
@@ -53,6 +54,13 @@ var knex = require('knex')(dbConfig);
 
 // Global knex init
 global.knex = knex;
+
+var redisClient = redis.createClient({
+	host: Attr.REDIS_HOST,
+	port: Attr.REDIS_PORT
+});
+
+global.redis = redisClient;
 
 // Defines what process is run
 var processType = 0;

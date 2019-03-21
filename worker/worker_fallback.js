@@ -6,6 +6,7 @@ var Secrets = require('../config/secrets');
 var cLogger = require('color-log');
 var Helpers = require('./worker_helpers');
 var shell = require('shelljs');
+var redis = require('redis');
 var retriesMap = new Map();
 
 function errMsg(workerActivity, ackMsg, queueMessage, err) {
@@ -111,6 +112,13 @@ function handleMessage(message, msg, ch, knex) {
 shell.cd("..");
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);
+
+var redisClient = redis.createClient({
+  host: Attr.REDIS_HOST,
+  port: Attr.REDIS_PORT
+});
+
+global.redis = redisClient;
 
 amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
   conn.createChannel(function(err, ch) {

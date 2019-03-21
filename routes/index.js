@@ -216,4 +216,18 @@ router.post(Models.GET_DEFAULT_SETTINGS, function(req, res, next) {
 	});
 });
 
+router.post(Models.GET_GAME_LIST, function(req, res, next) {
+	validFirst(Models.GET_GAME_LIST, req, res, next, function() {
+		return Users.getGamesList()
+		.then(function(results) {
+			return res.json({
+				games: results
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
 module.exports = router;

@@ -30,6 +30,9 @@ module.exports.UPDATE_SETTING = "/user/setting/update";
 // Gets the default settings, based on scope will return different things.
 module.exports.GET_DEFAULT_SETTINGS = "/user/setting";
 
+// Gets the default settings, based on scope will return different things.
+module.exports.GET_GAME_LIST = "/game/list";
+
 // -------------------
 
 // Route definitions
@@ -152,6 +155,12 @@ module.exports.routes = new Map([
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.GET_GAME_LIST, {
+		method: "post",
+		validateParams: function(body, params) {
+			return validateHelper(body, params, null, null);
 		}
 	}],
 ]);
