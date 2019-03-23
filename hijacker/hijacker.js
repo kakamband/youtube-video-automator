@@ -82,7 +82,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 		cLogger.info("Running command: " + lsCMD);
 		return shell.exec(lsCMD, function(code, stdout, stderr) {
 			if (code != 0) {
-				shell.mkdir(gameName);
+				shell.mkdir(ORIGIN_PATH + "video_data_hijacks/" + gameName);
 				cLogger.info("No folder for " + gameName + " creating it.");
 			}
 
@@ -109,7 +109,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {
 						cProcess.kill();
-						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID, fileName)
+						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID, (fileName + ".mp4"))
 						.then(function() {
 							return resolve();
 						})
@@ -138,9 +138,9 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 
 	return new Promise(function(resolve, reject) {
 		function next() {
-			cLogger.info("Checking if we need to stop.");
 			return redis.get(redisKey, function(err, reply) {
 				if (!err && reply != null) {
+					cLogger.info("Checking if we need to stop through Redis.");
 					if (reply.toString() == "active") {
 						if (currentPolls >= maxPolls) {
 							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
@@ -159,6 +159,7 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 						return resolve();
 					}
 				} else {
+					cLogger.info("Checking if we need to stop through the DB.");
 					return dbController.needToStopDownload(userID, gameName, twitchStream, downloadID)
 					.then(function(stop) {
 						if (stop) {

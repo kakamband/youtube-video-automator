@@ -1,0 +1,29 @@
+{
+    "apps": [
+        {
+            "name": "node-server",
+            "script": "npm",
+            "args" : "start open"
+        },
+        {
+            "name": "worker-encoder",
+            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "args" : "encoder"
+        },
+        {
+            "name": "worker-uploader",
+            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "args" : "uploader"
+        },
+        {
+            "name": "worker-downloader",
+            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "args" : "downloader"
+        },
+        {
+            "name": "worker-fallback",
+            "script": "~/Documents/youtube-creator-bot/youtube-video-automator/worker/runWorker.sh",
+            "args" : "fallback"
+        }
+    ]
+}

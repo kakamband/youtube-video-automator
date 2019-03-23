@@ -63,37 +63,30 @@ router.get('/oauthcallback/init', function(req, res, next) {
 
 router.post(Models.START_CLIPPING, function(req, res, next) {
 	validFirst(Models.START_CLIPPING, req, res, next, function() {
-		return Hijacker.getClipGame(req.body.twitch_link)
-		.then(function(gameName) {
-			return Worker.addDownloadingTask(req.body.user_id, req.body.twitch_link, gameName)
-			.then(function(downloadID) {
-				return res.json({
-					success: true,
-					download_id: downloadID
-				});
-			})
-			.catch(function(err) {
-			// TODO log this to Sentry.
-			
-				return res.json({
-					success: false,
-					reason: "Error starting clip. Please contact the AutoTuber Help. Sorry for the inconvenience."
-				});
+		return Users.startClip(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.twitch_link)
+		.then(function(results) {
+			return res.json({
+				success: results[0],
+				download_id: results[1]
 			});
 		})
 		.catch(function(err) {
-			// TODO log this to Sentry.
-
-			return res.json({
-				success: false,
-				reason: "The stream link was invalid, or not live."
-			});
+    		return next(err);
 		});
 	});
 });
 
 router.post(Models.END_CLIPPING, function(req, res, next) {
 	validFirst(Models.END_CLIPPING, req, res, next, function() {
+		return Users.endClip(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.twitch_link, req.body.download_id)
+		.then(function() {
+			return res.json({
+				success: true
+			});
+		})
+		.catch(function(err) {
+			return next(err);
+		});
 		return Hijacker.endHijacking(req.body.user_id, req.body.twitch_link, parseInt(req.body.download_id))
 		.then(function() {
 			return res.json({
@@ -222,6 +215,20 @@ router.post(Models.GET_GAME_LIST, function(req, res, next) {
 		.then(function(results) {
 			return res.json({
 				games: results
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
+router.post(Models.IS_USER_DOWNLOADING, function(req, res, next) {
+	validFirst(Models.IS_USER_DOWNLOADING, req, res, next, function() {
+		return Users.isUserDownloading(req.body.username, req.body.user_id, req.body.email, req.body.password)
+		.then(function(results) {
+			return res.json({
+				download_id: results
 			});
 		})
 		.catch(function(err) {

@@ -9,6 +9,8 @@ var shell = require('shelljs');
 var redis = require('redis');
 var retriesMap = new Map();
 
+const redisUploadingKey = "uploading_queue_msg_count";
+
 function errMsg(workerActivity, ackMsg, queueMessage, err) {
   /*Sentry.withScope(scope => {
     scope.setTag("scope", "server-worker");
@@ -100,6 +102,8 @@ function handleMessage(message, msg, ch, knex) {
       return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
       .then(function() {
         successMsg(message);
+        return Helpers.decrementMsgCount(redisUploadingKey);
+      }).then(function() {
         ch.ack(msg);
       }).catch(function(err) {
         errMsg(message, msg, message, err);
@@ -109,7 +113,6 @@ function handleMessage(message, msg, ch, knex) {
   }
 }
 
-shell.cd("..");
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);
 

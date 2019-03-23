@@ -22,12 +22,27 @@ module.exports.downloadContent = function(userID, gameName, twitchStream, downlo
 	});
 }
 
+// decrementMsgCount
+// Decrements the msg count in redis
+module.exports.decrementMsgCount = function(key) {
+	return decrKey(key);
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
 
+function decrKey(key) {
+	return new Promise(function(resolve, reject) {
+		var multi = redis.multi();
+		multi.decr(key);
+		multi.exec(function (err, replies) {
+		    return resolve();
+		});
+	});
+}
 
 // --------------------------------------------
 // Helper functions above.

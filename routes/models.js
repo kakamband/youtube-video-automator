@@ -33,6 +33,9 @@ module.exports.GET_DEFAULT_SETTINGS = "/user/setting";
 // Gets the default settings, based on scope will return different things.
 module.exports.GET_GAME_LIST = "/game/list";
 
+// Gets the default settings, based on scope will return different things.
+module.exports.IS_USER_DOWNLOADING = "/user/currently-downloading";
+
 // -------------------
 
 // Route definitions
@@ -40,7 +43,12 @@ module.exports.routes = new Map([
 	[this.START_CLIPPING, {
 		method: "post",
 		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
 			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
 			nameAndType("twitch_link", "string"),
 		],
 		validateParams: function(body, params) {
@@ -50,7 +58,12 @@ module.exports.routes = new Map([
 	[this.END_CLIPPING, {
 		method: "post",
 		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
 			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
 			nameAndType("twitch_link", "string"),
 			nameAndType("download_id", "string"),
 		],
@@ -161,6 +174,19 @@ module.exports.routes = new Map([
 		method: "post",
 		validateParams: function(body, params) {
 			return validateHelper(body, params, null, null);
+		}
+	}],
+	[this.IS_USER_DOWNLOADING, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
 		}
 	}],
 ]);
