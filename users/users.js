@@ -215,7 +215,11 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
         })
         .then(function(alreadyClipping) {
             if (alreadyClipping) {
-                return reject(alreadyClippingErr());
+                if (alreadyClipping == "false") {
+                    return validateClipGame(twitch_link);
+                } else {
+                    return reject(alreadyClippingErr());
+                }
             } else {
                 return validateClipGame(twitch_link);
             }
@@ -336,7 +340,7 @@ function setUserDownloading(internalID, downloadID) {
 function setUserNotDownloading(internalID) {
     return new Promise(function(resolve, reject) {
         var multi = redis.multi();
-        multi.del((userClippingKey + internalID));
+        multi.set((userClippingKey + internalID), "false", "EX", userClippingTTL);
         multi.exec(function (err, replies) {
             return resolve();
         });
