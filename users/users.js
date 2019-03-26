@@ -214,21 +214,17 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
             return userAlreadyClipping(userID);
         })
         .then(function(alreadyClipping) {
-            if (alreadyClipping) {
-                if (alreadyClipping == "false") {
-                    return validateClipGame(twitch_link);
-                } else {
-                    return reject(alreadyClippingErr());
-                }
-            } else {
+            if (alreadyClipping == undefined || alreadyClipping == "false") {
                 return validateClipGame(twitch_link);
+            } else {
+                return reject(alreadyClippingErr());
             }
         })
         .then(function(gameName) {
-            if (gameName == undefined) {
-                return resolve([false, "The stream link was invalid, or not live."]);
-            } else {
+            if (gameName != undefined) {
                 return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+            } else {
+                return resolve([false, "The stream link was invalid, or not live."]);
             }
         })
         .then(function(dlID) {

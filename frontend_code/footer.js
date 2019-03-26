@@ -1059,6 +1059,35 @@ function toggleLoading( $ ) {
   $(".loading-dashboard-block").toggle();
 }
 
+// Starts a clip, or atleast attempts to.
+function startClip($, username, ID, email, pass, twitch_link) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "start/clip",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+      "twitch_link": twitch_link
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $("#err-loading-tkn-link").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        window.location.href = "https://twitchautomator.com/dashboard/?clipping=true&download_id=" + result.download_id;
+      } else {
+        console.log("Bad input.");
+        $("#bad-stream-link-text").text(result.download_id);
+        $("#bad-stream-link-text").show();
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Specifies that the auth token has been found, and we don't need to authenticate with Youtube anymore.
 function foundAuth($, username, ID, email, pass) {
   $("#bad-stream-link-text").hide();
@@ -1071,8 +1100,10 @@ function foundAuth($, username, ID, email, pass) {
     }
   });
   $("#submit-stream-link").click(function() {
-    if ($("#stream-name-input").val().startsWith("https://twitch.tv/")) {
+    var streamInput = $("#stream-name-input").val();
+    if (streamInput.startsWith("https://twitch.tv/")) {
       $("#bad-stream-link-text").hide();
+      startClip($, username, ID, email, pass, streamInput);
     } else {
       $("#bad-stream-link-text").show();
     }
@@ -1192,36 +1223,63 @@ function getTokenLink($, username, ID, email, pass) {
     });
 }
 
+// Checks if the user is already clipping, and if they are redirects to this page with the '?clipping=true&downloadID=ID' query params.
+function checkIfAlreadyClipping($, username, ID, email, pass) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/currently-downloading",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.download_id) {
+        console.log("Already have a download. Redirecting.");
+        window.location.href = "https://twitchautomator.com/dashboard/?clipping=true&download_id=" + result.download_id;
+      } else {
+        foundAuth($, username, ID, email, pass);
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Asks the backend server if there has been a succesfull token saved.
 function getHasToken($, username, ID, email, pass) {
   $.ajax({
-      type: "POST",
-      url: autoTuberURL + "/user/has-token",
-      data: {
-      	"username": username,
-        "user_id": ID,
-        "email": email,
-        "password": pass
-      },
-      error: function(xhr,status,error) {
-        console.log("Error: ", error);
-      	$(".dashboard-internal-server-error").show();
-      },
-      success: function(result,status,xhr) {
-        if (result.exists) {
-          console.log("The token exists");
-          toggleLoading($);
-          $(".authenticate-with-youtube-block").hide();
-          foundAuth($, username, ID, email, pass);
-        } else {
-          console.log("The token doesnt exist");
-          toggleLoading($);
-          $(".authenticate-with-youtube-block").show();
-          getTokenLink($, username, ID, email, pass);
-        }
-      },
-      dataType: "json"
-    });
+    type: "POST",
+    url: autoTuberURL + "/user/has-token",
+    data: {
+    	"username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+    	$(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.exists) {
+        console.log("The token exists");
+        toggleLoading($);
+        $(".authenticate-with-youtube-block").hide();
+        checkIfAlreadyClipping($, username, ID, email, pass);
+      } else {
+        console.log("The token doesnt exist");
+        toggleLoading($);
+        $(".authenticate-with-youtube-block").show();
+        getTokenLink($, username, ID, email, pass);
+      }
+    },
+    dataType: "json"
+  });
 }
 
 // Custom route for the dashboard since it has some unique attributes.

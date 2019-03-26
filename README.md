@@ -89,6 +89,7 @@ Node Dependencies Needed:
 2) [PostgreSQL](https://gist.github.com/dstroot/2920991)
 3) [RabbitMQ](https://gist.github.com/ihor/5705626)
 4) [NGINX](https://gist.github.com/nrollr/56e933e6040820aae84f82621be16670)
+5) [ElastiCache - AKA Redis](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/nodes-connecting.html)
 
 ### PM2 Cheatsheat
 http://pm2.keymetrics.io/docs/usage/quick-start/
