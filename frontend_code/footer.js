@@ -1048,8 +1048,8 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
 
 var popupWindow = null;
 function centeredPopup(url,winName,w,h,scroll){
-  var LeftPosition = (screen.width) ? (screen.width-w)/2 : 0;
-  var TopPosition = (screen.height) ? (screen.height-h)/2 : 0;
+  var LeftPosition = 0;
+  var TopPosition = 0;
   var settings = 'height='+h+',width='+w+',top='+TopPosition+',left='+LeftPosition+',scrollbars='+scroll+',resizable'
   popupWindow = window.open(url,winName,settings);
 }
@@ -1063,7 +1063,6 @@ function toggleLoading( $ ) {
 function foundAuth($, username, ID, email, pass) {
   $("#bad-stream-link-text").hide();
   $(".dashboard-have-auth-token").show();
-  console.log("The margin-right is: " + $(".dashboard-have-auth-token").css("marginTop"));
   $("#stream-name-input").change(function() {
     if ($("#stream-name-input").val().startsWith("https://twitch.tv/")) {
       $("#stream-name-input").addClass("valid-stream-link");
@@ -1245,7 +1244,7 @@ function dashboardAuthenticator($, username, ID, email, subscriptions, passwordH
       },
       success: function(result,status,xhr) {
         if (result.success) {
-		  toggleProfessionalPrompt($, result);
+		      toggleProfessionalPrompt($, result);
           toggleDashboardNotification($, result, username, ID, email, passwordHash);
           getHasToken($, username, ID, email, passwordHash);
         } else {
@@ -1391,6 +1390,7 @@ jQuery(document).ready(function( $ ){
 
   // Hide the authenticate with youtube block unless we actually need it
   $(".authenticate-with-youtube-block").hide();
+  $(".dashboard-have-auth-token").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");

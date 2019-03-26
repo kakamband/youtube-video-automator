@@ -136,7 +136,6 @@ amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
     ch.consume(Attr.ENCODING_AMQP_CHANNEL_NAME, function(msg) {
       var secs = msg.content.toString().split('.').length - 1;
 
-      console.log("Msg is: ", msg);
       var contentMsg = msg.content.toString();
       handleMessage(contentMsg, msg, ch, knex);
     }, {noAck: false});

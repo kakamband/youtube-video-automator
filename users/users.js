@@ -270,16 +270,25 @@ module.exports.endClip = function(username, pmsID, email, password, twitch_link,
 // isUserDownloading
 // Returns whether a user is downloading or not, and if so returns the download ID.
 module.exports.isUserDownloading = function(username, pmsID, email, password) {
+    var userID = "pms_" + pmsID;
     return new Promise(function(resolve, reject) {
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
+            userID = id;
             return userAlreadyClipping(id);
         })
         .then(function(downloadID) {
             if (downloadID == undefined) {
-                return resolve(false);
+                return setUserNotDownloading(userID)
+                .then(function() {
+                    return resolve(false);
+                });
             } else {
-                return resolve(downloadID);
+                if (downloadID == "false") {
+                    return resolve(false);
+                } else {
+                    return resolve(downloadID);
+                }
             }
         })
         .catch(function(err) {
