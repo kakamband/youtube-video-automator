@@ -31,7 +31,8 @@ module.exports.finishedDownloading = function(userID, gameName, twitchStream, do
 		.where("game", "=", gameName)
 		.update({
 			state: "done",
-			downloaded_file: fileLocation
+			downloaded_file: fileLocation,
+			updated_at: new Date()
 		})
 		.then(function(results) {
 			return resolve();
@@ -924,7 +925,7 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	var dontStop = false;
 
 	return new Promise(function(resolve, reject) {
-		knex('downloads')
+		return knex('downloads')
 		.where("id", "=", ID)
 		.where("user_id", "=", userID)
 		.where("game", "=", gameName)
@@ -951,9 +952,26 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	});
 }
 
+module.exports.getDownload = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve(undefined);
+			}
+			return resolve(results[0]);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.addDownload = function(downloadObj) {
 	return new Promise(function(resolve, reject) {
-		knex('downloads')
+		return knex('downloads')
 		.insert(downloadObj)
 		.returning('id')
 		.then(function(id) {

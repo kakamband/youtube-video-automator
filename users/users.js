@@ -293,6 +293,25 @@ module.exports.isUserDownloading = function(username, pmsID, email, password) {
     });
 }
 
+// getClipInfo
+// Returns some information on the current clip
+module.exports.getClipInfo = function(username, pmsID, email, password, downloadID) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return getClipInfoHelper(userID, downloadID);
+        })
+        .then(function(info) {
+            return resolve(info);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -348,6 +367,22 @@ function setUserNotDownloading(internalID) {
         multi.set((userClippingKey + internalID), "false", "EX", userClippingTTL);
         multi.exec(function (err, replies) {
             return resolve();
+        });
+    });
+}
+
+function getClipInfoHelper(userID, downloadID) {
+    return new Promise(function(resolve, reject) {
+        return dbController.getDownload(userID, downloadID)
+        .then(function(results) {
+            if (results == undefined) {
+                return reject(clipDoesntExist());
+            } else {
+                return resolve(results);
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
         });
     });
 }
@@ -950,6 +985,12 @@ function validateUserAndGetID(username, ID, email, password) {
 			return reject(err);
 		});
 	});
+}
+
+function clipDoesntExist() {
+    var err = new Error("The clip does not exist.");
+    err.status = 400;
+    return err;
 }
 
 function alreadyClippingErr() {

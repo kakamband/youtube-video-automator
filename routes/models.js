@@ -36,6 +36,9 @@ module.exports.GET_GAME_LIST = "/game/list";
 // Gets the default settings, based on scope will return different things.
 module.exports.IS_USER_DOWNLOADING = "/user/currently-downloading";
 
+// Gets some information about the current clip
+module.exports.GET_CLIP_INFO = "/user/clip/info";
+
 // -------------------
 
 // Route definitions
@@ -184,6 +187,21 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
 			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.GET_CLIP_INFO, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
