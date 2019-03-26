@@ -1101,7 +1101,7 @@ function foundAuth($, username, ID, email, pass) {
   });
   $("#submit-stream-link").click(function() {
     var streamInput = $("#stream-name-input").val();
-    if (streamInput.startsWith("https://twitch.tv/")) {
+    if (streamInput.startsWith("https://twitch.tv/") || streamInput.startsWith("https://www.twitch.tv/")) {
       $("#bad-stream-link-text").hide();
       startClip($, username, ID, email, pass, streamInput);
     } else {
@@ -1223,7 +1223,7 @@ function getTokenLink($, username, ID, email, pass) {
     });
 }
 
-// Checks if the user is already clipping, and if they are redirects to this page with the '?clipping=true&downloadID=ID' query params.
+// Checks if the user is already clipping, and if they are redirects to this page with the '?clipping=true&download_id=ID' query params.
 function checkIfAlreadyClipping($, username, ID, email, pass) {
   $.ajax({
     type: "POST",
@@ -1239,11 +1239,25 @@ function checkIfAlreadyClipping($, username, ID, email, pass) {
       $(".dashboard-internal-server-error").show();
     },
     success: function(result,status,xhr) {
-      if (result.download_id) {
-        console.log("Already have a download. Redirecting.");
-        window.location.href = "https://twitchautomator.com/dashboard/?clipping=true&download_id=" + result.download_id;
+
+      // Are we already on the clipping page
+      var urlParams = new URLSearchParams(window.location.search);
+      var isAlreadyClipping = urlParams.get("clipping");
+      var downloadID = urlParams.get("download_id");
+
+      if (isAlreadyClipping) {
+        $(".currently-clipping-container").show();
+        if (!result.download_id) {
+          console.log("Somehow the user got here, but doesn't actually have a clip started. Redirecting back.");
+          //window.location.href = "https://twitchautomator.com/dashboard";
+        }
       } else {
-        foundAuth($, username, ID, email, pass);
+        if (result.download_id) {
+          console.log("Already have a download. Redirecting.");
+          window.location.href = "https://twitchautomator.com/dashboard/?clipping=true&download_id=" + result.download_id;
+        } else {
+          foundAuth($, username, ID, email, pass);
+        }
       }
     },
     dataType: "json"
@@ -1449,6 +1463,7 @@ jQuery(document).ready(function( $ ){
   // Hide the authenticate with youtube block unless we actually need it
   $(".authenticate-with-youtube-block").hide();
   $(".dashboard-have-auth-token").hide();
+  $(".currently-clipping-container").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");

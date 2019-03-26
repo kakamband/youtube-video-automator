@@ -100,7 +100,8 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		var epoch = (new Date).getTime();
 			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameName + "/") + userID + "-finished-" + epoch;
 
-			  		cProcess = shell.exec(ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4', {async: true});
+			  		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
+			  		cProcess = shell.exec(downloadCMD, {async: true});
 
 			  		return setTimeout(function() {
 			  			return next();

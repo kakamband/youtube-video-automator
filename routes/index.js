@@ -237,4 +237,18 @@ router.post(Models.IS_USER_DOWNLOADING, function(req, res, next) {
 	});
 });
 
+router.post(Models.GET_CLIP_INFO, function(req, res, next) {
+	validFirst(Models.GET_CLIP_INFO, req, res, next, function() {
+		return Users.getClipInfo(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id)
+		.then(function(results) {
+			return res.json({
+				clip_info: results
+			});
+		})
+		.catch(function(err) {
+    		return next(err);
+		});
+	});
+});
+
 module.exports = router;
