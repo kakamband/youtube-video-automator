@@ -101,7 +101,6 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameName + "/") + userID + "-finished-" + epoch;
 
 			  		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
-			  		console.log("The download CMD is: " + downloadCMD);
 			  		cProcess = shell.exec(downloadCMD, {async: true});
 
 			  		return setTimeout(function() {
