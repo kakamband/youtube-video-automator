@@ -18,14 +18,75 @@ End of comment */
 // Starting point for all Defaults code
 // -----------------------------------------
 
+const maxNumberOfThumbnails = 10;
+const maxNumberOfPlaylists = 15;
+const maxNumberOfComments = 45;
+const maxNumberOfSignatures = 10;
+const maxNumberOfTags = 100;
+
 var globalJQuery = null;
 var settingsOverview = null;
 var gamePlaylistsCombo = [];
 var gameCommentsCombo = [];
 var gameDescriptionsCombo = [];
 var gameTagsCombo = [];
+var gameThumbnailsCombo = [];
 var definedCategory = "20";
 var definedLanguage = "en";
+
+// Count not deleted
+function countNotDeleted(arr) {
+  var count = 0;
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].userDeleted == false) {
+      count++;
+    }
+  }
+  return count;
+}
+
+// Toggles an input on an off
+function toggleInputHelper($, arr, id, amount) {
+  if (countNotDeleted(arr) >= amount) {
+    $("#" + id).prop('disabled', true);
+  } else {
+    $("#" + id).prop('disabled', false);
+  }
+}
+
+// Toggles <a> tag on and off
+function toggleBtnHelper($, arr, id, amount) {
+  if (countNotDeleted(arr) >= amount) {
+    $("#" + id).addClass("a-tag-disabled");
+  } else {
+    $("#" + id).removeClass("a-tag-disabled");
+  }
+}
+
+// Toggles the thumbnails btn to disabled if needed
+function toggleThumbnailsBtnDisable($) {
+  toggleInputHelper($, gameThumbnailsCombo, "upload-thumbnail-btn", maxNumberOfThumbnails);
+}
+
+// Toggles the playlists btn to disabled if needed
+function togglePlaylistsBtnDisable($) {
+  toggleBtnHelper($, gamePlaylistsCombo, "add-playlist", maxNumberOfPlaylists);
+}
+
+// Toggles the playlists btn to disabled if needed
+function toggleCommentsBtnDisable($) {
+  toggleBtnHelper($, gameCommentsCombo, "add-comment", maxNumberOfComments);
+}
+
+// Toggles the playlists btn to disabled if needed
+function toggleSignatureBtnDisable($) {
+  toggleBtnHelper($, gameDescriptionsCombo, "add-description", maxNumberOfSignatures);
+}
+
+// Toggles the playlists btn to disabled if needed
+function toggleTagBtnDisable($) {
+  toggleBtnHelper($, gameTagsCombo, "add-tag", maxNumberOfTags);
+}
 
 // Returns an array of key value pairs of languages.
 function getLanguages(){
@@ -83,46 +144,117 @@ function validCategories() {
 
 // Function to be called from frontend, to handle deleting a setting
 function deleteAddedSetting(name, index) {
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
   var arr = null;
+  
   switch (name) {
     case "playlist":
       arr = gamePlaylistsCombo;
-      if (globalJQuery != null) {
-        globalJQuery("#playlists-unsaved").show();
+      var elem = document.getElementById(name + "-" + index);
+      elem.parentNode.removeChild(elem);
+      arr[parseInt(index)].userDeleted = true;
+      var gameName = elem.cells[0].innerHTML;
+      var playlistID = elem.cells[1].innerHTML;
+      var deleteArr = [{gameName: gameName, playlistID: playlistID}];
+      if (globalJQuery && canAuth) {
+        updateSetting(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, "remove-game-playlists", JSON.stringify(deleteArr));
+        var currentCount = globalJQuery("#playlists-count-value").text();
+        globalJQuery("#playlists-count-value").text(parseInt(currentCount) - 1);
+        togglePlaylistsBtnDisable(globalJQuery);
+      } else {
+        break;
       }
-      break;
+      return;
     case "comment":
       arr = gameCommentsCombo;
-      if (globalJQuery != null) {
-        globalJQuery("#comments-unsaved").show();
+      var elem = document.getElementById(name + "-" + index);
+      elem.parentNode.removeChild(elem);
+      arr[parseInt(index)].userDeleted = true;
+      var gameName = elem.cells[0].innerHTML;
+      var comment = elem.cells[1].innerHTML;
+      var deleteArr = [{gameName: gameName, comment: comment}];
+      if (globalJQuery && canAuth) {
+        updateSetting(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, "remove-default-comments", JSON.stringify(deleteArr));
+        var currentCount = globalJQuery("#comments-count-value").text();
+        globalJQuery("#comments-count-value").text(parseInt(currentCount) - 1);
+        toggleCommentsBtnDisable(globalJQuery);
+      } else {
+        break;
       }
-      break;
+      return;
     case "description":
       arr = gameDescriptionsCombo;
-      if (globalJQuery != null) {
-        globalJQuery("#signatures-unsaved").show();
+      var elem = document.getElementById(name + "-" + index);
+      elem.parentNode.removeChild(elem);
+      arr[parseInt(index)].userDeleted = true;
+      var gameName = elem.cells[0].innerHTML;
+      var signature = elem.cells[1].innerHTML;
+
+      var deleteArr = [{gameName: gameName, signature: signature}];
+      if (globalJQuery && canAuth) {
+        updateSetting(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, "remove-default-signature", JSON.stringify(deleteArr));
+        var currentCount = globalJQuery("#description-count-value").text();
+        globalJQuery("#description-count-value").text(parseInt(currentCount) - 1);
+        toggleSignatureBtnDisable(globalJQuery);
+      } else {
+        break;
       }
-      break;
+      return;
     case "tag":
       arr = gameTagsCombo;
-      if (globalJQuery != null) {
-        globalJQuery("#tags-unsaved").show();
+      var elem = document.getElementById(name + "-" + index);
+      elem.parentNode.removeChild(elem);
+      arr[parseInt(index)].userDeleted = true;
+      var gameName = elem.cells[0].innerHTML;
+      var tag = elem.cells[1].innerHTML;
+
+      var deleteArr = [{gameName: gameName, tag: tag}];
+      if (globalJQuery && canAuth) {
+        updateSetting(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, "remove-default-tags", JSON.stringify(deleteArr));
+        var currentCount = globalJQuery("#tags-count-value").text();
+        globalJQuery("#tags-count-value").text(parseInt(currentCount) - 1);
+        toggleTagBtnDisable(globalJQuery);
+      } else {
+        break;
       }
+      return;
       break;
+    case "thumbnail":
+      arr = gameThumbnailsCombo;
+
+      // Try to delete it right away
+      var elem = document.getElementById(name + "-" + index);
+      elem.parentNode.removeChild(elem);
+      arr.splice(parseInt(index), 1);
+      var gameName = elem.cells[0].innerHTML;
+      var fileName = elem.cells[1].innerHTML;
+
+      // Remove everything upto the /uploads part of the html
+      var fileNameSplit = fileName.split("/uploads");
+      fileName = fileNameSplit[fileNameSplit.length - 1];
+
+      // Remove the last two character '">'
+      fileName = fileName.substring(0, fileName.length - 2);
+
+      var deleteArr = [{gameName: gameName, image: fileName}];
+      if (globalJQuery && canAuth) {
+        updateSetting(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, "remove-default-thumbnail", JSON.stringify(deleteArr));
+        var currentCount = globalJQuery("#thumbnails-count-value").text();
+        globalJQuery("#thumbnails-count-value").text(parseInt(currentCount) - 1);
+        toggleThumbnailsBtnDisable(globalJQuery);
+      } else { // Can't delete it.
+        break;
+      }
+      return;
     default:
       return;
   }
-
-  var elem = document.getElementById(name + "-" + index);
-  elem.parentNode.removeChild(elem);
-  arr[parseInt(index)].userRemoved = true;
-  arr[parseInt(index)].uploaded = false;
  }
 
 // draws the playlists that are in the gamePlaylistsCombo box
 function drawOptions($, arr, anchor, name) {
   for (var i = 0; i < arr.length; i++) {
-    if (!arr[i].drawn && !arr[i].userRemoved) {
+    if (!arr[i].drawn) {
       var uniqueName = name + "-" + i;
 
       var hardSavedIndicator = "<span class=\"hard-saved-indicator\">&#10006;</span>";
@@ -130,7 +262,13 @@ function drawOptions($, arr, anchor, name) {
         hardSavedIndicator = "<span class=\"hard-saved-indicator\">&#10003;</span>";
       }
 
-      $(anchor).append("<tr id=\"" + name + "-" + i + "\"><td class=\"defaults-td\">" + arr[i].gameName + "</td><td class=\"defaults-td\">" + arr[i].playlistID + "</td><td class=\"defaults-td\"><span class=\"remove-defaults-cross\" style=\"display: inline-block; color: red; font-weight: 700;\" onclick=\"deleteAddedSetting('" + name + "', " + i + ")\">Delete</span></td><td class=\"defaults-td\">" + hardSavedIndicator + "</td></tr>");
+      var gameContent = arr[i].playlistID;
+      if (name == "thumbnail") {
+        var urlPrefix = "https://twitchautomator.com/wp-content/uploads"; // Switch this to cdn later when automatically uploading to s3
+        gameContent = "<img src=\"" + urlPrefix + gameContent + "\">";
+      }
+
+      $(anchor).append("<tr id=\"" + name + "-" + i + "\"><td class=\"defaults-td\">" + arr[i].gameName + "</td><td class=\"defaults-td\">" + gameContent + "</td><td class=\"defaults-td\"><span class=\"remove-defaults-cross\" style=\"display: inline-block; color: red; font-weight: 700;\" onclick=\"deleteAddedSetting('" + name + "', " + i + ")\">Delete</span></td><td class=\"defaults-td\">" + hardSavedIndicator + "</td></tr>");
       arr[i].drawn = true;
     }
   }
@@ -174,8 +312,41 @@ function updateDefaultValues($, values) {
 }
 
 // Tells the backend server about a thumbnail image
-function uploadThumbnailToBackendServer($, username, ID, email, unique_identifier, thumbnailGame, fileName) {
+function uploadThumbnailToBackendServer($, username, ID, email, pass, thumbnailGame, fileName) {
+  var realGameName = atob(thumbnailGame);
+  var realFileName = atob(fileName);
+  var imageContent = [{gameName: realGameName, image: realFileName}];
+  var imageContentStr = JSON.stringify(imageContent);
 
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/setting/update",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+        "setting_name": "default-thumbnail",
+        "setting_json": imageContentStr
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        if (result.success) {
+          console.log("Success uploading image.");
+          if (history.pushState) {
+              var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              window.history.pushState({path:newurl},'',newurl);
+          }
+
+          getAndUpdateThumbnails($, username, ID, email, pass);
+        } else {
+          console.log("Error uploading image.");
+        }
+      },
+      dataType: "json"
+  });
 }
 
 // Calls the get popular games endpoint
@@ -235,15 +406,47 @@ function getAndUpdateHelper($, username, ID, email, pass, route, cb) {
   });
 }
 
+// checks to make sure we don't add duplicates
+function contentAlreadyExists(arr, gameName, playlistID) {
+  for (var k = 0; k < arr.length; k++) {
+    if (arr[k].gameName == gameName && arr[k].playlistID == playlistID) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Calls the server for the thumbnail items, and then once returned updates the view
+function getAndUpdateThumbnails($, username, ID, email, pass) {
+  return getAndUpdateHelper($, username, ID, email, pass, "default-thumbnail", function(result) {
+    for (var i = 0; i < result.results.length; i++) {
+      if (contentAlreadyExists(gameThumbnailsCombo, result.results[i].game, result.results[i].image_name)) continue;
+      gameThumbnailsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].image_name, drawn: false, hardSaved: true, userDeleted: false});
+    }
+
+    if (gameThumbnailsCombo.length == 0) return;
+    $("#no-comments-set").hide();
+
+    // Toggle the thumbnails disable button
+    toggleThumbnailsBtnDisable($);
+
+    drawOptions($, gameThumbnailsCombo, "#thumbnails-saved-table-body", "thumbnail");
+    getAndPopulateGames($);
+  });
+}
+
 // Calls the server for the comment items, and then once returned updates the view
 function getAndUpdateCommentsView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-comments", function(result) {
     for (var i = 0; i < result.results.length; i++) {
-      gameCommentsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].comment, drawn: false, userRemoved: false, uploaded: true, hardSaved: true});
+      if (contentAlreadyExists(gameCommentsCombo, result.results[i].game, result.results[i].comment)) continue;
+      gameCommentsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].comment, drawn: false, hardSaved: true, userDeleted: false});
     }
 
     if (gameCommentsCombo.length == 0) return;
     $("#no-comments-set").hide();
+
+    toggleCommentsBtnDisable($);
 
     drawOptions($, gameCommentsCombo, "#comments-saved-table-body", "comment");
     getAndPopulateGames($);
@@ -254,11 +457,14 @@ function getAndUpdateCommentsView($, username, ID, email, pass) {
 function getAndUpdateTagsView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-tags", function(result) {
     for (var i = 0; i < result.results.length; i++) {
-      gameTagsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].tag, drawn: false, userRemoved: false, uploaded: true, hardSaved: true});
+      if (contentAlreadyExists(gameTagsCombo, result.results[i].game, result.results[i].tag)) continue;
+      gameTagsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].tag, drawn: false, hardSaved: true, userDeleted: false});
     }
 
     if (gameTagsCombo.length == 0) return;
     $("#no-tags-set").hide();
+
+    toggleTagBtnDisable($);
 
     drawOptions($, gameTagsCombo, "#tags-saved-table-body", "tag");
     getAndPopulateGames($);
@@ -269,11 +475,14 @@ function getAndUpdateTagsView($, username, ID, email, pass) {
 function getAndUpdatePlaylistView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "game-playlists", function(result) {
     for (var i = 0; i < result.results.length; i++) {
-      gamePlaylistsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].playlist_id, drawn: false, userRemoved: false, uploaded: true, hardSaved: true});
+      if (contentAlreadyExists(gamePlaylistsCombo, result.results[i].game, result.results[i].playlist_id)) continue;
+      gamePlaylistsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].playlist_id, drawn: false, hardSaved: true, userDeleted: false});
     }
 
     if (gamePlaylistsCombo.length == 0) return;
     $("#no-playlists-set").hide();
+
+    togglePlaylistsBtnDisable($);
 
     drawOptions($, gamePlaylistsCombo, "#playlists-saved-table-body", "playlist");
     getAndPopulateGames($);
@@ -284,11 +493,14 @@ function getAndUpdatePlaylistView($, username, ID, email, pass) {
 function getAndUpdateSignatureView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-signature", function(result) {
     for (var i = 0; i < result.results.length; i++) {
-      gameDescriptionsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].signature, drawn: false, userRemoved: false, uploaded: true, hardSaved: true});
+      if (contentAlreadyExists(gameDescriptionsCombo, result.results[i].game, result.results[i].signature)) continue;
+      gameDescriptionsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].signature, drawn: false, hardSaved: true, userDeleted: false});
     }
 
     if (gameDescriptionsCombo.length == 0) return;
     $("#no-descriptions-set").hide();
+
+    toggleSignatureBtnDisable($);
 
     drawOptions($, gameDescriptionsCombo, "#signatures-saved-table-body", "description");
     getAndPopulateGames($);
@@ -368,49 +580,6 @@ function updateSetting($, username, ID, email, pass, setting, settingJSON) {
   });
 }
 
-// updates a setting, and then deletes the some of the same setting. This is done syncronously to 
-// make sure there are no race conditions (etc).
-function updateSettingAndDelete($, username, ID, email, pass, setting, settingJSON, setting2, settingJSON2) {
-  $.ajax({
-      type: "POST",
-      url: autoTuberURL + "user/setting/update",
-      data: {
-        "username": username,
-        "user_id": ID,
-        "email": email,
-        "password": pass,
-        "setting_name": setting,
-        "setting_json": settingJSON
-      },
-      error: function(xhr,status,error) {
-        console.log("Error: ", error);
-      },
-      success: function(result,status,xhr) {
-        console.log("Succesfully updated #1.");
-        $.ajax({
-            type: "POST",
-            url: autoTuberURL + "user/setting/update",
-            data: {
-              "username": username,
-              "user_id": ID,
-              "email": email,
-              "password": pass,
-              "setting_name": setting2,
-              "setting_json": settingJSON2
-            },
-            error: function(xhr,status,error) {
-              console.log("Error: ", error);
-            },
-            success: function(result,status,xhr) {
-              console.log("Succesfully updated #2.");
-            },
-            dataType: "json"
-        });
-      },
-      dataType: "json"
-  });
-}
-
 // Toggles the defaults notifications if they are set or not
 function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
   var showNotification = false;
@@ -430,11 +599,12 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
   }
 }
 
-// Watches the default settings for changes
-function defaultSettings($, username, ID, email, pass) {
+// Handles the minimum video settings
+function minVideoSettings($, username, ID, email, pass) {
   $("#min-vid-default-setting").click(function() {
     $("#min-vid-subsection").toggle();
   });
+
   $("#save-min-vid-value").click(function() {
     var stepVal = $("#min-vid-input").val();
     if (stepVal != "") {
@@ -455,9 +625,14 @@ function defaultSettings($, username, ID, email, pass) {
       $(".invalid-min-vid-prompt").css('display','inline-block');
     }
   });
+}
+
+// Handles the max video settings
+function maxVideoSettings($, username, ID, email, pass) {
   $("#max-vid-default-setting").click(function() {
     $("#max-vid-subsection").toggle();
   });
+
   $("#save-max-vid-value").click(function() {
     var stepVal = $("#max-vid-input").val();
     if (stepVal != "") {
@@ -478,6 +653,26 @@ function defaultSettings($, username, ID, email, pass) {
       $(".invalid-max-vid-prompt").css('display','inline-block');
     }
   });
+}
+
+// Toggles the other game input
+function toggleOtherGameInput($, selectorID, otherInputID) {
+  if ($("#" + selectorID).val() == "other") {
+    $("#" + otherInputID).show();
+  } else {
+    $("#" + otherInputID).hide();
+  }
+}
+
+// Hides the first item, then shows the second item with display: inline-block property
+function hideShowInlineBlock(item1, item2) {
+  $(item1).hide();
+  $(item2).show();
+  $(item2).css('display','inline-block');
+}
+
+// Handles the playlist settings
+function playlistSettings($, username, ID, email, pass) {
   $("#playlists-default-setting").click(function() {
     if (settingsOverview != null && settingsOverview.playlists_count > gamePlaylistsCombo.length) {
       // This means its opened for the first time
@@ -487,24 +682,16 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#playlists-vid-subsection").toggle();
   });
+
   $("#game-selector-playlists").change(function() {
-    if ($("#game-selector-playlists").val() == "other") {
-      $("#playlist-other-game-input").show();
-    } else {
-      $("#playlist-other-game-input").hide();
-    }
+    toggleOtherGameInput($, "game-selector-playlists", "playlist-other-game-input");
   });
+
   $("#add-playlist").click(function() {
     if ($("#game-selector-playlists").val() == "" || $("#playlist-id-input").val() == "") {
-      $(".max-playlists").hide();
-      $(".invalid-playlist-combo").show();
-      if ($(".invalid-playlist-combo").is(':visible'))
-        $(".invalid-playlist-combo").css('display','inline-block');
+      hideShowInlineBlock(".max-playlists", ".invalid-playlist-combo");
     } else if (gamePlaylistsCombo.length == 15) {
-      $(".invalid-playlist-combo").hide();
-      $(".max-playlists").show();
-      if ($(".max-playlists").is(':visible'))
-        $(".max-playlists").css('display','inline-block');
+      hideShowInlineBlock(".invalid-playlist-combo", ".max-playlists");
     } else {
       $(".max-playlists").hide();
       $(".invalid-playlist-combo").hide();
@@ -517,40 +704,23 @@ function defaultSettings($, username, ID, email, pass) {
         currGameName = $("#playlist-other-game-input").val();
       }
 
-      gamePlaylistsCombo.push({gameName: currGameName, playlistID: $("#playlist-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
-      $("#playlists-unsaved").show();
+      gamePlaylistsCombo.push({gameName: currGameName, playlistID: $("#playlist-id-input").val(), drawn: false, hardSaved: true, userDeleted: false});
       drawOptions($, gamePlaylistsCombo, "#playlists-saved-table-body", "playlist");
+      updateSetting($, username, ID, email, pass, "game-playlists", JSON.stringify([{gameName: currGameName, playlistID: $("#playlist-id-input").val()}]));
       $("#playlist-id-input").val("");
+      var currentCount = $("#playlists-count-value").text();
+      $("#playlists-count-value").text(parseInt(currentCount) + 1);
+      togglePlaylistsBtnDisable($);
 
       if (clearOther) {
         $("#playlist-other-game-input").val("");
       }
     }
   });
-  $("#add-playlist-value").click(function() {
-    var settingsArr = [];
-    var settingsRemoveArr = [];
-    var totalSet = 0;
-    for (var i = 0; i < gamePlaylistsCombo.length; i++) {
-      if (gamePlaylistsCombo[i].userRemoved == false && gamePlaylistsCombo[i].uploaded == false) { // New addition
-        settingsArr.push({gameName: gamePlaylistsCombo[i].gameName, playlistID: gamePlaylistsCombo[i].playlistID});
-        gamePlaylistsCombo[i].uploaded = true;
-        gamePlaylistsCombo[i].hardSaved = true;
-        $("#playlist-" + i).find(".hard-saved-indicator").html("&#10003;");
-        totalSet++; 
-      } else if (gamePlaylistsCombo[i].userRemoved == true && gamePlaylistsCombo[i].uploaded == false) { // New removal
-        settingsRemoveArr.push({gameName: gamePlaylistsCombo[i].gameName, playlistID: gamePlaylistsCombo[i].playlistID});
-        gamePlaylistsCombo[i].uploaded = true;
-        gamePlaylistsCombo[i].hardSaved = true;
-      } else if (gamePlaylistsCombo[i].userRemoved == false) {
-        totalSet++; 
-      }
-    }
+}
 
-    $("#playlists-count-value").text(totalSet);
-    $("#playlists-unsaved").hide();
-    updateSettingAndDelete($, username, ID, email, pass, "game-playlists", JSON.stringify(settingsArr), "remove-game-playlists", JSON.stringify(settingsRemoveArr));
-  });
+// Handles the comments settings
+function commentsSettings($, username, ID, email, pass) {
   $("#comments-default-setting").click(function() {
     if (settingsOverview != null && settingsOverview.comments_count > gameCommentsCombo.length) {
       // This means its opened for the first time
@@ -560,24 +730,16 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#comments-vid-subsection").toggle();
   });
+
   $("#game-selector-comments").change(function() {
-    if ($("#game-selector-comments").val() == "other") {
-      $("#comments-other-game-input").show();
-    } else {
-      $("#comments-other-game-input").hide();
-    }
+    toggleOtherGameInput($, "game-selector-comments", "comments-other-game-input");
   });
+
   $("#add-comment").click(function() {
     if ($("#game-selector-comments").val() == "" || $("#comments-id-input").val() == "") {
-      $(".max-comments").hide();
-      $(".invalid-comments-combo").show();
-      if ($(".invalid-comments-combo").is(':visible'))
-        $(".invalid-comments-combo").css('display','inline-block');
+      hideShowInlineBlock(".max-comments", ".invalid-comments-combo");
     } else if (gameCommentsCombo.length == 45) {
-      $(".invalid-comments-combo").hide();
-      $(".max-comments").show();
-      if ($(".max-comments").is(':visible'))
-        $(".max-comments").css('display','inline-block');
+      hideShowInlineBlock(".invalid-comments-combo", ".max-comments");
     } else {
       $(".max-comments").hide();
       $(".invalid-comments-combo").hide();
@@ -590,43 +752,27 @@ function defaultSettings($, username, ID, email, pass) {
         currGameName = $("#comments-other-game-input").val();
       }
 
-      gameCommentsCombo.push({gameName: currGameName, playlistID: $("#comments-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+      gameCommentsCombo.push({gameName: currGameName, playlistID: $("#comments-id-input").val(), drawn: false, hardSaved: true, userDeleted: false});
       drawOptions($, gameCommentsCombo, "#comments-saved-table-body", "comment");
-      $("#comments-unsaved").show();
+      updateSetting($, username, ID, email, pass, "default-comments", JSON.stringify([{gameName: currGameName, comment: $("#comments-id-input").val()}]));
       $("#comments-id-input").val("");
+      var currentCount = $("#comments-count-value").text();
+      $("#comments-count-value").text(parseInt(currentCount) + 1);
+      toggleCommentsBtnDisable($);
 
       if (clearOther) {
         $("#comments-other-game-input").val("");
       }
     }
   });
-  $("#add-comment-value").click(function() {
-    var settingsArr = [];
-    var settingsRemoveArr = [];
-    var totalSet = 0;
-    for (var i = 0; i < gameCommentsCombo.length; i++) {
-      if (gameCommentsCombo[i].userRemoved == false && gameCommentsCombo[i].uploaded == false) { // New addition
-        settingsArr.push({gameName: gameCommentsCombo[i].gameName, comment: gameCommentsCombo[i].playlistID});
-        gameCommentsCombo[i].uploaded = true;
-        gameCommentsCombo[i].hardSaved = true;
-        $("#comment-" + i).find(".hard-saved-indicator").html("&#10003;");
-        totalSet++; 
-      } else if (gameCommentsCombo[i].userRemoved == true && gameCommentsCombo[i].uploaded == false) { // New removal
-        settingsRemoveArr.push({gameName: gameCommentsCombo[i].gameName, comment: gameCommentsCombo[i].playlistID});
-        gameCommentsCombo[i].uploaded = true;
-        gameCommentsCombo[i].hardSaved = true;
-      } else if (gameCommentsCombo[i].userRemoved == false) {
-        totalSet++; 
-      }
-    }
+}
 
-    $("#comments-count-value").text(totalSet);
-    $("#comments-unsaved").hide();
-    updateSettingAndDelete($, username, ID, email, pass, "default-comments", JSON.stringify(settingsArr), "remove-default-comments", JSON.stringify(settingsRemoveArr));
-  });
+// Handles the like settings
+function likeSettings($, username, ID, email, pass) {
   $("#like-default-setting").click(function() {
     $("#like-default-subsection").toggle();
   });
+
   $("#like-default-input").change(function() {
     var isChecked = $('#like-default-input').is(":checked");
     if (isChecked) {
@@ -641,14 +787,60 @@ function defaultSettings($, username, ID, email, pass) {
       $("#like-default-value").text("No");
     }
   });
+}
+
+// Handles the thumbnail settings
+function thumbnailSettings($, username, ID, email, pass) {
   $("#thumbnails-default-setting").click(function() {
     getAndPopulateGames($);
+    if (settingsOverview != null && settingsOverview.thumbnails_count > gameThumbnailsCombo.length) {
+      // This means its opened for the first time
+      // We can pretty much guarantee this since we never hard delete stored options
+      getAndUpdateThumbnails($, username, ID, email, pass);
+    }
+
     $("#thumbnails-default-subsection").toggle();
   });
+
+  $("#ugc-input-select-game").change(function() {
+    toggleOtherGameInput($, "ugc-input-select-game", "images-other-game-input");
+  });
+
+  $("#my-thumbnail-submission").change(function() {
+    var currGameName = $("#ugc-input-select-game").val();
+    if (currGameName == "") {
+      currGameName = "None";
+    }
+    var fileName = $("#my-thumbnail-submission").val();
+    var fileNameSanitized = fileName.split("fakepath\\")[1];
+    var currentDate = new Date();
+    var currentMonth = ('0' + (currentDate.getMonth() + 1)).slice(-2);
+    var currentYear = currentDate.getFullYear();
+    fileNameSanitized = "/" + currentYear + "/" + currentMonth + "/" + "user_" + ID + "_" + fileNameSanitized;
+
+    var gameBtoa = btoa(currGameName);
+    var fileNameBtoa = btoa(fileNameSanitized);
+    $("#ugc-input-success_page").val("https://twitchautomator.com/defaults/?thumbnail_upload=true&gameName=" + gameBtoa + "&fileName=" + fileNameBtoa);
+  });
+
+  $("#upload-thumbnail-btn").click(function() {
+    if ($("#ugc-input-select-game").val() == "other") {
+      var initial = $("#ugc-input-success_page").val();
+      var splitOnGameName = initial.split("gameName=");
+      var splitOnFileName = splitOnGameName[1].split("&fileName=");
+      var newURL = splitOnGameName[0] + "gameName=" + btoa($("#images-other-game-input").val()) + "&fileName=" + splitOnFileName[1];
+      $("#ugc-input-success_page").val(newURL);
+    }
+  });
+}
+
+// Handles the category settings
+function categorySettings($, username, ID, email, pass) {
   $("#category-default-setting").click(function() {
     updateCategoriesView($);
     $("#category-default-subsection").toggle();
   });
+
   $("#save-category-value").click(function() {
     var chosenCategory = $("#categories-selector").val();
     var categories = validCategories();
@@ -660,6 +852,10 @@ function defaultSettings($, username, ID, email, pass) {
     }
     updateSetting($, username, ID, email, pass, "default-category", chosenCategory + "");
   });
+}
+
+// Handles the signatures settings
+function signatureSettings($, username, ID, email, pass) {
   $("#description-default-setting").click(function() {
     if (settingsOverview != null && settingsOverview.signatures_count > gameDescriptionsCombo.length) {
       // This means its opened for the first time
@@ -669,24 +865,16 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#default-description-subsection").toggle();
   });
+
   $("#game-selector-signatures").change(function() {
-    if ($("#game-selector-signatures").val() == "other") {
-      $("#signatures-other-game-input").show();
-    } else {
-      $("#signatures-other-game-input").hide();
-    }
+    toggleOtherGameInput($, "game-selector-signatures", "signatures-other-game-input");
   });
+
   $("#add-description").click(function() {
     if ($("#game-selector-signatures").val() == "" || $("#descriptions-id-input").val() == "") {
-      $(".max-descriptions").hide();
-      $(".invalid-descriptions-combo").show();
-      if ($(".invalid-descriptions-combo").is(':visible'))
-        $(".invalid-descriptions-combo").css('display','inline-block');
+      hideShowInlineBlock(".max-descriptions", ".invalid-descriptions-combo");
     } else if (gameCommentsCombo.length == 10) {
-      $(".invalid-descriptions-combo").hide();
-      $(".max-descriptions").show();
-      if ($(".max-descriptions").is(':visible'))
-        $(".max-descriptions").css('display','inline-block');
+      hideShowInlineBlock(".invalid-descriptions-combo", ".max-descriptions");
     } else {
       $(".max-descriptions").hide();
       $(".invalid-descriptions-combo").hide();
@@ -699,40 +887,23 @@ function defaultSettings($, username, ID, email, pass) {
         currGameName = $("#signatures-other-game-input").val();
       }
 
-      gameDescriptionsCombo.push({gameName: currGameName, playlistID: $("#descriptions-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+      gameDescriptionsCombo.push({gameName: currGameName, playlistID: $("#descriptions-id-input").val(), drawn: false, hardSaved: true, userDeleted: false});
       drawOptions($, gameDescriptionsCombo, "#signatures-saved-table-body", "description");
-      $("#signatures-unsaved").show();
+      updateSetting($, username, ID, email, pass, "default-signature", JSON.stringify([{gameName: currGameName, signature: $("#descriptions-id-input").val()}]));
       $("#descriptions-id-input").val("");
+      var currentCount = $("#description-count-value").text();
+      $("#description-count-value").text(parseInt(currentCount) + 1);
+      toggleSignatureBtnDisable($);
 
       if (clearOther) {
         $("#signatures-other-game-input").val("");
       }
     }
   });
-  $("#add-signature-value").click(function() {
-    var settingsArr = [];
-    var settingsRemoveArr = [];
-    var totalSet = 0;
-    for (var i = 0; i < gameDescriptionsCombo.length; i++) {
-      if (gameDescriptionsCombo[i].userRemoved == false && gameDescriptionsCombo[i].uploaded == false) { // New addition
-        settingsArr.push({gameName: gameDescriptionsCombo[i].gameName, signature: gameDescriptionsCombo[i].playlistID});
-        gameDescriptionsCombo[i].uploaded = true;
-        gameDescriptionsCombo[i].hardSaved = true;
-        $("#description-" + i).find(".hard-saved-indicator").html("&#10003;");
-        totalSet++; 
-      } else if (gameDescriptionsCombo[i].userRemoved == true && gameDescriptionsCombo[i].uploaded == false) { // New removal
-        settingsRemoveArr.push({gameName: gameDescriptionsCombo[i].gameName, signature: gameDescriptionsCombo[i].playlistID});
-        gameDescriptionsCombo[i].uploaded = true;
-        gameDescriptionsCombo[i].hardSaved = true;
-      } else if (gameDescriptionsCombo[i].userRemoved == false) {
-        totalSet++; 
-      }
-    }
+}
 
-    $("#description-count-value").text(totalSet);
-    $("#signatures-unsaved").hide();
-    updateSettingAndDelete($, username, ID, email, pass, "default-signature", JSON.stringify(settingsArr), "remove-default-signature", JSON.stringify(settingsRemoveArr));
-  });
+// Handles the tag settings
+function tagSettings($, username, ID, email, pass) {
   $("#tags-default-setting").click(function() {
     if (settingsOverview != null && settingsOverview.tags_count > gameTagsCombo.length) {
       // This means its opened for the first time
@@ -742,24 +913,16 @@ function defaultSettings($, username, ID, email, pass) {
 
     $("#default-tags-subsection").toggle();
   });
+
   $("#game-selector-tags").change(function() {
-    if ($("#game-selector-tags").val() == "other") {
-      $("#tags-other-game-input").show();
-    } else {
-      $("#tags-other-game-input").hide();
-    }
+    toggleOtherGameInput($, "game-selector-tags", "tags-other-game-input");
   });
+
   $("#add-tag").click(function() {
     if ($("#game-selector-tags").val() == "" || $("#tags-id-input").val() == "") {
-      $(".max-tags").hide();
-      $(".invalid-tags-combo").show();
-      if ($(".invalid-tags-combo").is(':visible'))
-        $(".invalid-tags-combo").css('display','inline-block');
+      hideShowInlineBlock(".max-tags", ".invalid-tags-combo");
     } else if (gameCommentsCombo.length == 100) {
-      $(".invalid-descriptions-tags").hide();
-      $(".max-tags").show();
-      if ($(".max-tags").is(':visible'))
-        $(".max-tags").css('display','inline-block');
+      hideShowInlineBlock(".invalid-descriptions-tags", ".max-tags");
     } else {
       $(".max-tags").hide();
       $(".invalid-descriptions-tags").hide();
@@ -772,44 +935,28 @@ function defaultSettings($, username, ID, email, pass) {
         currGameName = $("#tags-other-game-input").val();
       }
 
-      gameTagsCombo.push({gameName: currGameName, playlistID: $("#tags-id-input").val(), drawn: false, userRemoved: false, uploaded: false, hardSaved: false});
+      gameTagsCombo.push({gameName: currGameName, playlistID: $("#tags-id-input").val(), drawn: false, hardSaved: true, userDeleted: false});
       drawOptions($, gameTagsCombo, "#tags-saved-table-body", "tag");
-      $("#tags-unsaved").show();
+      updateSetting($, username, ID, email, pass, "default-tags", JSON.stringify([{gameName: currGameName, tag: $("#tags-id-input").val()}]));
       $("#tags-id-input").val("");
+      var currentCount = $("#tags-count-value").text();
+      $("#tags-count-value").text(parseInt(currentCount) + 1);
+      toggleTagBtnDisable($);
 
       if (clearOther) {
         $("#tags-other-game-input").val("");
       }
     }
   });
-  $("#add-tag-value").click(function() {
-    var settingsArr = [];
-    var settingsRemoveArr = [];
-    var totalSet = 0;
-    for (var i = 0; i < gameTagsCombo.length; i++) {
-      if (gameTagsCombo[i].userRemoved == false && gameTagsCombo[i].uploaded == false) { // New addition
-        settingsArr.push({gameName: gameTagsCombo[i].gameName, tag: gameTagsCombo[i].playlistID});
-        gameTagsCombo[i].uploaded = true;
-        gameTagsCombo[i].hardSaved = true;
-        $("#tag-" + i).find(".hard-saved-indicator").html("&#10003;");
-        totalSet++; 
-      } else if (gameTagsCombo[i].userRemoved == true && gameTagsCombo[i].uploaded == false) { // New removal
-        settingsRemoveArr.push({gameName: gameTagsCombo[i].gameName, tag: gameTagsCombo[i].playlistID});
-        gameTagsCombo[i].uploaded = true;
-        gameTagsCombo[i].hardSaved = true;
-      } else if (gameTagsCombo[i].userRemoved == false) {
-        totalSet++; 
-      }
-    }
+}
 
-    $("#tags-count-value").text(totalSet);
-    $("#tags-unsaved").hide();
-    updateSettingAndDelete($, username, ID, email, pass, "default-tags", JSON.stringify(settingsArr), "remove-default-tags", JSON.stringify(settingsRemoveArr));
-  });
+// Handles the language settings
+function languageSettings($, username, ID, email, pass) {
   $("#language-default-setting").click(function() {
     updateLanguagesView($);
     $("#language-default-subsection").toggle();
   });
+
   $("#add-language-value").click(function() {
     var chosenLanguage = $("#languages-selector").val();
     var languages = getLanguageMap();
@@ -821,19 +968,20 @@ function defaultSettings($, username, ID, email, pass) {
     }
     updateSetting($, username, ID, email, pass, "default-language", chosenLanguage + "");
   });
-  $("#my-thumbnail-submission").change(function() {
-    var currGameName = $("#ugc-input-select-game").val();
-    if (currGameName == "") {
-      currGameName = "None";
-    }
-    var fileName = $("#my-thumbnail-submission").val();
+}
 
-    console.log("The game is: " + currGameName);
-    console.log("The file is: " + fileName);
-    var gameBtoa = btoa(currGameName);
-    var fileNameBtoa = btoa(fileName);
-    $("#ugc-input-success_page").val("https://twitchautomator.com/defaults/?thumbnail_upload=true&gameName=" + gameBtoa + "&fileName=" + fileNameBtoa);
-  });
+// Watches the default settings for changes
+function defaultSettings($, username, ID, email, pass) {
+  minVideoSettings($, username, ID, email, pass);
+  maxVideoSettings($, username, ID, email, pass);
+  playlistSettings($, username, ID, email, pass);
+  commentsSettings($, username, ID, email, pass);
+  likeSettings($, username, ID, email, pass);
+  thumbnailSettings($, username, ID, email, pass);
+  categorySettings($, username, ID, email, pass);
+  signatureSettings($, username, ID, email, pass);
+  tagSettings($, username, ID, email, pass);
+  languageSettings($, username, ID, email, pass);
 }
 
 // -----------------------------------------
@@ -900,8 +1048,8 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
 
 var popupWindow = null;
 function centeredPopup(url,winName,w,h,scroll){
-  var LeftPosition = (screen.width) ? (screen.width-w)/2 : 0;
-  var TopPosition = (screen.height) ? (screen.height-h)/2 : 0;
+  var LeftPosition = 0;
+  var TopPosition = 0;
   var settings = 'height='+h+',width='+w+',top='+TopPosition+',left='+LeftPosition+',scrollbars='+scroll+',resizable'
   popupWindow = window.open(url,winName,settings);
 }
@@ -1096,7 +1244,7 @@ function dashboardAuthenticator($, username, ID, email, subscriptions, passwordH
       },
       success: function(result,status,xhr) {
         if (result.success) {
-		  toggleProfessionalPrompt($, result);
+		      toggleProfessionalPrompt($, result);
           toggleDashboardNotification($, result, username, ID, email, passwordHash);
           getHasToken($, username, ID, email, passwordHash);
         } else {
@@ -1242,6 +1390,7 @@ jQuery(document).ready(function( $ ){
 
   // Hide the authenticate with youtube block unless we actually need it
   $(".authenticate-with-youtube-block").hide();
+  $(".dashboard-have-auth-token").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");
@@ -1282,10 +1431,10 @@ jQuery(document).ready(function( $ ){
         var fileName = urlParams.get("fileName");
         if (isThumbnailSuccess) {
           if (isThumbnailSuccess == "true") {
+            uploadThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, thumbnailGame, fileName);
             getAndPopulateGames($);
             $("#thumbnails-default-subsection").toggle();
             $("html, body").animate({ scrollTop: $('#thumbnails-top-table').offset().top + 25}, 2000);
-            uploadThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, thumbnailGame, fileName);
           }
         }
 

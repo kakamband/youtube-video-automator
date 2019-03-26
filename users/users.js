@@ -2,6 +2,8 @@ var Promise = require('bluebird');
 var cLogger = require('color-log');
 var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
+var Hijacker = require('../hijacker/hijacker');
+var Worker = require('../worker/worker_producer');
 
 // --------------------------------------------
 // Constants below.
@@ -13,6 +15,8 @@ const topGamesRedisKey = "top_twitch_games";
 const topGamesRedisTTL = defaultTTL;
 const userDefaultsOverviewKey = "user_defaults_overview_";
 const userDefaultsOverviewTTL = defaultTTL;
+const userClippingKey = "user_already_clipping_";
+const userClippingTTL = defaultTTL;
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -198,6 +202,101 @@ module.exports.getGamesList = function() {
     });
 }
 
+// startClip
+// Starts a clip for a user if they are authorized too, and they don't already have a clip started.
+module.exports.startClip = function(username, pmsID, email, password, twitch_link) {
+    var userID = "pms_" + pmsID;
+    var downloadID = null;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return userAlreadyClipping(userID);
+        })
+        .then(function(alreadyClipping) {
+            if (alreadyClipping) {
+                if (alreadyClipping == "false") {
+                    return validateClipGame(twitch_link);
+                } else {
+                    return reject(alreadyClippingErr());
+                }
+            } else {
+                return validateClipGame(twitch_link);
+            }
+        })
+        .then(function(gameName) {
+            if (gameName == undefined) {
+                return resolve([false, "The stream link was invalid, or not live."]);
+            } else {
+                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+            }
+        })
+        .then(function(dlID) {
+            downloadID = dlID;
+            return setUserDownloading(userID, downloadID);
+        })
+        .then(function() {
+            var result = [true, downloadID];
+            return resolve(result);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+// endClip
+// Ends a clip for a user if they are authorized too.
+module.exports.endClip = function(username, pmsID, email, password, twitch_link, downloadID) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return Hijacker.endHijacking(userID, twitch_link, parseInt(downloadID));
+        })
+        .then(function() {
+            return setUserNotDownloading(userID);
+        })
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+// isUserDownloading
+// Returns whether a user is downloading or not, and if so returns the download ID.
+module.exports.isUserDownloading = function(username, pmsID, email, password) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return userAlreadyClipping(id);
+        })
+        .then(function(downloadID) {
+            if (downloadID == undefined) {
+                return setUserNotDownloading(userID)
+                .then(function() {
+                    return resolve(false);
+                });
+            } else {
+                if (downloadID == "false") {
+                    return resolve(false);
+                } else {
+                    return resolve(downloadID);
+                }
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -212,6 +311,47 @@ function checkIfInRedis(key) {
             } else {
                 return resolve(undefined);
             }
+        });
+    });
+}
+
+function validateClipGame(twitch_link) {
+    return new Promise(function(resolve, reject) {
+        return Hijacker.getClipGame(twitch_link)
+        .then(function(gameName) {
+            return resolve(gameName);
+        })
+        .catch(function(err) {
+            return resolve(undefined);
+        });
+    });
+}
+
+function userAlreadyClipping(internalID) {
+    return new Promise(function(resolve, reject) {
+        return checkIfInRedis(userClippingKey + internalID)
+        .then(function(reply) {
+            return resolve(reply);
+        });
+    });
+}
+
+function setUserDownloading(internalID, downloadID) {
+    return new Promise(function(resolve, reject) {
+        var multi = redis.multi();
+        multi.set((userClippingKey + internalID), downloadID, "EX", userClippingTTL);
+        multi.exec(function (err, replies) {
+            return resolve();
+        });
+    });
+}
+
+function setUserNotDownloading(internalID) {
+    return new Promise(function(resolve, reject) {
+        var multi = redis.multi();
+        multi.set((userClippingKey + internalID), "false", "EX", userClippingTTL);
+        multi.exec(function (err, replies) {
+            return resolve();
         });
     });
 }
@@ -814,6 +954,12 @@ function validateUserAndGetID(username, ID, email, password) {
 			return reject(err);
 		});
 	});
+}
+
+function alreadyClippingErr() {
+    var err = new Error("The user already has a clip running.");
+    err.status = 400;
+    return err;
 }
 
 function invalidThumbnail() {

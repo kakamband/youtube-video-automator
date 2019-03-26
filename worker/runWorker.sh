@@ -23,6 +23,22 @@ elif [ $1 = "uploader-prod" ]
 then
 	cmdStart="/home/ec2-user/Documents/youtube-video-automator/worker/"
 	tmp="uploader"
+elif [ $1 = "downloader" ]
+then
+	cmdStart="/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/worker/"
+	tmp="downloader"
+elif [ $1 = "encoder" ]
+then
+	cmdStart="/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/worker/"
+	tmp="encoder"
+elif [ $1 = "fallback" ]
+then
+	cmdStart="/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/worker/"
+	tmp="fallback"
+elif [ $1 = "uploader" ]
+then
+	cmdStart="/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/worker/"
+	tmp="uploader"
 else
 	tmp=$1
 	cmdStart="./"

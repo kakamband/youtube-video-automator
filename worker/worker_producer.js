@@ -103,10 +103,10 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 		.then(function(downloadID) {
 			downloadObjID = downloadID;
 			msgOptions.messageId = downloadObjID + "";
-			return getQueueMeta()
+			return getQueueMeta();
 		})
-		.then(function(queueInfo) {
-			return makeSmartDownloadChoice(queueInfo, msgOptions);
+		.then(function(queueChoice) {
+			return makeDownloadPost(queueChoice, msgOptions);
 		})
 		.then(function() {
 			return resolve(downloadObjID);
@@ -140,62 +140,6 @@ function createChannel(queueNames) {
 	});
 }
 
-function makeSmartDownloadChoice(queueInfo, msgOptions) {
-	if (queueInfo.length > 0 && queueInfo[0].queueName == Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME) {
-		cLogger.warn("The fallback queue is the smallest queue choice! This should be a sign that its time to increase the number of download workers.");
-		// TODO: Log this to Sentry.
-	}
-
-	return new Promise(function(resolve, reject) {
-		return isThereEmptyQueue(queueInfo)
-		.then(function(emptyQ) {
-			if (emptyQ >= 0) {
-				cLogger.info("Found an empty queue. Adding to the first empty queue.");
-				return postToFirstEmptyQ(queueInfo, msgOptions, emptyQ);
-			} else {
-				cLogger.warn("Didn't find a any empty queues. This is EXTREMELY DANGEROUS! This will result in customers not getting clips started at the correct time.");
-				// TODO: Log this to Sentry
-
-				return postToLowestDownloadQ(queueInfo, msgOptions);
-			}
-		})
-		.then(function() {
-			return resolve();
-		})
-		.catch(function(err) {
-			return reject(err);
-		})
-	});
-}
-
-function postToLowestDownloadQ(queueInfo, msgOptions) {
-	var validDownloadingChannels = [Attr.DOWNLOADING_AMQP_CHANNEL_NAME, Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME];
-	return new Promise(function(resolve, reject) {
-		var index = 0;
-
-		function next() {
-			if (validDownloadingChannels.indexOf(queueInfo[index].queueName) != -1) {
-				return makeDownloadPost(queueInfo[index].queueName, msgOptions)
-				.then(function() {
-					return resolve();
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else {
-				index++;
-				return next();
-			}
-		}
-
-		return next();
-	});
-}
-
-function postToFirstEmptyQ(queueInfo, msgOptions, emptyQ) {
-	return makeDownloadPost(queueInfo[emptyQ].queueName, msgOptions);
-}
-
 function makeDownloadPost(queueName, msgOptions) {
 	return new Promise(function(resolve, reject) {
 
@@ -213,22 +157,6 @@ function makeDownloadPost(queueName, msgOptions) {
 	});
 }
 
-// returns if there are any empty queues
-function isThereEmptyQueue(queueInfo) {
-	return new Promise(function(resolve, reject) {
-		for (var i = 0; i < queueInfo.length; i++) {
-			var condition1 = (queueInfo[i].queueSize == 0 && queueInfo[i].consumerCount > 0);
-			var condition2 = (queueInfo[i].consumerCount > 0 && (queueInfo[i].consumerCount - queueInfo[i].queueSize) > 0);
-			if (condition1 || condition2) {
-				return resolve(i);
-			}
-		}
-
-		// TODO: Log this to Sentry.
-		return resolve(-1);
-	});
-}
-
 function getMessagesAndConsumers(queueName) {
 	return new Promise(function(resolve, reject) {
 		amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
@@ -242,117 +170,134 @@ function getMessagesAndConsumers(queueName) {
 	});
 }
 
-function getQueueMeta(){
-	return new Promise(function(resolve, reject) {
-		var eInfo, uInfo, dnInfo, fbInfo = null;
+function checkIfInRedis(key) {
+    return new Promise(function(resolve, reject) {
+        return redis.get(key, function(err, reply) {
+            if (!err && reply != null) {
+                return resolve(reply.toString());
+            } else {
+                return resolve(undefined);
+            }
+        });
+    });
+}
 
+function getQueueMessages(key) {
+	return new Promise(function(resolve, reject) {
+		return checkIfInRedis(key)
+		.then(function(value) {
+			if (value == undefined) {
+				return resolve(0);
+			} else {
+				return resolve(parseInt(value));
+			}
+		});
+	});
+}
+
+function transactionIncMsgCount(key) {
+	return new Promise(function(resolve, reject) {
+		var multi = redis.multi();
+		multi.incr(key);
+		multi.exec(function (err, replies) {
+		    console.log(replies);
+		    console.log(err);
+		    return resolve();
+		});
+	});
+}
+
+
+function getQueueMeta(){
+	const redisEncodingKey = "encoding_queue_msg_count";
+	const redisUploadingKey = "uploading_queue_msg_count";
+	const redisDownloadingKey = "downloading_queue_msg_count";
+	const redisFallbackKey = "fallback_queue_msg_count";
+
+	return new Promise(function(resolve, reject) {
 		return getMessagesAndConsumers(Attr.ENCODING_AMQP_CHANNEL_NAME)
 		.then(function(encodinginfo) {
-			eInfo = encodinginfo;
-			return getMessagesAndConsumers(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+			return getQueueMessages(redisEncodingKey)
+			.then(function(messageCount) {
+				let consumerCount = encodinginfo[1];
+
+				// Check if there are any empty workers
+				var hasEmptyConsumer = (consumerCount - messageCount > 0);
+				if (hasEmptyConsumer) {
+					return transactionIncMsgCount(redisEncodingKey)
+					.then(function() {
+						return resolve(Attr.ENCODING_AMQP_CHANNEL_NAME);
+					});
+				} else {
+					return getMessagesAndConsumers(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+				}
+			});
 		})
 		.then(function(uploadingInfo) {
-			uInfo = uploadingInfo;
-			return getMessagesAndConsumers(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+			return getQueueMessages(redisUploadingKey)
+			.then(function(messageCount) {
+				let consumerCount = uploadingInfo[1];
+
+				// Check if there are any empty workers
+				var hasEmptyConsumer = (consumerCount - messageCount > 0);
+				if (hasEmptyConsumer) {
+					return transactionIncMsgCount(redisUploadingKey)
+					.then(function() {
+						return resolve(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+					});
+				} else {
+					return getMessagesAndConsumers(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+				}
+			});
 		})
 		.then(function(downloadingInfo) {
-			dnInfo = downloadingInfo;
-			return getMessagesAndConsumers(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+			return getQueueMessages(redisDownloadingKey)
+			.then(function(messageCount) {
+				let consumerCount = downloadingInfo[1];
+
+				// Check if there are any empty workers
+				var hasEmptyConsumer = (consumerCount - messageCount > 0);
+				if (hasEmptyConsumer) {
+					return transactionIncMsgCount(redisDownloadingKey)
+					.then(function() {
+						return resolve(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+					});
+				} else {
+					return getMessagesAndConsumers(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+				}
+			});
 		})
 		.then(function(fallbackInfo) {
-			fbInfo = fallbackInfo;
+			return getQueueMessages(redisFallbackKey)
+			.then(function(messageCount) {
+				let consumerCount = fallbackInfo[1];
+
+				// Check if there are any empty workers
+				var hasEmptyConsumer = (consumerCount - messageCount > 0);
+				if (hasEmptyConsumer) {
+					return transactionIncMsgCount(redisFallbackKey)
+					.then(function() {
+						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+					});
+				} else {				
+					// This is extremely dangerous
+					// Log to Sentry
+					// Send an email to admin
+					// Send an SMS to admin
+					cLogger.info("No consumers were available!! This is very dangerous, trying to manually start up a new worker.");
+
+					var newConsumer = shell.exec(Attr.FINAL_FALLBACK_NO_CONSUMERS_FOR_DWNLOAD, {async: true});
+					return transactionIncMsgCount(redisFallbackKey)
+					.then(function() {
+						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+					});
+				}
+			});
 		})
 		.catch(function(err) {
 			return reject(err);
 		});
 	});
-
-	/*var mustBeInBack = [Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME];
-	var downloadingQueues = [Attr.DOWNLOADING_AMQP_CHANNEL_NAME]; // We need to try to make these at the end before sorting.
-	var watchingQueues = [Attr.ENCODING_AMQP_CHANNEL_NAME, Attr.UPLOADING_AMQP_CHANNEL_NAME];
-	return new Promise(function(resolve, reject) {
-		var queueSize = [];
-		var downloadingQSize = [];
-		var completeBackQSize = [];
-		return shell.exec("rabbitmqctl list_queues name messages consumers", function(code, stdout, stderr) {
-			if (code != 0) {
-				return reject(stderr);
-			}
-
-			var lines = stdout.split("\n");
-			for (var i = 0; i < lines.length; i++) {
-				var tmp = lines[i].split("\t");
-				var queueName = tmp[0].trim();
-
-				// If this is a queue we are watching for
-				if (watchingQueues.indexOf(queueName) != -1) {
-					var obj = {queueName: queueName};
-					if (tmp.length >= 3) {
-						var qs = parseInt(tmp[1]);
-						var consumerCount = parseInt(tmp[2]);
-						if (!isNaN(qs)) {
-							obj.queueSize = qs;
-							obj.consumerCount = consumerCount;
-							queueSize.push(obj);
-						}
-					}
-				} else if (downloadingQueues.indexOf(queueName) != -1) {
-					var obj = {queueName: queueName};
-					if (tmp.length >= 3) {
-						var qs = parseInt(tmp[1]);
-						var consumerCount = parseInt(tmp[2]);
-						if (!isNaN(qs)) {
-							obj.queueSize = qs;
-							obj.consumerCount = consumerCount;
-							downloadingQSize.push(obj);
-						}
-					}
-				} else if (mustBeInBack.indexOf(queueName) != -1) {
-					var obj = {queueName: queueName};
-					if (tmp.length >= 3) {
-						var qs = parseInt(tmp[1]);
-						var consumerCount = parseInt(tmp[2]);
-						if (!isNaN(qs)) {
-							obj.queueSize = qs;
-							obj.consumerCount = consumerCount;
-							completeBackQSize.push(obj);
-						}
-					}
-				}
-			}
-
-			var finalQueueInfo = queueSize.concat(downloadingQSize);
-			finalQueueInfo = finalQueueInfo.concat(completeBackQSize);
-
-			// Sanity check
-			if (finalQueueInfo.length == 0) {
-				var errMsg = "We found no open queues!";
-				cLogger.error(errMsg);
-				return reject(new Error(errMsg));
-			}
-
-			var initialMessagesSort = finalQueueInfo.sort(queueInfoSort);
-			var secondaryConsumersSort = initialMessagesSort.sort(queueInfoSort2);
-
-			return resolve(secondaryConsumersSort);
-		});
-	});*/
-}
-
-function queueInfoSort(a, b) {
-	if (a.queueSize < b.queueSize)
-		return -1;
-	if (a.queueSize > b.queueSize)
-		return 1;
-	return 0;
-}
-
-function queueInfoSort2(a, b) {
-	if (a.consumerCount > b.consumerCount)
-		return -1;
-	if (a.consumerCount < b.consumerCount)
-		return 1;
-	return 0;
 }
 
 // --------------------------------------------

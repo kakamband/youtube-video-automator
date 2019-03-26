@@ -21,6 +21,7 @@ module.exports = {
 	REDIS_HOST: "127.0.0.1", // Redis host ip.
 	REDIS_PORT: 6379, // Redis Port number.
 	RABBITMQ_CONNECTION: 'ENTER YOUR RABBITMQ CONNECTION URL HERE',
+	FINAL_FALLBACK_NO_CONSUMERS_AVAILABLE: "echo 'this should never happen ideally.'", // This command gets run if we can't find any consumers.
 	POLLED_GAMES: [
 		// ADD THE GAMES YOU WANT TO POLL HERE
 		// DefinedGames.FORTNITE

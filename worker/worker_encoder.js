@@ -8,6 +8,7 @@ var Helpers = require('./worker_helpers');
 var shell = require('shelljs');
 var redis = require('redis');
 var retriesMap = new Map();
+const redisEncodingKey = "encoding_queue_msg_count";
 
 function errMsg(workerActivity, ackMsg, queueMessage, err) {
   /*Sentry.withScope(scope => {
@@ -100,6 +101,8 @@ function handleMessage(message, msg, ch, knex) {
       return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
       .then(function() {
         successMsg(message);
+        return Helpers.decrementMsgCount(redisEncodingKey);
+      }).then(function() {
         ch.ack(msg);
       }).catch(function(err) {
         errMsg(message, msg, message, err);
@@ -109,7 +112,6 @@ function handleMessage(message, msg, ch, knex) {
   }
 }
 
-shell.cd("..");
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);
 
@@ -134,7 +136,6 @@ amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
     ch.consume(Attr.ENCODING_AMQP_CHANNEL_NAME, function(msg) {
       var secs = msg.content.toString().split('.').length - 1;
 
-      console.log("Msg is: ", msg);
       var contentMsg = msg.content.toString();
       handleMessage(contentMsg, msg, ch, knex);
     }, {noAck: false});
