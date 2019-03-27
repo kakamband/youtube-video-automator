@@ -438,7 +438,6 @@ function getClipInfoHelper(userID, downloadID) {
                 gameName = info.game;
 
                 // Delete some info we don't want to share with the frontend
-                delete info.created_at;
                 delete info.downloaded_file;
                 delete info.user_id;
                 delete info.id;
@@ -450,7 +449,6 @@ function getClipInfoHelper(userID, downloadID) {
 
             // Remove some info we don't want to share
             for (var i = 0; i < toCombineVids.length; i++) {
-                delete toCombineVids[i].created_at;
                 delete toCombineVids[i].downloaded_file;
                 delete toCombineVids[i].user_id;
                 delete toCombineVids[i].id;
