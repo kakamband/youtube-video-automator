@@ -1223,6 +1223,57 @@ function getTokenLink($, username, ID, email, pass) {
     });
 }
 
+// Gets some information about the current clip
+function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/info",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+      "download_id": downloadID
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result && result.clip_info) {
+        let clipInfo = result.clip_info;
+
+        var currentDate = new Date();
+        var clipStart = new Date(clipInfo.created_at);
+
+        var diff = currentDate.getTime() - clipStart.getTime();
+        var diffTmp = diff / 1000;
+        var clipSeconds = Math.abs(diffTmp);
+        setInterval(setTime, 1000);
+
+        function setTime() {
+          ++clipSeconds;
+          var secondsSanitized = pad(Math.round(clipSeconds % 60));
+          var minutesSanitized = pad(parseInt(clipSeconds / 60));
+          $("#clip-minutes").text(minutesSanitized);
+          $("#clip-seconds").text(secondsSanitized);
+        }
+
+        function pad(val) {
+          var valString = val + "";
+          if (valString.length < 2) {
+            return "0" + valString;
+          } else {
+            return valString;
+          }
+        }
+
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Checks if the user is already clipping, and if they are redirects to this page with the '?clipping=true&download_id=ID' query params.
 function checkIfAlreadyClipping($, username, ID, email, pass) {
   $.ajax({
@@ -1249,7 +1300,13 @@ function checkIfAlreadyClipping($, username, ID, email, pass) {
         $(".currently-clipping-container").show();
         if (!result.download_id) {
           console.log("Somehow the user got here, but doesn't actually have a clip started. Redirecting back.");
+          
+          // TODO: UNCOMMENT LINE RIGHT BELOW, AND DELETE EVERYTHING ELSE!
           //window.location.href = "https://twitchautomator.com/dashboard";
+
+          return getCurrentClipInfo($, username, ID, email, pass, downloadID);
+        } else {
+          return getCurrentClipInfo($, username, ID, email, pass, result.download_id);
         }
       } else {
         if (result.download_id) {

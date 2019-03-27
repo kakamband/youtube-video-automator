@@ -22,6 +22,7 @@ var Worker = require('./worker/worker_producer');
 var redis = require("redis");
 var Promise = require('bluebird');
 const readline = require('readline');
+const Sentry = require('@sentry/node');
 
 var index = require('./routes/index');
 
@@ -29,6 +30,19 @@ var app = express();
 
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);
+
+// Initialize Sentry
+Sentry.init({ 
+  dsn: Secrets.SENTRY_DSN,
+  release: Attr.RELEASE_VERSION
+});
+
+// Global Sentry init
+Sentry.configureScope((scope) => {
+  scope.setTag("scope", "server-routes");
+  scope.setTag("environment", Attr.SERVER_ENVIRONMENT);
+});
+global.Sentry = Sentry;
 
 var dbConnection = {
 	host: Attr.PG_CONNECTION_HOST,

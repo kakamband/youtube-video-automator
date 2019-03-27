@@ -5,6 +5,7 @@ var cLogger = require('color-log');
 const {google} = require('googleapis');
 var dbController = require('../controller/db');
 const opn = require('opn');
+var ErrorHelper = require('../errors/errors');
 
 const scopes = [
 	// Needed to upload to Youtube, to set thumbnails, add to playlists.
@@ -149,8 +150,12 @@ module.exports.initCallback = function(code, userID) {
 
 			if (!tokens.refresh_token) {
 				cLogger.error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!");
-				// TODO: Log this to sentry, we will need to manually support this person.
-				// Reference link: https://stackoverflow.com/questions/10827920/not-receiving-google-oauth-refresh-token
+				ErrorHelper.scopeConfigure("oauth_flow.initCallback", {
+					code: code,
+					user_id: userID,
+					reference_link: "https://stackoverflow.com/questions/10827920/not-receiving-google-oauth-refresh-token"
+				});
+				ErrorHelper.emitSimpleError(new Error("Could not find a refresh token! This means each time we do anything we will need to authenticate again! THIS IS NOT SUPPOSED TO HAPPEN!"));
 
 				return resolve([false, "Looks like you have already been approved for this app. We need you to go to the following link and remove access and retry: https://myaccount.google.com/u/0/permissions . We appologize for the inconvenience."]);
 			} else {

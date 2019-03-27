@@ -7,6 +7,7 @@ var Models = require('./models');
 var Worker = require('../worker/worker_producer');
 var Hijacker = require('../hijacker/hijacker');
 var Users = require('../users/users');
+var ErrorHelper = require('../errors/errors');
 // -------------------
 
 function validFirst(route, req, res, next, continuation) {
@@ -15,7 +16,8 @@ function validFirst(route, req, res, next, continuation) {
 	// Validate that the paramters passed are correct and all present
 	var invalidParamsErr = routeObj.validateParams(req.body, req.params);
 	if (invalidParamsErr != undefined) {
-	    return next(invalidParamsErr);
+		ErrorHelper.scopeConfigure(route, req.body);
+		return ErrorHelper.errorHelper(next, invalidParamsErr);
 	}
 
 	continuation();
@@ -40,6 +42,8 @@ router.get('/oauthcallback', function(req, res, next) {
 	})
 	.catch(function(err) {
 		cLogger.error("Error uploading: ", err);
+		ErrorHelper.scopeConfigure('/oauthcallback', req.query);
+		ErrorHelper.errorHelper(next, err);
 	});
 });
 
@@ -58,6 +62,8 @@ router.get('/oauthcallback/init', function(req, res, next) {
 	})
 	.catch(function(err) {
 		cLogger.error("Error adding refresh token to DB: ", err);
+		ErrorHelper.scopeConfigure('/oauthcallback/init', req.query);
+		ErrorHelper.errorHelper(next, err);
 	});
 });
 
@@ -71,7 +77,8 @@ router.post(Models.START_CLIPPING, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.START_CLIPPING, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -85,20 +92,8 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-			return next(err);
-		});
-		return Hijacker.endHijacking(req.body.user_id, req.body.twitch_link, parseInt(req.body.download_id))
-		.then(function() {
-			return res.json({
-				success: true
-			});
-		})
-		.catch(function(err) {
-			// TODO log this to Sentry.
-
-			return res.json({
-				success: false
-			});
+			ErrorHelper.scopeConfigure(Models.END_CLIPPING, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -120,7 +115,8 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.USER_INTRO, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -134,7 +130,8 @@ router.post(Models.USER_HAS_TOKEN, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.USER_HAS_TOKEN, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -148,7 +145,8 @@ router.post(Models.USER_TOKEN_LINK, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.USER_TOKEN_LINK, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -162,7 +160,8 @@ router.post(Models.USER_HAS_NEW_TOKEN, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.USER_HAS_NEW_TOKEN, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -176,7 +175,8 @@ router.post(Models.SEEN_NOTIFICATION, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.SEEN_NOTIFICATION, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -190,7 +190,8 @@ router.post(Models.UPDATE_SETTING, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.UPDATE_SETTING, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -204,7 +205,8 @@ router.post(Models.GET_DEFAULT_SETTINGS, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.GET_DEFAULT_SETTINGS, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -218,7 +220,8 @@ router.post(Models.GET_GAME_LIST, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.GET_GAME_LIST, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -232,7 +235,8 @@ router.post(Models.IS_USER_DOWNLOADING, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.IS_USER_DOWNLOADING, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -246,7 +250,8 @@ router.post(Models.GET_CLIP_INFO, function(req, res, next) {
 			});
 		})
 		.catch(function(err) {
-    		return next(err);
+			ErrorHelper.scopeConfigure(Models.GET_CLIP_INFO, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });

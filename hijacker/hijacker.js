@@ -4,6 +4,7 @@ const readline = require('readline');
 var shell = require('shelljs');
 var Attr = require('../config/attributes');
 const base64url = require('base64url');
+var ErrorHelper = require('../errors/errors');
 const { getVideoDurationInSeconds } = require('get-video-duration');
 var fs = require('fs');
 var Combiner = require('../combiner/combiner');
@@ -115,7 +116,13 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 							return resolve();
 						})
 						.catch(function(err) {
-							// TODO: Log to Sentry
+							ErrorHelper.scopeConfigure("hijacker.startHijack", {
+								user_id: userID,
+								game: gameName,
+								twitch_stream: twitchStream,
+								download_id: downloadID
+							});
+							ErrorHelper.emitSimpleError(err);
 
 							return reject(err);
 						});
@@ -145,7 +152,13 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 					if (reply.toString() == "active") {
 						if (currentPolls >= maxPolls) {
 							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
-							// TODO: log to Sentry
+							ErrorHelper.scopeConfigure("hijacker.stopHelper (REDIS)", {
+								user_id: userID,
+								game: gameName,
+								twitch_stream: twitchStream,
+								download_id: downloadID
+							});
+							ErrorHelper.emitSimpleError(new Error("Have timed out! This is bad for resources, and should be avoided at all costs!"));
 
 							return resolve();
 						} else {
@@ -167,7 +180,13 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 							return resolve();
 						} else if (currentPolls >= maxPolls) { // Timeout
 							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
-							// TODO: log to Sentry
+							ErrorHelper.scopeConfigure("hijacker.stopHelper (DB)", {
+								user_id: userID,
+								game: gameName,
+								twitch_stream: twitchStream,
+								download_id: downloadID
+							});
+							ErrorHelper.emitSimpleError(new Error("Have timed out! This is bad for resources, and should be avoided at all costs!"));
 
 							return resolve();
 						} else {

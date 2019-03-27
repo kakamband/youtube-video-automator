@@ -1,6 +1,7 @@
 var LocalAttr = require('./local_attributes.js'); // Fill out this file with your local attributes
 
 module.exports = {
+	RELEASE_VERSION: "0.0.1",
 	ENCODING_AMQP_CHANNEL_NAME: "ENCODING_CHANNEL_NO_EXP",
 	UPLOADING_AMQP_CHANNEL_NAME: "UPLOADING_CHANNEL_NO_EXP",
 	DOWNLOADING_AMQP_CHANNEL_NAME: "DOWNLOADING_CHANNEL_NO_EXP",
@@ -29,5 +30,5 @@ module.exports = {
 	DEFAULT_TAGS_MAP: LocalAttr.DEFAULT_TAGS,
 	DEFAULT_LIKE_SUB_TEXT: LocalAttr.DEFAULT_LIKE_SUB_TEXT || "",
 	ADD_DEFAULT_COMMENT: LocalAttr.MAKE_DEFAULT_COMMENT || false,
-	DEFAULT_COMMENT_TEXT: LocalAttr.DEFAULT_COMMENT_TEXT || new Map(),
+	DEFAULT_COMMENT_TEXT: LocalAttr.DEFAULT_COMMENT_TEXT || new Map()
 };
