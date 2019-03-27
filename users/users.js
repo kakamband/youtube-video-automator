@@ -4,10 +4,15 @@ var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
 var Hijacker = require('../hijacker/hijacker');
 var Worker = require('../worker/worker_producer');
+var ErrorHelper = require('../errors/errors');
 
 // --------------------------------------------
 // Constants below.
 // --------------------------------------------
+
+const downloadingClipNotification = "currently-clipping";
+// The names of all of the clip flow notifications, this is used to clear when adding a new one.
+const clipFlowNotifications = [downloadingClipNotification];
 
 const defaultTTL = 3600; // 1 hour.
 
@@ -206,6 +211,7 @@ module.exports.getGamesList = function() {
 module.exports.startClip = function(username, pmsID, email, password, twitch_link) {
     var userID = "pms_" + pmsID;
     var downloadID = null;
+    var result = [false, "Internal Server Error"];
     return new Promise(function(resolve, reject) {
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
@@ -231,7 +237,10 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
             return setUserDownloading(userID, downloadID);
         })
         .then(function() {
-            var result = [true, downloadID];
+            result = [true, downloadID];
+            return setUserDownloadingNotification(pmsID, downloadID);
+        })
+        .then(function() {
             return resolve(result);
         })
         .catch(function(err) {
@@ -252,6 +261,9 @@ module.exports.endClip = function(username, pmsID, email, password, twitch_link,
         })
         .then(function() {
             return setUserNotDownloading(userID);
+        })
+        .then(function() {
+            return removeUserDownloadingNotification(pmsID);
         })
         .then(function() {
             return resolve();
@@ -365,6 +377,49 @@ function setUserNotDownloading(internalID) {
         var multi = redis.multi();
         multi.set((userClippingKey + internalID), "false", "EX", userClippingTTL);
         multi.exec(function (err, replies) {
+            return resolve();
+        });
+    });
+}
+
+function removeUserDownloadingNotification(pmsID) {
+    return new Promise(function(resolve, reject) {
+        return dbController.seenNotification(pmsID, downloadingClipNotification)
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            // Not worth it to error here, just log to sentry
+            ErrorHelper.scopeConfigure("users.removeUserDownloadingNotification", {
+                pms_user_id: pmsID
+            });
+            ErrorHelper.emitSimpleError(err);
+
+            return resolve();
+        });
+    });
+}
+
+function setUserDownloadingNotification(pmsID, downloadID) {
+    var content = {download_id: downloadID};
+    var contentStr = JSON.stringify(content);
+
+    return new Promise(function(resolve, reject) {
+        return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
+        .then(function() {
+            return dbController.createDownloadNotification(pmsID, contentStr);
+        })
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            // Not worth it to error here, just log to sentry
+            ErrorHelper.scopeConfigure("users.setUserDownloadingNotification", {
+                pms_user_id: pmsID,
+                download_id: downloadID
+            });
+            ErrorHelper.emitSimpleError(err);
+
             return resolve();
         });
     });

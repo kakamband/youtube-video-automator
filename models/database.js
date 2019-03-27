@@ -93,6 +93,7 @@ module.exports.initialize = function(knex) {
 			table.string("game").notNullable();
 			table.string("user_id").notNullable();
 			table.string("state").default("started").notNullable();
+			table.boolean("used").default(false).notNullable();
 			table.string("twitch_link").notNullable();
 			table.string("downloaded_file");
 			table.timestamps();
@@ -144,6 +145,7 @@ module.exports.initialize = function(knex) {
 			table.string("pms_user_id").notNullable();
 			table.string("notification").notNullable();
 			table.boolean("seen").default(false).notNullable();
+			table.string("content");
 			table.timestamps();
 		});
 	}).then(function() {

@@ -118,6 +118,24 @@ module.exports.hasNewUserToken = function(ID) {
 	});
 }
 
+module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.where("pms_user_id", "=", pmsID)
+		.whereIn("notification", notificationNames)
+		.update({
+			seen: true,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.seenNotification = function(pmsID, notificationName) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
@@ -565,6 +583,26 @@ function createNewUserNotifications(pmsID) {
 		return knex('notifications')
 		.insert([dashboardNotification, videosNotification, accountNotification, defaultsNotification])
 		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.createDownloadNotification = function(pmsID, contentStr) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.insert({
+			pms_user_id: pmsID,
+			notification: "currently-clipping",
+			seen: false,
+			content: contentStr,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(result) {
 			return resolve();
 		})
 		.catch(function(err) {
