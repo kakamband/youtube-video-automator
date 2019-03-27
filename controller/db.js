@@ -997,6 +997,27 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 	});
 }
 
+module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "!=", downloadID)
+		.where("user_id", "=", userID)
+		.where("used", "=", false)
+		.where("game", "=", gameName)
+		.orderBy("updated_at", "DESC")
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getDownload = function(userID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
