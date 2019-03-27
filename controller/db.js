@@ -181,7 +181,7 @@ function getNotifications(pmsID, notificationNames) {
 }
 
 module.exports.getVideosNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["videos-intro"]);
+	return getNotifications(pmsID, ["videos-intro", "currently-clipping"]);
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
@@ -189,11 +189,11 @@ module.exports.getDashboardNotifications = function(pmsID) {
 }
 
 module.exports.getAccountNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["account-intro"]);
+	return getNotifications(pmsID, ["account-intro", "currently-clipping"]);
 }
 
 module.exports.getDefaultsNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["defaults-intro"]);
+	return getNotifications(pmsID, ["defaults-intro", "currently-clipping"]);
 }
 
 module.exports.settingsOverview = function(pmsID) {

@@ -1022,18 +1022,30 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
 // Toggles the video notifications if they are set or not
 function toggleVideosNotification($, result, username, ID, email, passwordHash) {  
   var showNotification = false;
+  var showDLNotification = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "videos-intro") {
        showNotification = true;
+     } else if (result.notifications[i].notification == "currently-clipping") {
+        showDLNotification = true;
      }
     }
   }
   
+  // Intro notification
   if (showNotification) {
     $(".videos-notification-container").show();
     $(".close-notification").click(function() {
       closeNotification($, "videos-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Download Action Notification
+  if (showDLNotification) {
+    $(".currently-clipping-notification").show();
+    $(".close-action-notification").click(function() {
+      closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
 }
@@ -1503,6 +1515,9 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
             break;
           case "defaults-intro":
             $(".defaults-intro-notification").hide();
+            break;
+          case "currently-clipping":
+            $(".currently-clipping-notification").hide();
             break;
         }
       },
