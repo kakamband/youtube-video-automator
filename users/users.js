@@ -426,14 +426,38 @@ function setUserDownloadingNotification(pmsID, downloadID) {
 }
 
 function getClipInfoHelper(userID, downloadID) {
+    var info = {};
+    var gameName = null;
     return new Promise(function(resolve, reject) {
         return dbController.getDownload(userID, downloadID)
         .then(function(results) {
             if (results == undefined) {
                 return reject(clipDoesntExist());
             } else {
-                return resolve(results);
+                info = results;
+                gameName = info.game;
+
+                // Delete some info we don't want to share with the frontend
+                delete info.created_at;
+                delete info.downloaded_file;
+                delete info.user_id;
+                delete info.id;
+
+                return dbController.getVideosToBeCombined(userID, downloadID, gameName);
             }
+        })
+        .then(function(toCombineVids) {
+
+            // Remove some info we don't want to share
+            for (var i = 0; i < toCombineVids.length; i++) {
+                delete toCombineVids[i].created_at;
+                delete toCombineVids[i].downloaded_file;
+                delete toCombineVids[i].user_id;
+                delete toCombineVids[i].id;
+            }
+
+            info.videos_to_combine = toCombineVids;
+            return resolve(info);
         })
         .catch(function(err) {
             return reject(err);

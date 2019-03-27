@@ -587,6 +587,9 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
        showNotification = true;
+     } else if (result.notifications[i].notification == "currently-clipping") {
+        showDLNotification = true;
+        dlContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -595,6 +598,15 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
     $(".defaults-intro-notification").show();
     $(".close-notification").click(function() {
       closeNotification($, "defaults-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Download Action Notification
+  if (showDLNotification) {
+    $(".currently-clipping-notification").show();
+    $("#curr-clipping-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + dlContent.download_id));
+    $(".close-action-notification").click(function() {
+      closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
 }
@@ -999,6 +1011,9 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "account-intro") {
        showNotification = true;
+     } else if (result.notifications[i].notification == "currently-clipping") {
+        showDLNotification = true;
+        dlContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1007,6 +1022,15 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
     $(".account-notification-container").show();
     $(".close-notification").click(function() {
       closeNotification($, "account-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Download Action Notification
+  if (showDLNotification) {
+    $(".currently-clipping-notification").show();
+    $("#curr-clipping-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + dlContent.download_id));
+    $(".close-action-notification").click(function() {
+      closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
 }
@@ -1022,13 +1046,14 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
 // Toggles the video notifications if they are set or not
 function toggleVideosNotification($, result, username, ID, email, passwordHash) {  
   var showNotification = false;
-  var showDLNotification = false;
+  var showDLNotification = false; var dlContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "videos-intro") {
        showNotification = true;
      } else if (result.notifications[i].notification == "currently-clipping") {
         showDLNotification = true;
+        dlContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1044,6 +1069,7 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
   // Download Action Notification
   if (showDLNotification) {
     $(".currently-clipping-notification").show();
+    $("#curr-clipping-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + dlContent.download_id));
     $(".close-action-notification").click(function() {
       closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
@@ -1235,6 +1261,23 @@ function getTokenLink($, username, ID, email, pass) {
     });
 }
 
+// Update timer
+function updateTimer($, sec) {
+  var secondsSanitized = pad(Math.round(sec % 60));
+  var minutesSanitized = pad(parseInt(sec / 60));
+  $("#clip-minutes").text(minutesSanitized);
+  $("#clip-seconds").text(secondsSanitized);
+
+  function pad(val) {
+    var valString = val + "";
+    if (valString.length < 2) {
+      return "0" + valString;
+    } else {
+      return valString;
+    }
+  }
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $.ajax({
@@ -1261,22 +1304,15 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         var diff = currentDate.getTime() - clipStart.getTime();
         var diffTmp = diff / 1000;
         var clipSeconds = Math.abs(diffTmp);
-        setInterval(setTime, 1000);
+        updateTimer($, clipSeconds);
 
-        function setTime() {
-          ++clipSeconds;
-          var secondsSanitized = pad(Math.round(clipSeconds % 60));
-          var minutesSanitized = pad(parseInt(clipSeconds / 60));
-          $("#clip-minutes").text(minutesSanitized);
-          $("#clip-seconds").text(secondsSanitized);
-        }
+        // If this clip is in any state except for done have a timer counting. If not just display it.
+        if (clipInfo.state != "done") {
+          setInterval(setTime, 1000);
 
-        function pad(val) {
-          var valString = val + "";
-          if (valString.length < 2) {
-            return "0" + valString;
-          } else {
-            return valString;
+          function setTime() {
+            ++clipSeconds;
+            updateTimer($, clipSeconds);
           }
         }
 
