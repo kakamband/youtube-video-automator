@@ -159,7 +159,6 @@ module.exports.getSettings = function(username, pmsID, email, password, scope) {
 
 // getGamesList
 // Returns the top 100 games from twitch
-// TODO: Add this to redis
 module.exports.getGamesList = function() {
     return new Promise(function(resolve, reject) {
         return checkIfInRedis(topGamesRedisKey)

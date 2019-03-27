@@ -1,6 +1,7 @@
 var Promise = require('bluebird');
 var cLogger = require('color-log');
 var Secrets = require('../config/secrets');
+var ErrorHelper = require('../errors/errors');
 const stripeProd = require('stripe')(Secrets.STRIPE_PROD_SECRET);
 const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
 
@@ -935,7 +936,13 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 		.then(function(results) {
 			if (results.length == 0) {
 				cLogger.info("Can't seem to find a download db attribute??");
-				// TODO add sentry error here
+				ErrorHelper.scopeConfigure("db.needToStopDownload", {
+					id: ID,
+					user_id: userID,
+					game: gameName,
+					twitch_link: twitchLink
+				});
+				ErrorHelper.emitSimpleError(new Error("Attempting to stop a download, however couldn't find the download object."));
 
 				return resolve(stop);
 			}
