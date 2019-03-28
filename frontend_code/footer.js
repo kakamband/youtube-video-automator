@@ -1499,6 +1499,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         $("a.vp-a").YouTubePopUp();
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
+        var backupExtraTime = extraVidTime;
         function toggleExclusivity(isChecked) {
           if (isChecked) {
             totalVidSeconds = totalVidSeconds - backupExtraTime;
@@ -1515,14 +1516,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           }
         }
 
-        // Set the exclusive checkbox value
-        if (clipInfo.exclusive) {
-          $('#exclusive-video-input').prop('checked', true);
-          toggleExclusivity(true);
-        }
-
         // Watch for the exclusive video radio button
-        var backupExtraTime = extraVidTime;
         $("#exclusive-video-input").change(function() {
           var isChecked = $('#exclusive-video-input').is(":checked");
           updateExclusive($, username, ID, email, pass, downloadID, isChecked);
@@ -1574,6 +1568,12 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           $(".stop-clipping-button").addClass("a-tag-disabled");
         }
 
+        // Set the exclusive checkbox value
+        if (clipInfo.exclusive) {
+          $('#exclusive-video-input').prop('checked', true);
+          toggleExclusivity(true);
+        }
+        
       }
     },
     dataType: "json"

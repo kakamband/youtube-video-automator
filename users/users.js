@@ -64,13 +64,10 @@ module.exports.hasUserToken = function(username, ID, email, password) {
     return new Promise(function(resolve, reject) {
     	return validateUserAndGetID(username, ID, email, password)
     	.then(function(id) {
-    		return dbController.hasUserToken(id);
+    		return userHasTokenHelper(id);
     	})
     	.then(function(userToken) {
-    		if (userToken == undefined) {
-    			return resolve(false);
-    		}
-    		return resolve(true);
+            return resolve(userToken);
     	})
     	.catch(function(err) {
     		return reject(err);
@@ -444,6 +441,32 @@ function removeUserDownloadingNotification(pmsID) {
             ErrorHelper.emitSimpleError(err);
 
             return resolve();
+        });
+    });
+}
+
+function userHasTokenHelper(userID) {
+    var userHasTokenRedisKey = "user_" + userID + "_has_youtube_token";
+    var userHasTokenRedisTTL = defaultTTL;
+
+    return new Promise(function(resolve, reject) {
+        return checkIfInRedis(userHasTokenRedisKey)
+        .then(function(reply) {
+            if (reply != undefined && reply == "true") {
+                return resolve(true);
+            } else {
+                return dbController.hasUserToken(userID);
+            }
+        })
+        .then(function(userToken) {
+            if (userToken == undefined) {
+                return resolve(false);
+            }
+            redis.set(userHasTokenRedisKey, "true", "EX", userHasTokenRedisTTL);
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
         });
     });
 }
