@@ -276,7 +276,7 @@ router.post(Models.SET_CLIP_EXCLUSIVE, function(req, res, next) {
 		return Users.setClipExclusive(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, req.body.exclusive)
 		.then(function(results) {
 			return res.json({
-				clip_video: results
+				success: results
 			});
 		})
 		.catch(function(err) {

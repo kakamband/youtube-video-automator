@@ -359,7 +359,7 @@ module.exports.setClipExclusive = function(username, pmsID, email, password, dow
             return dbController.setDownloadExclusive(userID, downloadID, exclusive);
         })
         .then(function() {
-            return resolve();
+            return resolve(true);
         })
         .catch(function(err) {
             return reject(err);
