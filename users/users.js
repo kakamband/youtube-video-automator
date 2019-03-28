@@ -1142,7 +1142,7 @@ function validateUserAndGetID(username, ID, email, password) {
 	return new Promise(function(resolve, reject) {
 
 		// At some point we should be checking redis here instead. This will be one of the most used functions.
-        return checkIfInRedis(validUserRedisKey)
+        return checkIfInRedis(redisKey)
         .then(function(reply) {
             if (reply != undefined) {
                 return resolve(reply);
@@ -1157,7 +1157,7 @@ function validateUserAndGetID(username, ID, email, password) {
             }
 
             // The user exists, return the id of the user.
-            redis.set(validUserRedisKey, (user.id + ""), "EX", validUserRedisTTL);
+            redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
             return resolve(user.id);
         })
         .catch(function(err) {
