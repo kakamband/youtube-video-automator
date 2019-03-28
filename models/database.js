@@ -94,6 +94,7 @@ module.exports.initialize = function(knex) {
 			table.string("user_id").notNullable();
 			table.string("state").default("started").notNullable();
 			table.boolean("used").default(false).notNullable();
+			table.boolean("exclusive").default(false).notNullable();
 			table.string("twitch_link").notNullable();
 			table.string("downloaded_file");
 			table.timestamps();

@@ -10,6 +10,13 @@ var shell = require('shelljs');
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
+// Redis Queue keys
+const redisEncodingKey = "encoding_queue_msg_count";
+const redisUploadingKey = "uploading_queue_msg_count";
+const redisDownloadingKey = "downloading_queue_msg_count";
+const redisFallbackKey = "fallback_queue_msg_count";
+
+
 // initProducers
 // Initializes the producer channels for Rabbitmq. These channels will be populated with a queue for tasks that the worker needs
 // to accomplish. These channels NEED to be persistent, with no expiry.
@@ -73,6 +80,33 @@ module.exports.addUploadingTask = function(userID) {
 		} else {
 			return reject(new Error("Not enough room in encoding queue."));
 		}
+	});
+}
+
+// addTransferFileToS3Task
+// Transfers a video file to the S3 bucket, then deletes the file, and updates the db.
+module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID) {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentEncoding: twitchLink,
+			messageId: (downloadID + "")
+		};
+
+		return transactionIncMsgCount(redisUploadingKey)
+		.then(function() {
+			return makeTransferToS3Post(msgOptions)
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		})
 	});
 }
 
@@ -140,21 +174,28 @@ function createChannel(queueNames) {
 	});
 }
 
-function makeDownloadPost(queueName, msgOptions) {
+function makePost(queueName, msgOptions, taskName) {
 	return new Promise(function(resolve, reject) {
-
 		if (workerChannel == null || workerChannel == undefined) {
 			return reject("Can not publish to an undefined channel.");
 		}
 
-		var published = workerChannel.publish('', queueName, new Buffer("downloading_task"), msgOptions);
+		var published = workerChannel.publish('', queueName, new Buffer(taskName), msgOptions);
 		if (published) {
-			cLogger.info("Posted Download task!");
+			cLogger.info("Posted " + taskName + " task!");
 			return resolve();
 		} else {
 			return reject(new Error("The queue was full!"));
 		}
 	});
+}
+
+function makeTransferToS3Post(msgOptions) {
+	return makePost(Attr.UPLOADING_AMQP_CHANNEL_NAME, msgOptions, "transfer_video_task");
+}
+
+function makeDownloadPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "downloading_task");
 }
 
 function getMessagesAndConsumers(queueName) {
@@ -209,10 +250,6 @@ function transactionIncMsgCount(key) {
 
 
 function getQueueMeta(){
-	const redisEncodingKey = "encoding_queue_msg_count";
-	const redisUploadingKey = "uploading_queue_msg_count";
-	const redisDownloadingKey = "downloading_queue_msg_count";
-	const redisFallbackKey = "fallback_queue_msg_count";
 
 	return new Promise(function(resolve, reject) {
 		return getMessagesAndConsumers(Attr.ENCODING_AMQP_CHANNEL_NAME)

@@ -10,6 +10,9 @@ var ErrorHelper = require('../errors/errors');
 // Constants below.
 // --------------------------------------------
 
+// The CDN URL
+const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
+
 const downloadingClipNotification = "currently-clipping";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
 const clipFlowNotifications = [downloadingClipNotification];
@@ -363,6 +366,10 @@ function userAlreadyClipping(internalID) {
 }
 
 function setUserDownloading(internalID, downloadID) {
+    if (internalID == undefined || downloadID == undefined) {
+        return;
+    }
+
     return new Promise(function(resolve, reject) {
         var multi = redis.multi();
         multi.set((userClippingKey + internalID), downloadID, "EX", userClippingTTL);
@@ -438,9 +445,13 @@ function getClipInfoHelper(userID, downloadID) {
                 gameName = info.game;
 
                 // Delete some info we don't want to share with the frontend
-                delete info.downloaded_file;
                 delete info.user_id;
                 delete info.id;
+
+                // Only include the downloaded file link if its already stored in S3
+                if (!info.downloaded_file.startsWith(cdnURL)) {
+                    delete info.downloaded_file;
+                }
 
                 return dbController.getVideosToBeCombined(userID, downloadID, gameName);
             }
@@ -449,9 +460,13 @@ function getClipInfoHelper(userID, downloadID) {
 
             // Remove some info we don't want to share
             for (var i = 0; i < toCombineVids.length; i++) {
-                delete toCombineVids[i].downloaded_file;
                 delete toCombineVids[i].user_id;
                 delete toCombineVids[i].id;
+
+                // Only include the downloaded file link if its already stored in S3
+                if (!toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
+                    delete toCombineVids[i].downloaded_file;
+                }
             }
 
             info.videos_to_combine = toCombineVids;

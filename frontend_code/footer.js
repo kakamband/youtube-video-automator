@@ -1262,11 +1262,17 @@ function getTokenLink($, username, ID, email, pass) {
 }
 
 // Update timer
-function updateTimer($, sec) {
+function updateTimer($, sec, totalVidSeconds) {
   var secondsSanitized = pad(Math.round(sec % 60));
   var minutesSanitized = pad(parseInt(sec / 60));
   $("#clip-minutes").text(minutesSanitized);
   $("#clip-seconds").text(secondsSanitized);
+
+
+  var secondsSanitized2 = pad(Math.round(totalVidSeconds % 60));
+  var minutesSanitized2 = pad(parseInt(totalVidSeconds / 60));
+  $("#total-vid-minutes").text(minutesSanitized2);
+  $("#total-vid-seconds").text(secondsSanitized2);
 
   function pad(val) {
     var valString = val + "";
@@ -1276,6 +1282,42 @@ function updateTimer($, sec) {
       return valString;
     }
   }
+}
+
+// Sets the clip status to the done state
+function setClipStatusDone($) {
+  $("#clip-status").removeClass("clip-status-active");
+  $("#clip-status").addClass("clip-status-done");
+  $("#clip-status").text("Done");
+}
+
+// Ends the current clip
+function endClipping($, username, ID, email, pass, downloadID, twitchLink, timerInterval) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/end/clip",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "twitch_link": twitchLink,
+      "download_id": downloadID
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        setClipStatusDone($);
+        clearInterval(timerInterval);
+        $(".stop-clipping-button").addClass("a-tag-disabled");
+      }
+    },
+    dataType: "json"
+  });
 }
 
 // Gets some information about the current clip
@@ -1298,22 +1340,74 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
       if (result && result.clip_info) {
         let clipInfo = result.clip_info;
 
+        // Set the clip game
+        $("#clip-game").text(clipInfo.game);
+
+        // Set the clip streamer
+        var twitchLinkSplit = clipInfo.twitch_link.split("twitch.tv/");
+        var streamerName = twitchLinkSplit[twitchLinkSplit.length - 1];
+        $("#clip-streamer").text(streamerName);
+        $("#clip-streamer").attr("href", clipInfo.twitch_link);
+
         var currentDate = new Date();
         var clipStart = new Date(clipInfo.created_at);
+        var extraVidTime = 0;
 
-        var diff = currentDate.getTime() - clipStart.getTime();
-        var diffTmp = diff / 1000;
-        var clipSeconds = Math.abs(diffTmp);
-        updateTimer($, clipSeconds);
+        // Add up the extra seconds from previous clips
+        if (clipInfo.videos_to_combine.length > 0) {
+          for (var i = 0; i < clipInfo.videos_to_combine.length; i++) {
+            var tmpCreated = new Date(clipInfo.videos_to_combine[i].created_at);
+            var tmpUpdated = new Date(clipInfo.videos_to_combine[i].updated_at);
+            var tmpDiff = tmpCreated.getTime() - tmpUpdated.getTime();
+            var diffTmp2 = tmpDiff / 1000;
+            var extraSeconds = Math.abs(diffTmp2);
+            extraVidTime += extraSeconds;
+          }
+        }
 
         // If this clip is in any state except for done have a timer counting. If not just display it.
         if (clipInfo.state != "done") {
-          setInterval(setTime, 1000);
 
+          // Still running get the difference in time between start and now
+          var diff = currentDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+
+          // Number of seconds that the clip has been running
+          var clipSeconds = Math.abs(diffTmp);
+
+          // Number of seconds the clip has been running + previous clips
+          var totalVidSeconds = clipSeconds + extraVidTime;
+
+          // Set the initial timer value
+          updateTimer($, clipSeconds, totalVidSeconds);
+
+          // Start the timer interval
+          var updateTimerInterval = setInterval(setTime, 1000);
           function setTime() {
+            if (clipSeconds >= 1500) { // 25 Minutes is the max.
+              clearInterval(updateTimerInterval);
+              setClipStatusDone($);
+            }
+
             ++clipSeconds;
-            updateTimer($, clipSeconds);
+            ++totalVidSeconds;
+            updateTimer($, clipSeconds, totalVidSeconds);
           }
+
+          // Watch for the stop clipping button
+          $(".stop-clipping-button").click(function() {
+            return endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
+          });
+
+        } else {
+          var stoppedDate = new Date(clipInfo.updated_at);
+          var diff = stoppedDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+          var clipSeconds = Math.abs(diffTmp);
+          var totalVidSeconds = clipSeconds + extraVidTime;
+          updateTimer($, clipSeconds, totalVidSeconds);
+          setClipStatusDone($);
+          $(".stop-clipping-button").addClass("a-tag-disabled");
         }
 
       }
@@ -1347,11 +1441,7 @@ function checkIfAlreadyClipping($, username, ID, email, pass) {
       if (isAlreadyClipping) {
         $(".currently-clipping-container").show();
         if (!result.download_id) {
-          console.log("Somehow the user got here, but doesn't actually have a clip started. Redirecting back.");
-          
-          // TODO: UNCOMMENT LINE RIGHT BELOW, AND DELETE EVERYTHING ELSE!
-          //window.location.href = "https://twitchautomator.com/dashboard";
-
+          console.log("Somehow the user got here, but doesn't actually have a clip started.");
           return getCurrentClipInfo($, username, ID, email, pass, downloadID);
         } else {
           return getCurrentClipInfo($, username, ID, email, pass, result.download_id);
