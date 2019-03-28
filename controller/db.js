@@ -650,10 +650,12 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 					return knex('users')
 					.where('pms_user_id', '=', ID)
 					.update({
-						username: username,
 						email: email,
 						password: password,
 						updated_at: new Date()
+					})
+					.then(function() {
+						return updateRedisValidUserKey(username, ID, users[0].email, users[0].password, email, password, users[0].id);
 					})
 					.then(function() {
 						return Promise.resolve();
@@ -680,6 +682,19 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 		})
 		.catch(function(err) {
 			return reject(err);
+		});
+	});
+}
+
+function updateRedisValidUserKey(username, ID, oldEmail, oldPassword, newEmail, newPassword, internalID) {
+	return new Promise(function(resolve, reject) {
+		var oldRedisKey = "valid_user_" + username + "_" + ID + "_" + oldEmail + "_" + oldPassword;
+		var newRedisKey = "valid_user_" + username + "_" + ID + "_" + newEmail + "_" + newPassword;
+		var multi = redis.multi();
+		multi.del(oldRedisKey);
+		multi.set(newRedisKey, (internalID + ""), "EX", 3600); // 1 Hour
+		multi.exec(function (err, replies) {
+		    return resolve();
 		});
 	});
 }
@@ -1004,6 +1019,7 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 		.where("user_id", "=", userID)
 		.where("used", "=", false)
 		.where("game", "=", gameName)
+		.where("state", "=", "done")
 		.orderBy("updated_at", "DESC")
 		.then(function(results) {
 			if (results.length == 0) {
@@ -1018,13 +1034,30 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 	});
 }
 
+module.exports.setDownloadExclusive = function(userID, downloadID, exclusive) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.update({
+			exclusive: exclusive // DO NOT UPDATE 'updated_at' as this is used to calculate download length.
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFile) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("user_id", "=", userID)
 		.where("id", "=", downloadID)
 		.update({
-			downloaded_file: cdnFile
+			downloaded_file: cdnFile // DO NOT UPDATE 'updated_at' as this is used to calculate download length.
 		})
 		.then(function() {
 			return resolve();
