@@ -256,4 +256,19 @@ router.post(Models.GET_CLIP_INFO, function(req, res, next) {
 	});
 });
 
+router.post(Models.CLIP_VIDEO_POLL, function(req, res, next) {
+	validFirst(Models.CLIP_VIDEO_POLL, req, res, next, function() {
+		return Users.getClipVideo(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id)
+		.then(function(results) {
+			return res.json({
+				clip_video: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.CLIP_VIDEO_POLL, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
