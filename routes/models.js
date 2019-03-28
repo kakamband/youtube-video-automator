@@ -259,7 +259,7 @@ function validType(type, val) {
 		case "int":
 			return (typeof val == "number");
 		case "boolean":
-			return (typeof val == "boolean");
+			return (typeof val == "boolean" || val == "true" || val == "false");
 		case "object":
 			return (typeof val == "object");
 		return true;

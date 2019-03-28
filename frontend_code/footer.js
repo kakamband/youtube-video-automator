@@ -1399,6 +1399,34 @@ function createClipItemCurrentOne(clipNumber) {
   return "<tr><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Active Clip!</span></h4></td></tr>"
 }
 
+// Updates the exclusivity of a clip in the backend
+function updateExclusive($, username, ID, email, pass, downloadID, exclusive) {
+  console.log("Type of exclusive: " + typeof exclusive);
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/exclusive",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "download_id": downloadID,
+      "exclusive": exclusive
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Updated exclusivity of clip.");
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $("#current-clip-video").hide();
@@ -1470,15 +1498,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
         $("a.vp-a").YouTubePopUp();
 
-        // Set the exclusive checkbox value
-        if (clipInfo.exclusive) {
-          $('#exclusive-video-input').prop('checked', true);
-        }
-
-        // Watch for the exclusive video radio button
-        var backupExtraTime = extraVidTime;
-        $("#exclusive-video-input").change(function() {
-          var isChecked = $('#exclusive-video-input').is(":checked");
+        // Handles the logic related to showing, and now showing items if the clip is exclusive.
+        function toggleExclusivity(isChecked) {
           if (isChecked) {
             totalVidSeconds = totalVidSeconds - backupExtraTime;
             updateTimer($, clipSeconds, totalVidSeconds);
@@ -1492,6 +1513,20 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             $(".original-clip-added-container").text(originalNumberOfClips + "");
             $(".extra-clips-added-container").show();
           }
+        }
+
+        // Set the exclusive checkbox value
+        if (clipInfo.exclusive) {
+          $('#exclusive-video-input').prop('checked', true);
+          toggleExclusivity(true);
+        }
+
+        // Watch for the exclusive video radio button
+        var backupExtraTime = extraVidTime;
+        $("#exclusive-video-input").change(function() {
+          var isChecked = $('#exclusive-video-input').is(":checked");
+          updateExclusive($, username, ID, email, pass, downloadID, isChecked);
+          toggleExclusivity(isChecked);
         });
 
         // If this clip is in any state except for done have a timer counting. If not just display it.
