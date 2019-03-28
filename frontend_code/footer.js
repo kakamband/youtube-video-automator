@@ -1370,6 +1370,35 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
   });
 }
 
+// Returns a row for a done clip
+function createClipItem(clipNumber, clipDate, clipStreamer, clipLink) {
+  // Sanitize the date
+  var monthStr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var clipDay = clipDate.getDate();
+  var clipMonth = monthStr[clipDate.getMonth()];
+  var clipYear = clipDate.getFullYear();
+  var clipDateStr = clipMonth + " " + clipDay + ", " + clipYear + ".";
+
+  // Sanitize the streamer name
+  var clipStreamerSplit = clipStreamer.split("twitch.tv/");
+  var clipStreamerName = clipStreamerSplit[clipStreamerSplit.length - 1];
+  var clipStreamerLink = "<a id=\"clip-streamer-previous-vid\" style=\"color: #6441A5; font-size: 20px; font-weight: bold; text-decoration: none\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" + clipStreamer + "\">" + clipStreamerName + "</a>";
+
+  // Sanitize the clip link
+  var clipLinkActual = clipLink;
+  if (clipLinkActual == undefined || !clipLinkActual) {
+    clipLinkActual = "";
+  }
+  var clipLinkHtml = "<span class=\"view-video-link\" style=\"font-size: 20px;\"><a href=\"" + clipLinkActual + "\" class=\"vp-a\">View</a></span>";
+
+  return "<tr class=\"extra-clips-added-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip " + clipNumber + ":&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-date\" style=\"color:#2c2c2c; font-size: 16px; ;display: inline-block; margin-top: 10px;\">" + clipDateStr + "</span></br><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipStreamerLink + "</span></br><span id=\"combined-clip-view\" style=\"color:#6441A5; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipLinkHtml + "</span></br><span id=\"combined-clip-view\" style=\"color:red; font-size: 20px; font-weight: bold;display: inline-block;\">Delete</span></h4></td></tr>"
+}
+
+// Returns a row for the clip already running
+function createClipItemCurrentOne(clipNumber) {
+  return "<tr><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Active Clip!</span></h4></td></tr>"
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $("#current-clip-video").hide();
@@ -1403,28 +1432,67 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Add the video to be viewed if it exists, else just add a loading indicator
         if (clipInfo.downloaded_file) {
-          $("#loading-current-clip-video").hide();
-          $("#current-clip-video").show();
-          $("#current-clip-video a").attr("href", clipInfo.downloaded_file);
+          showCurrentClip($, clipInfo);
         } else {
           $("#loading-current-clip-video").show();
         }
+
+        // Add the number of clips to the video clips section
+        var numberOfClips = (clipInfo.videos_to_combine.length) + 1;
+        var originalNumberOfClips = numberOfClips;
+        $("#total-clips-number").text(numberOfClips + "");
+
+        // Add the first currently clipping clip.
+        $(createClipItemCurrentOne(numberOfClips)).insertAfter("#number-of-clips-head");
+        numberOfClips--;
 
         var currentDate = new Date();
         var clipStart = new Date(clipInfo.created_at);
         var extraVidTime = 0;
 
-        // Add up the extra seconds from previous clips
+        // Add up the extra seconds from previous clips as well as create the array of clips for displaying
         if (clipInfo.videos_to_combine.length > 0) {
           for (var i = 0; i < clipInfo.videos_to_combine.length; i++) {
+            // Add up the seconds from this clip
             var tmpCreated = new Date(clipInfo.videos_to_combine[i].created_at);
             var tmpUpdated = new Date(clipInfo.videos_to_combine[i].updated_at);
             var tmpDiff = tmpCreated.getTime() - tmpUpdated.getTime();
             var diffTmp2 = tmpDiff / 1000;
             var extraSeconds = Math.abs(diffTmp2);
             extraVidTime += extraSeconds;
+
+            // Display this clip
+            $(createClipItem(numberOfClips, tmpCreated, clipInfo.videos_to_combine[i].twitch_link, clipInfo.videos_to_combine[i].downloaded_file)).insertAfter("#number-of-clips-head");
+            numberOfClips--;
           }
         }
+
+        // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+        $("a.vp-a").YouTubePopUp();
+
+        // Set the exclusive checkbox value
+        if (clipInfo.exclusive) {
+          $('#exclusive-video-input').prop('checked', true);
+        }
+
+        // Watch for the exclusive video radio button
+        var backupExtraTime = extraVidTime;
+        $("#exclusive-video-input").change(function() {
+          var isChecked = $('#exclusive-video-input').is(":checked");
+          if (isChecked) {
+            totalVidSeconds = totalVidSeconds - backupExtraTime;
+            updateTimer($, clipSeconds, totalVidSeconds);
+            $("#total-clips-number").text("1");
+            $(".original-clip-added-container").text("1");
+            $(".extra-clips-added-container").hide();
+          } else {
+            totalVidSeconds = totalVidSeconds + backupExtraTime;
+            updateTimer($, clipSeconds, totalVidSeconds);
+            $("#total-clips-number").text(originalNumberOfClips + "");
+            $(".original-clip-added-container").text(originalNumberOfClips + "");
+            $(".extra-clips-added-container").show();
+          }
+        });
 
         // If this clip is in any state except for done have a timer counting. If not just display it.
         if (clipInfo.state != "done") {

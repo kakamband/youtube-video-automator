@@ -42,6 +42,8 @@ module.exports.GET_CLIP_INFO = "/user/clip/info";
 // An endpoint that users poll to check if there is a cdn url of the video yet
 module.exports.CLIP_VIDEO_POLL = "/user/clip/video";
 
+// Sets a clip as exclusive
+module.exports.SET_CLIP_EXCLUSIVE = "/user/clip/exclusive";
 // -------------------
 
 // Route definitions
@@ -225,6 +227,22 @@ module.exports.routes = new Map([
 			return validateHelper(body, params, this.required_body, null);
 		}
 	}],
+	[this.SET_CLIP_EXCLUSIVE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string"),
+			nameAndType("exclusive", "boolean")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
 ]);
 
 function nameAndType(n, t) {
@@ -240,7 +258,7 @@ function validType(type, val) {
 			return (typeof val == "string");
 		case "int":
 			return (typeof val == "number");
-		case "bool":
+		case "boolean":
 			return (typeof val == "boolean");
 		case "object":
 			return (typeof val == "object");

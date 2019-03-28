@@ -26,6 +26,8 @@ const userDefaultsOverviewTTL = defaultTTL;
 const userClippingKey = "user_already_clipping_";
 const userClippingTTL = defaultTTL;
 const clipVideoTTL = defaultTTL;
+const validUserRedisKey = "valid_user_";
+const validUserRedisTTL = defaultTTL;
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -328,7 +330,7 @@ module.exports.getClipInfo = function(username, pmsID, email, password, download
 }
 
 // getClipVideo
-// 
+// Checks to see if the video for the clip has been upload to S3 yet. This endpoint will be polled every second.
 module.exports.getClipVideo = function(username, pmsID, email, password, downloadID) {
     var userID = "pms_" + pmsID;
     return new Promise(function(resolve, reject) {
@@ -339,6 +341,25 @@ module.exports.getClipVideo = function(username, pmsID, email, password, downloa
         })
         .then(function(result) {
             return resolve(result);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+// setClipExclusive
+// Sets a clip as exclusive or not, depending on value passed
+module.exports.setClipExclusive = function(username, pmsID, email, password, downloadID, exclusive) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return dbController.setDownloadExclusive(userID, downloadID, exclusive);
+        })
+        .then(function() {
+            return resolve(true);
         })
         .catch(function(err) {
             return reject(err);
@@ -1116,25 +1137,32 @@ function getCurrentRouteNotifications(ID, currentRoute) {
 }
 
 function validateUserAndGetID(username, ID, email, password) {
+    var redisKey = validUserRedisKey + username + "_" + ID + "_" + email + "_" + password;
+
 	return new Promise(function(resolve, reject) {
 
 		// At some point we should be checking redis here instead. This will be one of the most used functions.
+        return checkIfInRedis(redisKey)
+        .then(function(reply) {
+            if (reply != undefined) {
+                return resolve(reply);
+            } else {
+                return dbController.doesUserExist(username, ID, email, password);
+            }
+        })
+        .then(function(user) {
+            // If the user doesn't exist, reject with a not authorized.
+            if (user == undefined) {
+                return reject(notAuthorized());
+            }
 
-		// Look for a user with this combination of attributes.
-		return dbController.doesUserExist(username, ID, email, password)
-		.then(function(user) {
-
-			// If the user doesn't exist, reject with a not authorized.
-			if (user == undefined) {
-				return reject(notAuthorized());
-			}
-
-			// The user exists, return the id of the user.
-			return resolve(user.id);
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
+            // The user exists, return the id of the user.
+            redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
+            return resolve(user.id);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
 	});
 }
 

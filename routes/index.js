@@ -271,4 +271,19 @@ router.post(Models.CLIP_VIDEO_POLL, function(req, res, next) {
 	});
 });
 
+router.post(Models.SET_CLIP_EXCLUSIVE, function(req, res, next) {
+	validFirst(Models.SET_CLIP_EXCLUSIVE, req, res, next, function() {
+		return Users.setClipExclusive(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, req.body.exclusive)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SET_CLIP_EXCLUSIVE, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
