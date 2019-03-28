@@ -90,6 +90,7 @@ Node Dependencies Needed:
 3) [RabbitMQ](https://gist.github.com/ihor/5705626)
 4) [NGINX](https://gist.github.com/nrollr/56e933e6040820aae84f82621be16670)
 5) [ElastiCache - AKA Redis](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/nodes-connecting.html)
+6) [S3 Access](http://codeomitted.com/transfer-files-from-ec2-to-s3/)
 
 ### PM2 Cheatsheat
 http://pm2.keymetrics.io/docs/usage/quick-start/

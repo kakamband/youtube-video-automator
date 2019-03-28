@@ -7,20 +7,21 @@ var cLogger = require('color-log');
 var Helpers = require('./worker_helpers');
 var shell = require('shelljs');
 var redis = require('redis');
+const Sentry = require('@sentry/node');
 var retriesMap = new Map();
 
 const redisUploadingKey = "uploading_queue_msg_count";
 
 function errMsg(workerActivity, ackMsg, queueMessage, err) {
-  /*Sentry.withScope(scope => {
-    scope.setTag("scope", "server-worker");
+  Sentry.withScope(scope => {
+    scope.setTag("scope", "server-worker-uploader");
     scope.setTag("environment", Attr.ENV);
     scope.setTag("activity", workerActivity);
     scope.setExtra("AckMsg", ackMsg);
     scope.setExtra("QueueMsg", queueMessage);
 
     Sentry.captureException(err);
-  });*/
+  });
   console.log("[ERRORED] (" + workerActivity + "): ", err);
 }
 
@@ -32,15 +33,15 @@ function safeRetry(workerActivity, ch, msg, message) {
   if (retriesMap[message] != null && retriesMap[message] > 10) {
     console.log("[Failure] The message (" + message + ") has failed too many times.");
 
-    /*Sentry.withScope(scope => {
-      scope.setTag("scope", "server-worker");
+    Sentry.withScope(scope => {
+      scope.setTag("scope", "server-worker-uploader");
       scope.setTag("environment", Attr.ENV);
       scope.setTag("activity", workerActivity);
       scope.setExtra("AckMsg", msg);
       scope.setExtra("QueueMsg", message);
 
       Sentry.captureMessage("Losing a message in the queue! Very Dangerous!");
-    });*/
+    });
 
     retriesMap[message] = null;
     ch.ack(msg);
@@ -110,6 +111,24 @@ function handleMessage(message, msg, ch, knex) {
         safeRetry(message, ch, msg, message);
       });
     break;
+    case "transfer_video_task":
+      var userID = msg.properties.correlationId;
+      var twitchStream = msg.properties.contentEncoding;
+      var downloadID = parseInt(msg.properties.messageId);
+      cLogger.info("Starting a transfer to S3 task.");
+
+      return Helpers.transferToS3(userID, twitchStream, downloadID)
+      .then(function() {
+        successMsg(message);
+        return Helpers.decrementMsgCount(redisUploadingKey);
+      })
+      .then(function() {
+        ch.ack(msg);
+      }).catch(function(err) {
+        errMsg(message, msg, message, err);
+        safeRetry(message, ch, msg, message);
+      });
+    break;
   }
 }
 
@@ -123,22 +142,46 @@ var redisClient = redis.createClient({
 
 global.redis = redisClient;
 
-amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
-  conn.createChannel(function(err, ch) {
+// Initialize Sentry
+Sentry.init({ 
+  dsn: Secrets.SENTRY_DSN,
+  release: Attr.RELEASE_VERSION
+});
 
-    // Initialize sentry
-    //Sentry.init({ dsn: Secrets.sentry_dsn });
+// Global Sentry init
+Sentry.configureScope((scope) => {
+  scope.setTag("scope", "server-worker");
+  scope.setTag("environment", Attr.SERVER_ENVIRONMENT);
+});
+global.Sentry = Sentry;
 
-    ch.assertQueue(Attr.UPLOADING_AMQP_CHANNEL_NAME, {durable: true, maxPriority: 10});
-    ch.prefetch(1);
-    console.log("[*] Waiting for messages in %s. To exit press CTRL+C", Attr.UPLOADING_AMQP_CHANNEL_NAME);
-    var knex = knexConnection();
-    global.knex = knex;
-    ch.consume(Attr.UPLOADING_AMQP_CHANNEL_NAME, function(msg) {
-      var secs = msg.content.toString().split('.').length - 1;
+Helpers.setupWorkerChannels()
+.then(function() {
+  amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
+    conn.createChannel(function(err, ch) {
 
-      var contentMsg = msg.content.toString();
-      handleMessage(contentMsg, msg, ch, knex);
-    }, {noAck: false});
+      // Initialize sentry
+      //Sentry.init({ dsn: Secrets.sentry_dsn });
+
+      ch.assertQueue(Attr.UPLOADING_AMQP_CHANNEL_NAME, {durable: true, maxPriority: 10});
+      ch.prefetch(1);
+      console.log("[*] Waiting for messages in %s. To exit press CTRL+C", Attr.UPLOADING_AMQP_CHANNEL_NAME);
+      var knex = knexConnection();
+      global.knex = knex;
+      ch.consume(Attr.UPLOADING_AMQP_CHANNEL_NAME, function(msg) {
+        var secs = msg.content.toString().split('.').length - 1;
+
+        var contentMsg = msg.content.toString();
+        handleMessage(contentMsg, msg, ch, knex);
+      }, {noAck: false});
+    });
+  });
+})
+.catch(function(err) {
+  Sentry.withScope(scope => {
+    scope.setTag("scope", "server-worker-uploader");
+    scope.setTag("environment", Attr.ENV);
+
+    Sentry.captureException(err);
   });
 });

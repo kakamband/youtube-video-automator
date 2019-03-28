@@ -985,7 +985,7 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 				return resolve(stop);
 			}
 
-			if (results[0].state != "init-stop") {
+			if (results[0].state != "init-stop" && results[0].state != "done") {
 				return resolve(dontStop);
 			} else {
 				return resolve(stop);
@@ -1011,6 +1011,23 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 			} else {
 				return resolve(results);
 			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFile) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.where("id", "=", downloadID)
+		.update({
+			downloaded_file: cdnFile
+		})
+		.then(function() {
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);

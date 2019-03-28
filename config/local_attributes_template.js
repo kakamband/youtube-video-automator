@@ -22,6 +22,8 @@ module.exports = {
 	REDIS_PORT: 6379, // Redis Port number.
 	RABBITMQ_CONNECTION: 'ENTER YOUR RABBITMQ CONNECTION URL HERE',
 	FINAL_FALLBACK_NO_CONSUMERS_AVAILABLE: "echo 'this should never happen ideally.'", // This command gets run if we can't find any consumers.
+	AWS_S3_BUCKET_NAME: "", // Specifies the name of the S3 bucket
+	AWS_S3_BUCKET_VIDEO_PATH: "", // Specifies the path to the S3 bucket where videos are stored
 	POLLED_GAMES: [
 		// ADD THE GAMES YOU WANT TO POLL HERE
 		// DefinedGames.FORTNITE
