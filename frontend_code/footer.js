@@ -1306,7 +1306,7 @@ function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
     function pollForAuth() {
       $.ajax({
         type: "POST",
-        url: autoTuberURL + "/user/has-new-token",
+        url: autoTuberURL + "/user/clip/video",
         data: {
           "username": username,
           "user_id": ID,
@@ -1327,7 +1327,9 @@ function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
             currPolls++;
 
             if (currPolls < maxPolls) {
-              return pollForAuth();
+              return setTimeout(function() {
+                return pollForAuth();
+              }, 1000);
             }
           }
         },
