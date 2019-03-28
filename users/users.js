@@ -25,6 +25,7 @@ const userDefaultsOverviewKey = "user_defaults_overview_";
 const userDefaultsOverviewTTL = defaultTTL;
 const userClippingKey = "user_already_clipping_";
 const userClippingTTL = defaultTTL;
+const clipVideoTTL = defaultTTL;
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -326,6 +327,25 @@ module.exports.getClipInfo = function(username, pmsID, email, password, download
     });
 }
 
+// getClipVideo
+// 
+module.exports.getClipVideo = function(username, pmsID, email, password, downloadID) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return getClipVideoHelper(userID, downloadID);
+        })
+        .then(function(result) {
+            return resolve(result);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -428,6 +448,46 @@ function setUserDownloadingNotification(pmsID, downloadID) {
             ErrorHelper.emitSimpleError(err);
 
             return resolve();
+        });
+    });
+}
+
+function getClipVideoHelper(userID, downloadID) {
+    let clipVideoKey = "redis_clip_video_" + downloadID;
+    return new Promise(function(resolve, reject) {
+        return checkIfInRedis(clipVideoKey)
+        .then(function(reply) {
+            if (reply != undefined && reply != "false") {
+                return resolve(reply);
+            } else if (reply == "false") {
+                return resolve(undefined);
+            } else {
+                return dbController.getDownload(userID, downloadID);
+            }
+        })
+        .then(function(downloadObj) {
+            if (downloadObj == undefined) {
+                return reject(clipDoesntExist());
+            } else {
+                if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                    redis.set(clipVideoKey, "false", "EX", clipVideoTTL);
+                    return resolve(undefined);
+                } else if (downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                    redis.set(clipVideoKey, downloadObj.downloaded_file, "EX", clipVideoTTL);
+                    return resolve(downloadObj.downloaded_file);
+                } else {
+                    ErrorHelper.scopeConfigureWID("users.getClipVideoHelper", {
+                        download_id: downloadID,
+                        downloadObj: downloadObj
+                    }, (userID + ""));
+                    ErrorHelper.emitSimpleError(new Error("The download object was in a state we cannot work with!"));
+                    redis.set(clipVideoKey, "false", "EX", clipVideoTTL);
+                    return resolve(undefined);
+                }
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
         });
     });
 }

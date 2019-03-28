@@ -39,6 +39,9 @@ module.exports.IS_USER_DOWNLOADING = "/user/currently-downloading";
 // Gets some information about the current clip
 module.exports.GET_CLIP_INFO = "/user/clip/info";
 
+// An endpoint that users poll to check if there is a cdn url of the video yet
+module.exports.CLIP_VIDEO_POLL = "/user/clip/video";
+
 // -------------------
 
 // Route definitions
@@ -193,6 +196,21 @@ module.exports.routes = new Map([
 		}
 	}],
 	[this.GET_CLIP_INFO, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.CLIP_VIDEO_POLL, {
 		method: "post",
 		required_body: [
 			// The default required for authenticated requests.

@@ -1291,6 +1291,53 @@ function setClipStatusDone($) {
   $("#clip-status").text("Done");
 }
 
+// Shows the current clip on the page
+function showCurrentClip($, clipInfo) {
+  $("#loading-current-clip-video").hide();
+  $("#current-clip-video").show();
+  $("#current-clip-video a").attr("href", clipInfo.downloaded_file);
+}
+
+// Starts polling for the clip video every second
+function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
+    var maxPolls = 300; // Default: 300=10minutes
+    var currPolls = 0;
+
+    function pollForAuth() {
+      $.ajax({
+        type: "POST",
+        url: autoTuberURL + "/user/has-new-token",
+        data: {
+          "username": username,
+          "user_id": ID,
+          "email": email,
+          "password": pass,
+
+          "download_id": downloadID
+        },
+        error: function(xhr,status,error) {
+          console.log("Error: ", error);
+          $("#dashboard-error-reason").text("HTTP Error with status: " + status);
+          $(".dashboard-internal-server-error").show();
+        },
+        success: function(result,status,xhr) {
+          if (result.clip_video) {
+            showCurrentClip($, {downloaded_file: result.clip_video});
+          } else {
+            currPolls++;
+
+            if (currPolls < maxPolls) {
+              return pollForAuth();
+            }
+          }
+        },
+        dataType: "json"
+      });
+    }
+  
+  return pollForAuth();
+}
+
 // Ends the current clip
 function endClipping($, username, ID, email, pass, downloadID, twitchLink, timerInterval) {
   $.ajax({
@@ -1314,6 +1361,7 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
         setClipStatusDone($);
         clearInterval(timerInterval);
         $(".stop-clipping-button").addClass("a-tag-disabled");
+        startPollingForClipVideo($, username, ID, email, pass, downloadID);
       }
     },
     dataType: "json"
@@ -1322,6 +1370,8 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
 
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
+  $("#current-clip-video").hide();
+
   $.ajax({
     type: "POST",
     url: autoTuberURL + "/user/clip/info",
@@ -1348,6 +1398,15 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         var streamerName = twitchLinkSplit[twitchLinkSplit.length - 1];
         $("#clip-streamer").text(streamerName);
         $("#clip-streamer").attr("href", clipInfo.twitch_link);
+
+        // Add the video to be viewed if it exists, else just add a loading indicator
+        if (clipInfo.downloaded_file) {
+          $("#loading-current-clip-video").hide();
+          $("#current-clip-video").show();
+          $("#current-clip-video a").attr("href", clipInfo.downloaded_file);
+        } else {
+          $("#loading-current-clip-video").show();
+        }
 
         var currentDate = new Date();
         var clipStart = new Date(clipInfo.created_at);

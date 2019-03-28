@@ -71,6 +71,7 @@ module.exports.setupWorkerChannels = function() {
 function transferToS3Helper(userID, twitchStream, downloadID) {
 	var downloadObj = null;
 	var oldFileLocation = null;
+	var cdnFile = null;
 
 	return new Promise(function(resolve, reject) {
 		return dbController.getDownload(userID, downloadID)
@@ -109,11 +110,14 @@ function transferToS3Helper(userID, twitchStream, downloadID) {
 			oldFileLocation = downloadObj.downloaded_file;
 			var filenameSplit = downloadObj.downloaded_file.split("/");
 			var fileNameActual = filenameSplit[filenameSplit.length - 1];
-			var cdnFile = cdnURL + "/" + Attr.AWS_S3_BUCKET_VIDEO_PATH + fileNameActual;
+			cdnFile = cdnURL + "/" + Attr.AWS_S3_BUCKET_VIDEO_PATH + fileNameActual;
 			return dbController.updateDownloadedFileLocation(userID, downloadID, cdnFile);
 		})
 		.then(function() {
 			return deleteOldFile(oldFileLocation);
+		})
+		.then(function() {
+			return addClipVideoCacheItem(cdnFile, downloadID);
 		})
 		.then(function() {
 			return resolve();
@@ -122,6 +126,17 @@ function transferToS3Helper(userID, twitchStream, downloadID) {
 			return reject(err);
 		});
 	});
+}
+
+function addClipVideoCacheItem(cdnFile, downloadID) {
+    let clipVideoKey = "redis_clip_video_" + downloadID;
+    return new Promise(function(resolve, reject) {
+		var multi = redis.multi();
+    	multi.set(clipVideoKey, cdnFile, "EX", 3600); // 1 hour
+    	multi.exec(function (err, replies) {
+    		return resolve();
+    	});
+    });
 }
 
 function decrKey(key) {
