@@ -449,7 +449,7 @@ function getClipInfoHelper(userID, downloadID) {
                 delete info.id;
 
                 // Only include the downloaded file link if its already stored in S3
-                if (!info.downloaded_file.startsWith(cdnURL)) {
+                if (info.downloaded_file == null || !info.downloaded_file.startsWith(cdnURL)) {
                     delete info.downloaded_file;
                 }
 
@@ -464,7 +464,7 @@ function getClipInfoHelper(userID, downloadID) {
                 delete toCombineVids[i].id;
 
                 // Only include the downloaded file link if its already stored in S3
-                if (!toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
+                if (toCombineVids[i].downloaded_file == null || !toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
                     delete toCombineVids[i].downloaded_file;
                 }
             }
