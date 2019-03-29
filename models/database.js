@@ -158,6 +158,22 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('descriptions', function(table) {
+			table.increments();
+			table.string("user_id").notNullable();
+			table.string("download_id").notNullable();
+			table.string("value").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('titles', function(table) {
+			table.increments();
+			table.string("user_id").notNullable();
+			table.string("download_id").notNullable();
+			table.string("value").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;

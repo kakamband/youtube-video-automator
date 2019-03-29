@@ -1523,8 +1523,15 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           toggleExclusivity(isChecked);
         });
 
-        // If this clip is in any state except for done have a timer counting. If not just display it.
-        if (clipInfo.state != "done") {
+        // Set the title and description to autogrow
+        $("#clip-description-input").keyup(function(e) {
+            while($(this).outerHeight() < this.scrollHeight + parseFloat($(this).css("borderTopWidth")) + parseFloat($(this).css("borderBottomWidth"))) {
+                $(this).height($(this).height()+1);
+            };
+        });
+
+        // The clip is still running in this state
+        if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
 
           // Still running get the difference in time between start and now
           var diff = currentDate.getTime() - clipStart.getTime();
@@ -1557,7 +1564,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             return endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
           });
 
-        } else {
+        } else if (clipInfo.state == "done") { // The clip is in the stop state
+
           var stoppedDate = new Date(clipInfo.updated_at);
           var diff = stoppedDate.getTime() - clipStart.getTime();
           var diffTmp = diff / 1000;
@@ -1566,6 +1574,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           updateTimer($, clipSeconds, totalVidSeconds);
           setClipStatusDone($);
           $(".stop-clipping-button").addClass("a-tag-disabled");
+
         }
 
         // Set the exclusive checkbox value
