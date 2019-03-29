@@ -583,6 +583,8 @@ function updateSetting($, username, ID, email, pass, setting, settingJSON) {
 // Toggles the defaults notifications if they are set or not
 function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
   var showNotification = false;
+  var showDLNotification = false; var dlContent = {download_id: -1};
+  var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
@@ -590,6 +592,9 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
      } else if (result.notifications[i].notification == "currently-clipping") {
         showDLNotification = true;
         dlContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "need-title-or-description") {
+        showNeedClipInfoNotification = true;
+        needInfoContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -609,6 +614,16 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
       closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
+
+  // Need Clip Info Notification
+  if (showNeedClipInfoNotification) {
+    $(".clipping-need-info-notification").show();
+    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
+    $(".close-need-info-notification").click(function() {
+      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+  stretchAWB($);
 }
 
 // Handles the minimum video settings
@@ -1007,6 +1022,8 @@ function defaultSettings($, username, ID, email, pass) {
 // Toggles the account notifications if they are set or not
 function toggleAccountNotification($, result, username, ID, email, passwordHash) {  
   var showNotification = false;
+  var showDLNotification = false; var dlContent = {download_id: -1};
+  var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "account-intro") {
@@ -1014,6 +1031,9 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
      } else if (result.notifications[i].notification == "currently-clipping") {
         showDLNotification = true;
         dlContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "need-title-or-description") {
+        showNeedClipInfoNotification = true;
+        needInfoContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1033,6 +1053,17 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
       closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
+
+  // Need Clip Info Notification
+  if (showNeedClipInfoNotification) {
+    $(".clipping-need-info-notification").show();
+    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
+    $(".close-need-info-notification").click(function() {
+      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+
+  stretchAWB($);
 }
 
 // -----------------------------------------
@@ -1047,6 +1078,7 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
 function toggleVideosNotification($, result, username, ID, email, passwordHash) {  
   var showNotification = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
+  var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "videos-intro") {
@@ -1054,6 +1086,9 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
      } else if (result.notifications[i].notification == "currently-clipping") {
         showDLNotification = true;
         dlContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "need-title-or-description") {
+        showNeedClipInfoNotification = true;
+        needInfoContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1074,6 +1109,18 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
       closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
     });
   }
+
+  // Need Clip Info Notification
+  if (showNeedClipInfoNotification) {
+    $(".clipping-need-info-notification").show();
+    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
+    $(".close-need-info-notification").click(function() {
+      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+
+
+  stretchAWB($);
 }
 
 // -----------------------------------------
@@ -1112,6 +1159,7 @@ function startClip($, username, ID, email, pass, twitch_link) {
     error: function(xhr,status,error) {
       console.log("Error: ", error);
       $("#err-loading-tkn-link").show();
+      stretchAWB($);
     },
     success: function(result,status,xhr) {
       if (result.success) {
@@ -1149,25 +1197,43 @@ function foundAuth($, username, ID, email, pass) {
   $("#youtube-settings-link").click(function() {
     window.location.href = "https://twitchautomator.com/defaults";
   });
+  stretchAWB($);
 }
 
 // Toggles the dashboard notifications if they are set or not
 function toggleDashboardNotification($, result, username, ID, email, passwordHash) {  
   var showNotification = false;
+  var showClipInfoNotification = false;
+  var showClipInfoContent = null;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "dashboard-intro") {
        showNotification = true;
+     } else if (result.notifications[i].notification == "need-title-or-description") {
+      showClipInfoNotification = true;
+      showClipInfoContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
   
+  // Shows dashboard notification
   if (showNotification) {
     $(".dashboard-into-notification").show();
     $(".close-notification").click(function() {
       closeNotification($, "dashboard-intro", username, ID, email, passwordHash); 
     });
   }
+
+  // Show clip info notification
+  if (showClipInfoNotification) {
+    $(".clipping-need-info-notification").show();
+    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + showClipInfoContent.download_id));
+    $(".close-need-info-notification").click(function() {
+      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+
+  stretchAWB($);
 }
 
 // The popup window has been opened, now we poll to see when/if the user ever actually allows the authentication to go through.
@@ -1191,6 +1257,7 @@ function startPollingForAuth($, username, ID, email, pass) {
           $(".dashboard-internal-server-error").show();
           popupWindow.close();
           toggleLoading($);
+          stretchAWB($);
         },
         success: function(result,status,xhr) {
 			if (result.success) {
@@ -1204,6 +1271,7 @@ function startPollingForAuth($, username, ID, email, pass) {
                   $(".dashboard-internal-server-error").show();
                   popupWindow.close();
                   toggleLoading($);
+                  stretchAWB($);
                   return;
                 } else if (popupWindow.closed && !lastTest) {
                   lastTest = true; 
@@ -1214,7 +1282,7 @@ function startPollingForAuth($, username, ID, email, pass) {
                 }, 1500);
               } else {
           		$("#dashboard-error-reason").text("Timeout, 10minutes has passed. Please terminate the popup window and retry.");
-      			$(".dashboard-internal-server-error").show();
+    			    $(".dashboard-internal-server-error").show();
                 popupWindow.close();
                 toggleLoading($);
                 return;
@@ -1341,7 +1409,7 @@ function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
 }
 
 // Scrolls to the title and description section if it isn't filled out yet. Also updates the state to "Done (Need Title/Description)".
-function scrollToTitleAndDescIfEmpty($) {
+function scrollToTitleAndDescIfEmpty($, scrollEnabled) {
   var titleVal = $("#clip-title-input").val();
   var descriptionVal = $("#clip-description-input").val();
   var missingInput = false;
@@ -1364,7 +1432,10 @@ function scrollToTitleAndDescIfEmpty($) {
 
   if (missingInput) {
     $("#clip-status").html("Done " + extraText);
-    $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+
+    if (scrollEnabled) {
+      $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+    }
   }
 }
 
@@ -1392,7 +1463,7 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
         clearInterval(timerInterval);
         $(".stop-clipping-button").addClass("a-tag-disabled");
         startPollingForClipVideo($, username, ID, email, pass, downloadID);
-        scrollToTitleAndDescIfEmpty($);
+        scrollToTitleAndDescIfEmpty($, true);
       }
     },
     dataType: "json"
@@ -1596,7 +1667,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             return endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
           });
 
-        } else if (clipInfo.state == "done") { // The clip is in the stop state
+        } else if (clipInfo.state == "done" || clipInfo.state == "done-need-info") { // The clip is in the stop state
 
           var stoppedDate = new Date(clipInfo.updated_at);
           var diff = stoppedDate.getTime() - clipStart.getTime();
@@ -1606,6 +1677,11 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           updateTimer($, clipSeconds, totalVidSeconds);
           setClipStatusDone($);
           $(".stop-clipping-button").addClass("a-tag-disabled");
+
+          // Specific things for this state
+          if (clipInfo.state == "done-need-info") {
+            scrollToTitleAndDescIfEmpty($, true);
+          }
 
         }
 
@@ -1701,6 +1777,7 @@ function getHasToken($, username, ID, email, pass) {
         toggleLoading($);
         $(".authenticate-with-youtube-block").show();
         getTokenLink($, username, ID, email, pass);
+        stretchAWB($);
       }
     },
     dataType: "json"
@@ -1724,6 +1801,7 @@ function dashboardAuthenticator($, username, ID, email, subscriptions, passwordH
       error: function(xhr,status,error) {
         console.log("Error: ", error);
       	$(".dashboard-internal-server-error").show();
+        stretchAWB($);
       },
       success: function(result,status,xhr) {
         if (result.success) {
@@ -1791,6 +1869,7 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
       error: function(xhr,status,error) {
         console.log("Error: ", error);
         $(".dashboard-internal-server-error").show();
+        stretchAWB($);
       },
       success: function(result,status,xhr) {
         if (result.success) {
@@ -1821,6 +1900,27 @@ function toggleProfessionalPrompt($, result) {
   if (result.active_subscription == "716") { // If they are professional.
     $(".upgrade-to-professional-prompt").hide(); 
   }
+}
+
+// Resizes all the objects on the page
+function stretchAWB($) {
+    var wndW = $('body').width();
+
+    $('.nk-awb.alignfull > .nk-awb-wrap').each(function () {
+        var $this = $(this);
+
+        var rect = this.getBoundingClientRect();
+        var left = rect.left;
+        var right = wndW - rect.right;
+
+        var ml = parseFloat($this.css('margin-left') || 0);
+        var mr = parseFloat($this.css('margin-right') || 0);
+
+        $this.css({
+            'margin-left': ml - left,
+            'margin-right': mr - right,
+        });
+    });
 }
 
 // Closes a notification
@@ -1861,6 +1961,9 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
           case "currently-clipping":
             $(".currently-clipping-notification").hide();
             break;
+          case "need-title-or-description":
+            $(".clipping-need-info-notification").hide();
+            break;
         }
       },
       dataType: "json"
@@ -1878,6 +1981,12 @@ jQuery(document).ready(function( $ ){
   $(".authenticate-with-youtube-block").hide();
   $(".dashboard-have-auth-token").hide();
   $(".currently-clipping-container").hide();
+  $(".clipping-need-info-notification").hide();
+  $(".currently-clipping-notification").hide();
+  $(".videos-notification-container").hide();
+  $(".account-notification-container").hide();
+  $(".defaults-intro-notification").hide();
+  $(".dashboard-internal-server-error").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");
@@ -1897,6 +2006,7 @@ jQuery(document).ready(function( $ ){
           $("#dashboard-error-reason").text(atob(popupReason));
           $(".dashboard-internal-server-error").addClass("full-height-popup");
           $(".dashboard-internal-server-error").show();
+          stretchAWB($);
           return;
         }
       }

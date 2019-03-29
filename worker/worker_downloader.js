@@ -43,18 +43,23 @@ function safeRetry(workerActivity, ch, msg, message) {
     });
 
     retriesMap[message] = null;
-    ch.ack(msg);
-    return;
-  }
+    return Helpers.decrementMsgCount(redisDownloadingKey)
+    .then(function() {
+      return ch.ack(msg);
+    });
+  } else {
+    if (retriesMap[message] == null) {
+      retriesMap[message] = 0;
+    }
 
-  if (retriesMap[message] == null) {
-    retriesMap[message] = 0;
+    console.log("Retrying this message (" + message + ")");
+    return Helpers.decrementMsgCount(redisDownloadingKey)
+    .then(function() {
+      ch.ack(msg);
+      ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), msg.properties);
+      retriesMap[message] = retriesMap[message] + 1;
+    });
   }
-
-  console.log("Retrying this message (" + message + ")");
-  ch.ack(msg);
-  ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), msg.properties);
-  retriesMap[message] = retriesMap[message] + 1;
 }
 
 function knexConnection() {
