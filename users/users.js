@@ -269,6 +269,9 @@ module.exports.endClip = function(username, pmsID, email, password, twitch_link,
             return removeUserDownloadingNotification(pmsID);
         })
         .then(function() {
+            return dbController.updateStateBasedOnTitleDesc(userID, downloadID);
+        })
+        .then(function() {
             return resolve();
         })
         .catch(function(err) {

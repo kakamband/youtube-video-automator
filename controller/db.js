@@ -1328,3 +1328,66 @@ module.exports.getRefreshToken = function(clientID) {
 		});
 	});
 }
+
+module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('titles')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.then(function(titleResults) {
+			if (titleResults.length == 0 || (titleResults.length > 0 && (titleResults[0].value == null || titleResults[0].value = ""))) {
+				// Couldn't find a valid title
+				return setDownloadToDoneNeedInfo(userID, downloadID)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				// Found a valid title, look for a description now
+				return knex('descriptions')
+				.where("user_id", "=", userID)
+				.where("download_id", "=", downloadID)
+				.then(function(descResults) {
+					if (descResults.length == 0 || (descResults.length > 0 && (descResults[0].value == null || descResults[0].value = ""))) {
+						// Couldn't find a valid description
+						return setDownloadToDoneNeedInfo(userID, downloadID)
+						.then(function() {
+							return resolve();
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					} else {
+						// Found both a valid title, and a valid description
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function setDownloadToDoneNeedInfo(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.update({
+			state: "done-need-info" // DO NOT UPDATE "updated_at" here since we use it to calculate download video length.
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
