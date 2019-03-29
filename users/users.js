@@ -14,8 +14,9 @@ var ErrorHelper = require('../errors/errors');
 const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
 
 const downloadingClipNotification = "currently-clipping";
+const needTitleOrDescriptionNotification = "need-title-or-description";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
-const clipFlowNotifications = [downloadingClipNotification];
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification];
 
 const defaultTTL = 3600; // 1 hour.
 

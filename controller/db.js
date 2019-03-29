@@ -181,19 +181,19 @@ function getNotifications(pmsID, notificationNames) {
 }
 
 module.exports.getVideosNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["videos-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["dashboard-intro"]);
+	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description"]);
 }
 
 module.exports.getAccountNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["account-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.getDefaultsNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["defaults-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.settingsOverview = function(pmsID) {
@@ -597,6 +597,26 @@ module.exports.createDownloadNotification = function(pmsID, contentStr) {
 		.insert({
 			pms_user_id: pmsID,
 			notification: "currently-clipping",
+			seen: false,
+			content: contentStr,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(result) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function createNeedTitleOrDescriptionNotification = function(pmsID, contentStr) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.insert({
+			pms_user_id: pmsID,
+			notification: "need-title-or-description",
 			seen: false,
 			content: contentStr,
 			created_at: new Date(),
@@ -1329,7 +1349,7 @@ module.exports.getRefreshToken = function(clientID) {
 	});
 }
 
-module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
+module.exports.updateStateBasedOnTitleDesc = function(userID, pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('titles')
 		.where("user_id", "=", userID)
@@ -1375,7 +1395,7 @@ module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
 	});
 }
 
-function setDownloadToDoneNeedInfo(userID, downloadID) {
+function setDownloadToDoneNeedInfo(userID, pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
@@ -1384,6 +1404,9 @@ function setDownloadToDoneNeedInfo(userID, downloadID) {
 			state: "done-need-info" // DO NOT UPDATE "updated_at" here since we use it to calculate download video length.
 		})
 		.then(function(results) {
+			return createNeedTitleOrDescriptionNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
