@@ -136,7 +136,7 @@ module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
 	});
 }
 
-module.exports.seenNotification = function(pmsID, notificationName) {
+function seenNotificationHelper(pmsID, notificationName) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
@@ -152,6 +152,10 @@ module.exports.seenNotification = function(pmsID, notificationName) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.seenNotification = function(pmsID, notificationName) {
+	return seenNotificationHelper(pmsID, notificationName);
 }
 
 function getNotifications(pmsID, notificationNames) {
@@ -611,7 +615,7 @@ module.exports.createDownloadNotification = function(pmsID, contentStr) {
 	});
 }
 
-function createNeedTitleOrDescriptionNotification = function(pmsID, contentStr) {
+function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.insert({
@@ -1349,15 +1353,38 @@ module.exports.getRefreshToken = function(clientID) {
 	});
 }
 
-module.exports.updateStateBasedOnTitleDesc = function(userID, pmsID, downloadID) {
+module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", userID)
+		.then(function(results) {
+			if (results.length == 0) {
+				return reject(new Error("Could not find a user associated with the following ID: " + userID));
+			} else {
+				return checkTitleDescHelper(userID, results[0].pms_user_id, downloadID);
+			}
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function checkTitleDescHelper(userID, pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('titles')
 		.where("user_id", "=", userID)
 		.where("download_id", "=", downloadID)
 		.then(function(titleResults) {
-			if (titleResults.length == 0 || (titleResults.length > 0 && (titleResults[0].value == null || titleResults[0].value = ""))) {
+			var condition1 = (titleResults.length == 0);
+			var condition2 = (titleResults.length > 0 && (titleResults[0].value == null || titleResults[0].value == ""));
+
+			if (condition1 || condition2) {
 				// Couldn't find a valid title
-				return setDownloadToDoneNeedInfo(userID, downloadID)
+				return setDownloadToDoneNeedInfo(userID, pmsID, downloadID)
 				.then(function() {
 					return resolve();
 				})
@@ -1370,9 +1397,12 @@ module.exports.updateStateBasedOnTitleDesc = function(userID, pmsID, downloadID)
 				.where("user_id", "=", userID)
 				.where("download_id", "=", downloadID)
 				.then(function(descResults) {
-					if (descResults.length == 0 || (descResults.length > 0 && (descResults[0].value == null || descResults[0].value = ""))) {
+					var condition11 = (descResults.length == 0);
+					var condition12 = (descResults.length > 0 && (descResults[0].value == null || descResults[0].value == ""));
+
+					if (condition11 || condition12) {
 						// Couldn't find a valid description
-						return setDownloadToDoneNeedInfo(userID, downloadID)
+						return setDownloadToDoneNeedInfo(userID, pmsID, downloadID)
 						.then(function() {
 							return resolve();
 						})
@@ -1404,6 +1434,9 @@ function setDownloadToDoneNeedInfo(userID, pmsID, downloadID) {
 			state: "done-need-info" // DO NOT UPDATE "updated_at" here since we use it to calculate download video length.
 		})
 		.then(function(results) {
+			return seenNotificationHelper(pmsID, "need-title-or-description");
+		})
+		.then(function() {
 			return createNeedTitleOrDescriptionNotification(pmsID, JSON.stringify({download_id: downloadID}));
 		})
 		.then(function() {

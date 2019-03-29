@@ -25,6 +25,9 @@ module.exports.downloadContent = function(userID, gameName, twitchStream, downlo
 			return WorkerProducer.addTransferFileToS3Task(userID, twitchStream, downloadID);
 		})
 		.then(function() {
+			return dbController.updateStateBasedOnTitleDesc(userID, downloadID);
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
@@ -86,7 +89,7 @@ function transferToS3Helper(userID, twitchStream, downloadID) {
 				ErrorHelper.emitSimpleError(new Error("Could not find download associated with file. Failed to transfer to S3."));
 				return resolve();
 			} else {
-				if (result.state != "done") {
+				if (result.state != "done" && result.state != "done-need-info") {
 					// This shouldn't ever happen, log to sentry if it does.
 					ErrorHelper.scopeConfigureWID("worker_helpers.transferToS3", {
 						download_obj: result
