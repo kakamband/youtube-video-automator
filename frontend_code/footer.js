@@ -1340,6 +1340,34 @@ function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
   return pollForAuth();
 }
 
+// Scrolls to the title and description section if it isn't filled out yet. Also updates the state to "Done (Need Title/Description)".
+function scrollToTitleAndDescIfEmpty($) {
+  var titleVal = $("#clip-title-input").val();
+  var descriptionVal = $("#clip-description-input").val();
+  var missingInput = false;
+  var extraText = "<span style=\"font-size: 15px;\">(";
+
+  if (titleVal == "" && descriptionVal == "") {
+    console.log("Need Title and Description before continuing.");
+    missingInput = true;
+    extraText += "Need Title & Description";
+  } else if (titleVal == "") {
+    console.log("Need Title before continuing.");
+    missingInput = true;
+    extraText += "Need Title";
+  } else if (descriptionVal == "") {
+    console.log("Need Description before continuing.");
+    missingInput = true;
+    extraText += "Need Description";
+  }
+  extraText += ")</span>";
+
+  if (missingInput) {
+    $("#clip-status").html("Done " + extraText);
+    $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+  }
+}
+
 // Ends the current clip
 function endClipping($, username, ID, email, pass, downloadID, twitchLink, timerInterval) {
   $.ajax({
@@ -1364,6 +1392,7 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
         clearInterval(timerInterval);
         $(".stop-clipping-button").addClass("a-tag-disabled");
         startPollingForClipVideo($, username, ID, email, pass, downloadID);
+        scrollToTitleAndDescIfEmpty($);
       }
     },
     dataType: "json"
@@ -1424,6 +1453,15 @@ function updateExclusive($, username, ID, email, pass, downloadID, exclusive) {
       }
     },
     dataType: "json"
+  });
+}
+
+// Handles textarea height autoscaling
+function textareaAutoScaling($, ID) {
+  $("#" + ID).keyup(function(e) {
+    while($(this).outerHeight() < this.scrollHeight + parseFloat($(this).css("borderTopWidth")) + parseFloat($(this).css("borderBottomWidth"))) {
+        $(this).height($(this).height()+1);
+    };
   });
 }
 
@@ -1495,9 +1533,6 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           }
         }
 
-        // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
-        $("a.vp-a").YouTubePopUp();
-
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;
         function toggleExclusivity(isChecked) {
@@ -1524,11 +1559,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         });
 
         // Set the title and description to autogrow
-        $("#clip-description-input").keyup(function(e) {
-            while($(this).outerHeight() < this.scrollHeight + parseFloat($(this).css("borderTopWidth")) + parseFloat($(this).css("borderBottomWidth"))) {
-                $(this).height($(this).height()+1);
-            };
-        });
+        textareaAutoScaling($, "clip-description-input");
+        textareaAutoScaling($, "clip-title-input");
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
@@ -1582,6 +1614,17 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           $('#exclusive-video-input').prop('checked', true);
           toggleExclusivity(true);
         }
+
+        // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+        // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+        // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+        $("a.vp-a").YouTubePopUp();
+        // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+        $(".vp-a").click(function() {
+          $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+          $(".VideoPopUpWrap").slice(1).remove();
+        });
         
       }
     },

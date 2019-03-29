@@ -136,7 +136,7 @@ module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
 	});
 }
 
-module.exports.seenNotification = function(pmsID, notificationName) {
+function seenNotificationHelper(pmsID, notificationName) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
@@ -152,6 +152,10 @@ module.exports.seenNotification = function(pmsID, notificationName) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.seenNotification = function(pmsID, notificationName) {
+	return seenNotificationHelper(pmsID, notificationName);
 }
 
 function getNotifications(pmsID, notificationNames) {
@@ -181,19 +185,19 @@ function getNotifications(pmsID, notificationNames) {
 }
 
 module.exports.getVideosNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["videos-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["dashboard-intro"]);
+	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description"]);
 }
 
 module.exports.getAccountNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["account-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.getDefaultsNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["defaults-intro", "currently-clipping"]);
+	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description"]);
 }
 
 module.exports.settingsOverview = function(pmsID) {
@@ -597,6 +601,26 @@ module.exports.createDownloadNotification = function(pmsID, contentStr) {
 		.insert({
 			pms_user_id: pmsID,
 			notification: "currently-clipping",
+			seen: false,
+			content: contentStr,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(result) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.insert({
+			pms_user_id: pmsID,
+			notification: "need-title-or-description",
 			seen: false,
 			content: contentStr,
 			created_at: new Date(),
@@ -1322,6 +1346,101 @@ module.exports.getRefreshToken = function(clientID) {
 				return resolve(results[0]);
 			}
 			return resolve(null);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", userID)
+		.then(function(results) {
+			if (results.length == 0) {
+				return reject(new Error("Could not find a user associated with the following ID: " + userID));
+			} else {
+				return checkTitleDescHelper(userID, results[0].pms_user_id, downloadID);
+			}
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function checkTitleDescHelper(userID, pmsID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('titles')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.then(function(titleResults) {
+			var condition1 = (titleResults.length == 0);
+			var condition2 = (titleResults.length > 0 && (titleResults[0].value == null || titleResults[0].value == ""));
+
+			if (condition1 || condition2) {
+				// Couldn't find a valid title
+				return setDownloadToDoneNeedInfo(userID, pmsID, downloadID)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				// Found a valid title, look for a description now
+				return knex('descriptions')
+				.where("user_id", "=", userID)
+				.where("download_id", "=", downloadID)
+				.then(function(descResults) {
+					var condition11 = (descResults.length == 0);
+					var condition12 = (descResults.length > 0 && (descResults[0].value == null || descResults[0].value == ""));
+
+					if (condition11 || condition12) {
+						// Couldn't find a valid description
+						return setDownloadToDoneNeedInfo(userID, pmsID, downloadID)
+						.then(function() {
+							return resolve();
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					} else {
+						// Found both a valid title, and a valid description
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function setDownloadToDoneNeedInfo(userID, pmsID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.where("user_id", "=", userID)
+		.update({
+			state: "done-need-info" // DO NOT UPDATE "updated_at" here since we use it to calculate download video length.
+		})
+		.then(function(results) {
+			return seenNotificationHelper(pmsID, "need-title-or-description");
+		})
+		.then(function() {
+			return createNeedTitleOrDescriptionNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);
