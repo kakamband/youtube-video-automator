@@ -84,7 +84,7 @@ module.exports.ADBuster = function(twitchStream) {
 	return new Promise(function(resolve, reject) {
 		var epoch = (new Date).getTime();
 		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
-		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
+		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f worst -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
 		var cProcess = shell.exec(downloadCMD, {async: true});
 		cLogger.info("Starting the AD download.");
 
