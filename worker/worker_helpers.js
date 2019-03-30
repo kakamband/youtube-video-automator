@@ -19,7 +19,10 @@ const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
 module.exports.downloadContent = function(userID, gameName, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Starting to download content for user: " + userID + " and the following game and stream: " + gameName + " (" + twitchStream + ")");
-		Hijacker.startHijack(userID, gameName, twitchStream, downloadID)
+		Hijacker.ADBuster(twitchStream)
+		.then(function(adProcess) {
+			return Hijacker.startHijack(userID, gameName, twitchStream, downloadID, adProcess);
+		})
 		.then(function() {
 			cLogger.info("Done hijacking. Starting transfer to S3.");
 			return WorkerProducer.addTransferFileToS3Task(userID, twitchStream, downloadID);
