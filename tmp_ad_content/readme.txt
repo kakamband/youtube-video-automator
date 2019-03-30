@@ -1,0 +1,1 @@
+This folder is where AD content downloads get placed, this content is then immediately deleted.

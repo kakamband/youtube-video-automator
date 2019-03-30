@@ -77,7 +77,40 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	});
 }
 
-module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
+// Handles all the logic related to trying to get around Twitch ads.
+// As of now this simply starts the stream, and kills it 1 second later.
+// Doing this will usually (hypothetically) get the AD out of the way for the actual stream hijack.
+module.exports.ADBuster = function(twitchStream) {
+	return new Promise(function(resolve, reject) {
+		var epoch = (new Date).getTime();
+		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
+		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f worst -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
+		var cProcess = shell.exec(downloadCMD, {async: true});
+		cLogger.info("Starting the AD download.");
+
+		return setTimeout(function() {
+			return resolve(cProcess);
+		}, 1000);
+	});
+}
+
+function killADBusterProcess(adProcess) {
+	return new Promise(function(resolve, reject) {
+		cLogger.info("Killing the AD download, and deleting the file.");
+		adProcess.kill();
+		var rmCMD = "rm " + fileName + ".mp4";
+		return shell.exec(rmCMD, function(code, stdout, stderr) {
+			if (code != 0) {
+				ErrorHelper.scopeConfigure("hijacker.killADBusterProcess", {ouput: stderr});
+				ErrorHelper.emitSimpleError(new Error("Deleting the temporary AD file has errored, need to manually do this."));
+			}
+
+			return resolve();
+		});
+	});
+}
+
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess) {
 	return new Promise(function(resolve, reject) {
 		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameName + "\"");
 		cLogger.info("Running command: " + lsCMD);
@@ -105,7 +138,13 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		cProcess = shell.exec(downloadCMD, {async: true});
 
 			  		return setTimeout(function() {
-			  			return next();
+			  			return killADBusterProcess(adProcess)
+			  			.then(function() {
+			  				return next();
+			  			})
+			  			.catch(function(err) {
+			  				return next();
+			  			});
 			  		}, 5000);
 				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
 					return stopHelper(userID, gameName, twitchStream, downloadID)
