@@ -689,7 +689,8 @@ module.exports.createOrUpdateUserSubscriptions = function(username, ID, email, p
 		knex('users')
 		.where('username', '=', username)
 		.where('pms_user_id', '=', ID)
-		.returning(["email", "password"])
+		.where('email', '=', email)
+		.where('password', '=', password)
 		.limit(1)
 		.then(function(users) {
 			if (users.length == 0) { // The user doesnt exist??
