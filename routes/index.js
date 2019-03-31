@@ -100,7 +100,6 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 
 router.post(Models.USER_REGISTER, function(req, res, next) {
 	validFirst(Models.USER_REGISTER, req, res, next, function() {
-		cLogger.info("HAVE HIT THE USER REGISTER ROUTE!");
 		return Users.registerUser(req.body)
 		.then(function() {
 			return res.json({
