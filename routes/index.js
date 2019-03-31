@@ -113,6 +113,15 @@ router.post(Models.USER_REGISTER, function(req, res, next) {
 	});
 });
 
+router.post(Models.USER_UPDATE, function(req, res, next) {
+	validFirst(Models.USER_UPDATE, req, res, next, function() {
+		console.log("The body is: ", req.body);
+		return res.json({
+			success: true
+		});
+	});
+});
+
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
 		// If the optional paramter of route was passed

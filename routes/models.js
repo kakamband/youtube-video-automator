@@ -12,6 +12,9 @@ module.exports.END_CLIPPING = "/end/clip";
 // Registers a user to the server
 module.exports.USER_REGISTER = "/user/register";
 
+// Updates a users email or password
+module.exports.USER_UPDATE = "/user/update";
+
 // Introduces a new user to the server
 module.exports.USER_INTRO = "/user/create";
 
@@ -98,12 +101,14 @@ module.exports.routes = new Map([
 	}],
 	[this.USER_REGISTER, {
 		method: "post",
-		required_body: [
-			nameAndType("username", "string"),
-			nameAndType("user_id", "string"),
-			nameAndType("email", "string"),
-			nameAndType("password", "string")
-		],
+		required_body: [],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, null, null);
+		}
+	}],
+	[this.USER_UPDATE, {
+		method: "post",
+		required_body: [],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, null, null);
 		}
