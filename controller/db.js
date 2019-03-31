@@ -635,7 +635,54 @@ function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
 	});
 }
 
-module.exports.createOrUpdateUser = function(username, ID, email, password, payments, subs) {
+module.exports.registerUser = function(username, ID, email, password) {
+	return new Promise(function(resolve, reject) {
+		cLogger.info("Creating new user.");
+		return knex('users')
+		.insert({
+			username: username,
+			pms_user_id: ID,
+			email: email,
+			password: password,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function() {
+			return createNewUserNotifications(ID);
+		})
+		.then(function() {
+			return createNewUserDefaults(ID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateUser = function(username, ID, email, password) {
+	return new Promise(function(resolve, reject) {
+		cLogger.info("Updating user, email or password is different.");
+		return knex('users')
+		.where('username', '=', username)
+		.where('pms_user_id', '=', ID)
+		.update({
+			email: email,
+			password: password,
+			updated_at: new Date()
+		})
+		.then(function() {
+			return Promise.resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.createOrUpdateUserSubscriptions = function(username, ID, email, password, payments, subs) {
 	var subscriptions = JSON.parse(subs);
 
 	return new Promise(function(resolve, reject) {
@@ -645,51 +692,10 @@ module.exports.createOrUpdateUser = function(username, ID, email, password, paym
 		.returning(["email", "password"])
 		.limit(1)
 		.then(function(users) {
-			if (users.length == 0) { // New User
-				cLogger.info("Creating new user.");
-				return knex('users')
-				.insert({
-					username: username,
-					pms_user_id: ID,
-					email: email,
-					password: password,
-					created_at: new Date(),
-					updated_at: new Date()
-				})
-				.then(function() {
-					return createNewUserNotifications(ID);
-				})
-				.then(function() {
-					return createNewUserDefaults(ID);
-				})
-				.then(function() {
-					return Promise.resolve();
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else { // Update User
-				if (users[0].email != email || users[0].password != password) {
-					cLogger.info("Updating user, email or password is different.");
-					return knex('users')
-					.where('pms_user_id', '=', ID)
-					.update({
-						email: email,
-						password: password,
-						updated_at: new Date()
-					})
-					.then(function() {
-						return updateRedisValidUserKey(username, ID, users[0].email, users[0].password, email, password, users[0].id);
-					})
-					.then(function() {
-						return Promise.resolve();
-					})
-					.catch(function(err) {
-						return reject(err);
-					});
-				} else {
-					return Promise.resolve();
-				}
+			if (users.length == 0) { // The user doesnt exist??
+				return reject(new Error("Trying to update payments, and subscriptions but can't find the user!"));
+			} else { // The user does exist continue
+				return Promise.resolve();
 			}
 		})
 		.then(function() {

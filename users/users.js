@@ -34,13 +34,32 @@ const validUserRedisTTL = defaultTTL;
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
+//
+//
+module.exports.registerUser = function(userData) {
+    return new Promise(function(resolve, reject) {
+        let userID = userData['content[data][ID]'];
+        let userName = userData['content[data][user_login]'];
+        let userEmail = userData['content[data][user_email]'];
+        let userPass = userData['content[data][user_pass]'];
+
+        return dbController.registerUser(userName, userID, userEmail, userPass)
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        })
+    });
+}
+
 // createUser
 // Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
 module.exports.createUser = function(username, ID, email, password, payments, subs, currentRoute) {
     var activeSubscriptionNum = -1;
 
     return new Promise(function(resolve, reject) {
-    	return dbController.createOrUpdateUser(username, ID, email, password, payments, subs)
+    	return dbController.createOrUpdateUserSubscriptions(username, ID, email, password, payments, subs)
     	.then(function(activeSubscription) {
             activeSubscriptionNum = activeSubscription;
 
