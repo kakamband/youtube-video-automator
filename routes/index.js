@@ -122,7 +122,7 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 			currentRoute = req.body.current_route;
 		}
 
-		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions, currentRoute)
+		return Users.updateUserData(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions, currentRoute)
 		.then(function(results) {
 			return res.json({
 				success: true,

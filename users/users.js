@@ -74,9 +74,10 @@ module.exports.registerUser = function(userData) {
     });
 }
 
-// createUser
-// Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
-module.exports.createUser = function(username, ID, email, password, payments, subs, currentRoute) {
+// updateUserData
+// Handles the update user data endpoint, this endpoint is hit every time a request comes in first.
+// This checks with stripe and handles all of our checks to make sure the user can continue with the product.
+module.exports.updateUserData = function(username, ID, email, password, payments, subs, currentRoute) {
     var activeSubscriptionNum = -1;
 
     return new Promise(function(resolve, reject) {
