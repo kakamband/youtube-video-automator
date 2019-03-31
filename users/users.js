@@ -34,8 +34,29 @@ const validUserRedisTTL = defaultTTL;
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
-//
-//
+// registerUser
+// Registers a user in the AutoTuber backend.
+// Example data from wordpress site:
+/*
+userData:  {
+    'content[data][ID]': '153618901',
+    'content[data][user_login]': 'deletethis17',
+    'content[data][user_pass]': '$P$BfNxI1FOHhtUVxCwXsbZAFVd.TGuud0',
+    'content[data][user_nicename]': 'deletethis17',
+    'content[data][user_email]': 'rusop@red-mail.info',
+    'content[data][user_url]': '',
+    'content[data][user_registered]': '2019-03-31 21:12:25',
+    'content[data][user_activation_key]': '',
+    'content[data][user_status]': '0',
+    'content[data][display_name]': 'deletethis17',
+    'content[ID]': '153618901',
+    'content[caps][pms_subscription_plan_667]': '1',
+    'content[cap_key]': 'wp_capabilities',
+    'content[roles][0]': 'pms_subscription_plan_667',
+    'content[allcaps][read]': '1',
+    'content[allcaps][pms_subscription_plan_667]': '1' 
+}
+*/
 module.exports.registerUser = function(userData) {
     return new Promise(function(resolve, reject) {
         let userID = userData['content[data][ID]'];
