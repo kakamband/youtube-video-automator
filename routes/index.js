@@ -98,6 +98,15 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 	});
 });
 
+router.post(Models.USER_REGISTER, function(req, res, next) {
+	validFirst(Models.USER_REGISTER, req, res, next, function() {
+		cLogger.info("HAVE HIT THE USER REGISTER ROUTE!");
+		return res.json({
+			success: true
+		});
+	});
+});
+
 router.post(Models.USER_INTRO, function(req, res, next) {
 	validFirst(Models.USER_INTRO, req, res, next, function() {
 		// If the optional paramter of route was passed
