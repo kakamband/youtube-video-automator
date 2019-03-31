@@ -100,9 +100,15 @@ router.post(Models.END_CLIPPING, function(req, res, next) {
 
 router.post(Models.USER_REGISTER, function(req, res, next) {
 	validFirst(Models.USER_REGISTER, req, res, next, function() {
-		cLogger.info("HAVE HIT THE USER REGISTER ROUTE!");
-		return res.json({
-			success: true
+		return Users.registerUser(req.body)
+		.then(function() {
+			return res.json({
+				success: true
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.USER_REGISTER, req.body);
+			return ErrorHelper.errorHelper(next, err);
 		});
 	});
 });
@@ -115,7 +121,7 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 			currentRoute = req.body.current_route;
 		}
 
-		return Users.createUser(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions, currentRoute)
+		return Users.updateUserData(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.payments, req.body.subscriptions, currentRoute)
 		.then(function(results) {
 			return res.json({
 				success: true,

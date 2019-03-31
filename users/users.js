@@ -34,13 +34,54 @@ const validUserRedisTTL = defaultTTL;
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
-// createUser
-// Handles the create user endpoint, this endpoint will either create a new user or just update their contents.
-module.exports.createUser = function(username, ID, email, password, payments, subs, currentRoute) {
+// registerUser
+// Registers a user in the AutoTuber backend.
+// Example data from wordpress site:
+/*
+userData:  {
+    'content[data][ID]': '153618901',
+    'content[data][user_login]': 'deletethis17',
+    'content[data][user_pass]': '$P$BfNxI1FOHhtUVxCwXsbZAFVd.TGuud0',
+    'content[data][user_nicename]': 'deletethis17',
+    'content[data][user_email]': 'rusop@red-mail.info',
+    'content[data][user_url]': '',
+    'content[data][user_registered]': '2019-03-31 21:12:25',
+    'content[data][user_activation_key]': '',
+    'content[data][user_status]': '0',
+    'content[data][display_name]': 'deletethis17',
+    'content[ID]': '153618901',
+    'content[caps][pms_subscription_plan_667]': '1',
+    'content[cap_key]': 'wp_capabilities',
+    'content[roles][0]': 'pms_subscription_plan_667',
+    'content[allcaps][read]': '1',
+    'content[allcaps][pms_subscription_plan_667]': '1' 
+}
+*/
+module.exports.registerUser = function(userData) {
+    return new Promise(function(resolve, reject) {
+        let userID = userData['content[data][ID]'];
+        let userName = userData['content[data][user_login]'];
+        let userEmail = userData['content[data][user_email]'];
+        let userPass = userData['content[data][user_pass]'];
+
+        return dbController.registerUser(userName, userID, userEmail, userPass)
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        })
+    });
+}
+
+// updateUserData
+// Handles the update user data endpoint, this endpoint is hit every time a request comes in first.
+// This checks with stripe and handles all of our checks to make sure the user can continue with the product.
+module.exports.updateUserData = function(username, ID, email, password, payments, subs, currentRoute) {
     var activeSubscriptionNum = -1;
 
     return new Promise(function(resolve, reject) {
-    	return dbController.createOrUpdateUser(username, ID, email, password, payments, subs)
+    	return dbController.createOrUpdateUserSubscriptions(username, ID, email, password, payments, subs)
     	.then(function(activeSubscription) {
             activeSubscriptionNum = activeSubscription;
 
