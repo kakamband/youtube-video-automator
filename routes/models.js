@@ -53,6 +53,12 @@ module.exports.CLIP_VIDEO_POLL = "/user/clip/video";
 
 // Sets a clip as exclusive
 module.exports.SET_CLIP_EXCLUSIVE = "/user/clip/exclusive";
+
+// Adds or updates a title for this clip
+module.exports.SET_CLIP_TITLE = "/user/clip/title";
+
+// Adds or updates a description for this clip
+module.exports.SET_CLIP_DESCRIPTION = "/user/clip/description";
 // -------------------
 
 // Route definitions
@@ -268,6 +274,38 @@ module.exports.routes = new Map([
 
 			nameAndType("download_id", "string"),
 			nameAndType("exclusive", "boolean")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.SET_CLIP_TITLE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string"),
+			nameAndType("title", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.SET_CLIP_DESCRIPTION, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string"),
+			nameAndType("description", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

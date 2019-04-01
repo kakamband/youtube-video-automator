@@ -422,6 +422,44 @@ module.exports.setClipExclusive = function(username, pmsID, email, password, dow
     });
 }
 
+// setClipTitle
+// Sets a clip title if they are authorized to
+module.exports.setClipTitle = function(username, pmsID, email, password, downloadID, title) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return dbController.setTitle(userID, downloadID, title);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+// setClipDescription
+// Sets a clip description if they are authorized to
+module.exports.setClipDescription = function(username, pmsID, email, password, downloadID, description) {
+    var userID = "pms_" + pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return dbController.setDescription(userID, downloadID, description);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
