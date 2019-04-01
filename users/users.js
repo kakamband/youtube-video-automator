@@ -74,6 +74,50 @@ module.exports.registerUser = function(userData) {
     });
 }
 
+// updateUser
+// Updates a users email or password
+module.exports.updateUser = function(userData) {
+    return new Promise(function(resolve, reject) {
+        let oldID = userData['old_user[data][ID]'];
+        let oldUsername = userData['old_user[data][user_login]'];
+        let oldPassword = userData['old_user[data][user_pass]'];
+        let oldEmail = userData['old_user[data][user_email]'];
+
+        // Need to have all the old information
+        if (oldID == "" || oldUsername == "" || oldPassword == "" || oldEmail == "") {
+            return reject(Errors.notAuthorized());
+        }
+
+        let newID = userData['new_user[data][ID]'];
+        let newUsername = userData['new_user[data][user_login]'];
+        let newPassword = userData['new_user[data][user_pass]'];
+        let newEmail = userData['new_user[data][user_email]'];
+
+        // Need to have all of the new information
+        if (newID == "" || newUsername == "" || newPassword == "" || newEmail == "") {
+            return reject(Errors.notAuthorized());
+        }
+
+        // Old ID and username must match with the new ones. These you can't change.
+        if (newID != oldID || newUsername != oldUsername) {
+            return reject(Errors.notAuthorized());
+        }
+
+        // Make sure the old data is a valid user
+        return validateUserAndGetID(oldUsername, oldID, oldEmail, oldPassword)
+        .then(function(id) {
+            return dbController.updateUser(oldUsername, oldID, newEmail, newPassword);
+        })
+        .then(function() {
+            cLogger.info("Updated users email and password.");
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    })
+}
+
 // updateUserData
 // Handles the update user data endpoint, this endpoint is hit every time a request comes in first.
 // This checks with stripe and handles all of our checks to make sure the user can continue with the product.
