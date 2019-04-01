@@ -456,7 +456,7 @@ function updateUserHelper(userData) {
         }
 
         // Make sure the old data is a valid user
-        return validateUserAndGetID(oldUsername, oldID, oldEmail, oldPassword)
+        return validateUserAllowEmptyPassword(oldUsername, oldID, oldEmail, oldPassword)
         .then(function(id) {
             return dbController.updateUser(oldUsername, oldID, newEmail, newPassword);
         })
@@ -1286,4 +1286,32 @@ function validateUserAndGetID(username, ID, email, password) {
             return reject(err);
         });
 	});
+}
+
+function validateUserAllowEmptyPassword(username, ID, email, password) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, ID, email, password)
+        .then(function(id) {
+            return resolve(id);
+        })
+        .catch(function(err) {
+            return dbController.doesUserExist(username, ID, email, "tmp_password")
+            .then(function(user) {
+                if (user == undefined) {
+                    return reject(Errors.notAuthorized());
+                }
+
+                return dbController.updateUserPasswordPlaceboState(username, ID, email, password)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                })
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        });
+    });
 }

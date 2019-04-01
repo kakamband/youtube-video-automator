@@ -789,6 +789,10 @@ module.exports.updateUser = function(username, ID, email, password) {
 	});
 }
 
+module.exports.updateUserPasswordPlaceboState = function(username, ID, email, password) {
+	return handleInPlaceboState(true, username, ID, email, password);
+}
+
 function handleInPlaceboState(inPlaceboState, username, ID, email, password) {
 	return new Promise(function(resolve, reject) {
 		if (!inPlaceboState) { // They aren't in the placebo state, so make sure that they are authorized to make this call.
