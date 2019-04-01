@@ -119,7 +119,7 @@ module.exports.hasNewUserToken = function(ID) {
 	});
 }
 
-function _setNotificationsSeen(pmsID, clipFlowNotifications) {
+function _setNotificationsSeen(pmsID, notificationNames) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
