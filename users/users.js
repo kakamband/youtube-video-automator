@@ -5,6 +5,7 @@ var OAuthFlow = require('../oauth/oauth_flow');
 var Hijacker = require('../hijacker/hijacker');
 var Worker = require('../worker/worker_producer');
 var ErrorHelper = require('../errors/errors');
+var Errors = require('../errors/defined_errors');
 
 // --------------------------------------------
 // Constants below.
@@ -39,22 +40,22 @@ const validUserRedisTTL = defaultTTL;
 // Example data from wordpress site:
 /*
 userData:  {
-    'content[data][ID]': '153618901',
-    'content[data][user_login]': 'deletethis17',
-    'content[data][user_pass]': '$P$BfNxI1FOHhtUVxCwXsbZAFVd.TGuud0',
-    'content[data][user_nicename]': 'deletethis17',
-    'content[data][user_email]': 'rusop@red-mail.info',
-    'content[data][user_url]': '',
-    'content[data][user_registered]': '2019-03-31 21:12:25',
-    'content[data][user_activation_key]': '',
-    'content[data][user_status]': '0',
-    'content[data][display_name]': 'deletethis17',
-    'content[ID]': '153618901',
-    'content[caps][pms_subscription_plan_667]': '1',
-    'content[cap_key]': 'wp_capabilities',
-    'content[roles][0]': 'pms_subscription_plan_667',
-    'content[allcaps][read]': '1',
-    'content[allcaps][pms_subscription_plan_667]': '1' 
+    "content[data][ID]": "153618901",
+    "content[data][user_login]": "deletethis17",
+    "content[data][user_pass]": "$P$BfNxI1FOHhtUVxCwXsbZAFVd.TGuud0",
+    "content[data][user_nicename]": "deletethis17",
+    "content[data][user_email]": "rusop@red-mail.info",
+    "content[data][user_url]": "",
+    "content[data][user_registered]": "2019-03-31 21:12:25",
+    "content[data][user_activation_key]": "",
+    "content[data][user_status]": "0",
+    "content[data][display_name]": "deletethis17",
+    "content[ID]": "153618901",
+    "content[caps][pms_subscription_plan_667]": "1",
+    "content[cap_key]": "wp_capabilities",
+    "content[roles][0]": "pms_subscription_plan_667",
+    "content[allcaps][read]": "1",
+    "content[allcaps][pms_subscription_plan_667]": "1" 
 }
 */
 module.exports.registerUser = function(userData) {
@@ -62,9 +63,8 @@ module.exports.registerUser = function(userData) {
         let userID = userData['content[data][ID]'];
         let userName = userData['content[data][user_login]'];
         let userEmail = userData['content[data][user_email]'];
-        let userPass = userData['content[data][user_pass]'];
 
-        return dbController.registerUser(userName, userID, userEmail, userPass)
+        return dbController.registerUser(userName, userID, userEmail)
         .then(function() {
             return resolve();
         })
@@ -267,7 +267,7 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
             if (alreadyClipping == undefined || alreadyClipping == "false") {
                 return validateClipGame(twitch_link);
             } else {
-                return reject(alreadyClippingErr());
+                return reject(Errors.alreadyClippingErr());
             }
         })
         .then(function(gameName) {
@@ -553,7 +553,7 @@ function getClipVideoHelper(userID, downloadID) {
         })
         .then(function(downloadObj) {
             if (downloadObj == undefined) {
-                return reject(clipDoesntExist());
+                return reject(Errors.clipDoesntExist());
             } else {
                 if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
                     redis.set(clipVideoKey, "false", "EX", clipVideoTTL);
@@ -585,7 +585,7 @@ function getClipInfoHelper(userID, downloadID) {
         return dbController.getDownload(userID, downloadID)
         .then(function(results) {
             if (results == undefined) {
-                return reject(clipDoesntExist());
+                return reject(Errors.clipDoesntExist());
             } else {
                 info = results;
                 gameName = info.game;
@@ -647,9 +647,9 @@ function getSettingsHelper(pmsID, scope) {
                     }
                 });
             case "minimum-length":
-                return reject(shouldHaveObtainedFromOverview());
+                return reject(Errors.shouldHaveObtainedFromOverview());
             case "maximum-length":
-                return reject(shouldHaveObtainedFromOverview());
+                return reject(Errors.shouldHaveObtainedFromOverview());
             case "game-playlists":
                 return dbController.getPlaylists(pmsID)
                 .then(function(results) {
@@ -667,9 +667,9 @@ function getSettingsHelper(pmsID, scope) {
                     return reject(err);
                 });
             case "default-like":
-                return reject(shouldHaveObtainedFromOverview());
+                return reject(Errors.shouldHaveObtainedFromOverview());
             case "default-category":
-                return reject(shouldHaveObtainedFromOverview());
+                return reject(Errors.shouldHaveObtainedFromOverview());
             case "default-signature":
                 return dbController.getSignatures(pmsID)
                 .then(function(results) {
@@ -687,7 +687,7 @@ function getSettingsHelper(pmsID, scope) {
                     return reject(err);
                 });
             case "default-language":
-                return reject(shouldHaveObtainedFromOverview());
+                return reject(Errors.shouldHaveObtainedFromOverview());
             case "default-thumbnail":
                 return dbController.getThumbnails(pmsID)
                 .then(function(results) {
@@ -697,7 +697,7 @@ function getSettingsHelper(pmsID, scope) {
                     return reject(err);
                 });
             default:
-                return reject(invalidScope());
+                return reject(Errors.invalidScope());
         }
     });
 }
@@ -755,7 +755,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].playlistID == undefined || setting[count].playlistID == "") {
-                        return reject(invalidPlaylist());
+                        return reject(Errors.invalidPlaylist());
                     }
 
                     return dbController.addPlaylist(pmsID, setting[count].gameName, setting[count].playlistID)
@@ -786,7 +786,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].playlistID == undefined || setting[count].playlistID == "") {
-                        return reject(invalidPlaylist());
+                        return reject(Errors.invalidPlaylist());
                     }
 
                     return dbController.deletePlaylist(pmsID, setting[count].gameName, setting[count].playlistID)
@@ -817,7 +817,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].comment == undefined || setting[count].comment == "") {
-                        return reject(invalidComment());
+                        return reject(Errors.invalidComment());
                     }
 
                     return dbController.addComment(pmsID, setting[count].gameName, setting[count].comment)
@@ -848,7 +848,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].comment == undefined || setting[count].comment == "") {
-                        return reject(invalidComment());
+                        return reject(Errors.invalidComment());
                     }
 
                     return dbController.removeComment(pmsID, setting[count].gameName, setting[count].comment)
@@ -884,7 +884,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "default-category":
                 var setting = settingJSON;
                 if (!isValidCategory(setting)) {
-                    return reject(invalidCategory());
+                    return reject(Errors.invalidCategory());
                 }
                 
                 return dbController.updateSimpleSetting(pmsID, settingName, setting + "")
@@ -906,7 +906,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].signature == undefined || setting[count].signature == "") {
-                        return reject(invalidSignature());
+                        return reject(Errors.invalidSignature());
                     }
 
                     return dbController.addSignature(pmsID, setting[count].gameName, setting[count].signature)
@@ -937,7 +937,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].signature == undefined || setting[count].signature == "") {
-                        return reject(invalidSignature());
+                        return reject(Errors.invalidSignature());
                     }
 
                     return dbController.removeSignature(pmsID, setting[count].gameName, setting[count].signature)
@@ -968,7 +968,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].tag == undefined || setting[count].tag == "") {
-                        return reject(invalidTag());
+                        return reject(Errors.invalidTag());
                     }
 
                     return dbController.addTag(pmsID, setting[count].gameName, setting[count].tag)
@@ -999,7 +999,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                     if (setting.length < count || 
                         setting[count].gameName == undefined || setting[count].gameName == "" ||
                         setting[count].tag == undefined || setting[count].tag == "") {
-                        return reject(invalidTag());
+                        return reject(Errors.invalidTag());
                     }
 
                     return dbController.removeTag(pmsID, setting[count].gameName, setting[count].tag)
@@ -1021,7 +1021,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "default-language":
                 var setting = settingJSON;
                 if (!validLanguage(setting)) {
-                    return reject(invalidLanguage());
+                    return reject(Errors.invalidLanguage());
                 }
 
                 return dbController.updateSimpleSetting(pmsID, settingName, setting + "")
@@ -1039,7 +1039,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 }
 
                 if (!validThumbnailItem(setting[0])) {
-                    return reject(invalidThumbnail());
+                    return reject(Errors.invalidThumbnail());
                 }
 
                 // This is the preliminary work towards unique thumbnail to video images.
@@ -1066,7 +1066,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 }
 
                 if (!validThumbnailItems(setting)) {
-                    return reject(invalidThumbnail());
+                    return reject(Errors.invalidThumbnail());
                 }
 
                 // This does NOT care about anything except for image_name & pms_user_id, this is somewhat dangerous but intended.
@@ -1088,7 +1088,7 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
 
                 return next9();
             default:
-                return reject(invalidSetting());
+                return reject(Errors.invalidSetting());
         }
     });
 }
@@ -1218,7 +1218,7 @@ function validateUserAndGetID(username, ID, email, password) {
         .then(function(user) {
             // If the user doesn't exist, reject with a not authorized.
             if (user == undefined) {
-                return reject(notAuthorized());
+                return reject(Errors.notAuthorized());
             }
 
             // The user exists, return the id of the user.
@@ -1229,82 +1229,4 @@ function validateUserAndGetID(username, ID, email, password) {
             return reject(err);
         });
 	});
-}
-
-function clipDoesntExist() {
-    var err = new Error("The clip does not exist.");
-    err.status = 400;
-    return err;
-}
-
-function alreadyClippingErr() {
-    var err = new Error("The user already has a clip running.");
-    err.status = 400;
-    return err;
-}
-
-function invalidThumbnail() {
-    var err = new Error("Invalid Thumbnail.");
-    err.status = 400;
-    return err;
-}
-
-function shouldHaveObtainedFromOverview() {
-    var err = new Error("This value should have been obtained from the overview scope.");
-    err.status = 400;
-    return err;
-}
-
-function invalidScope() {
-    var err = new Error("Invalid Scope.");
-    err.status = 400;
-    return err;
-}
-
-function invalidTag() {
-    var err = new Error("Invalid Signature.");
-    err.status = 400;
-    return err;
-}
-
-function invalidSignature() {
-    var err = new Error("Invalid Signature.");
-    err.status = 400;
-    return err;
-}
-
-function invalidComment() {
-    var err = new Error("Invalid Comment.");
-    err.status = 400;
-    return err;
-}
-
-function invalidSetting() {
-    var err = new Error("Invalid Setting Name.");
-    err.status = 400;
-    return err;
-}
-
-function invalidPlaylist() {
-    var err = new Error("Invalid Playlist.");
-    err.status = 400;
-    return err;
-}
-
-function invalidLanguage() {
-    var err = new Error("Invalid Language.");
-    err.status = 400;
-    return err;
-}
-
-function invalidCategory() {
-    var err = new Error("Invalid Category.");
-    err.status = 400;
-    return err;
-}
-
-function notAuthorized() {
-	var err = new Error("Not Authorized.");
-	err.status = 403;
-	return err;
 }

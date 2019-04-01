@@ -2,6 +2,7 @@ var Promise = require('bluebird');
 var cLogger = require('color-log');
 var Secrets = require('../config/secrets');
 var ErrorHelper = require('../errors/errors');
+var Errors = require('../errors/defined_errors');
 const stripeProd = require('stripe')(Secrets.STRIPE_PROD_SECRET);
 const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
 
@@ -635,7 +636,110 @@ function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
 	});
 }
 
-module.exports.registerUser = function(username, ID, email, password) {
+function userInPlaceboDB(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('placebo_user')
+		.where("user_id", "=", pmsID)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve(false);
+			} else {
+				return resolve(true);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function isUserInPlaceboState(pmsID) {
+	return new Promise(function(resolve, reject) {
+		var key = "user_in_placebo_state_pms_id_" + pmsID;
+
+		return redis.get(key, function(err, reply) {
+            if (!err && reply != null) {
+                return resolve(true);
+            } else {
+                return userInPlaceboDB(pmsID)
+                .then(function(inDB) {
+                	if (inDB) { // Set it for the future if needed.
+                		redis.set(key, "true", "EX", 3600);
+                	}
+
+                	return resolve(inDB);
+                })
+                .catch(function(err) {
+                	return reject(err);
+                });
+            }
+        });
+	});
+}
+
+function setUserInPlaceboStateCached(pmsID) {
+	return new Promise(function(resolve, reject) {
+		var key = "user_in_placebo_state_pms_id_" + pmsID;
+		var ttl = 3600; // 1 Hour
+
+		var multi = redis.multi();
+		multi.set(key, "true", "EX", ttl);
+		multi.exec(function (err, replies) {
+		    return resolve();
+		});
+	});
+}
+
+function setUserNotInPlaceboStateCached(pmsID) {
+	return new Promise(function(resolve, reject) {
+		var key = "user_in_placebo_state_pms_id_" + pmsID;
+
+		var multi = redis.multi();
+		multi.del(key);
+		multi.exec(function (err, replies) {
+		    return resolve();
+		});
+	});
+}
+
+function setUserNotInPlaceboState(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('placebo_user')
+		.where("user_id", "=", pmsID)
+		.del()
+		.then(function() {
+			return setUserNotInPlaceboStateCached(pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function addUserToPlaceboState(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('placebo_user')
+		.insert({
+			user_id: pmsID,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function() {
+			return setUserInPlaceboStateCached(pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.registerUser = function(username, ID, email) {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Creating new user.");
 		return knex('users')
@@ -643,7 +747,7 @@ module.exports.registerUser = function(username, ID, email, password) {
 			username: username,
 			pms_user_id: ID,
 			email: email,
-			password: password,
+			password: "tmp_password",
 			created_at: new Date(),
 			updated_at: new Date()
 		})
@@ -652,6 +756,9 @@ module.exports.registerUser = function(username, ID, email, password) {
 		})
 		.then(function() {
 			return createNewUserDefaults(ID);
+		})
+		.then(function() {
+			return addUserToPlaceboState(ID);
 		})
 		.then(function() {
 			return resolve();
@@ -682,22 +789,53 @@ module.exports.updateUser = function(username, ID, email, password) {
 	});
 }
 
+function handleInPlaceboState(inPlaceboState, username, ID, email, password) {
+	return new Promise(function(resolve, reject) {
+		if (!inPlaceboState) { // They aren't in the placebo state, so make sure that they are authorized to make this call.
+			return knex('users')
+			.where("username", "=", username)
+			.where("pms_user_id", "=", ID)
+			.where("email", "=", email)
+			.where("password", "=", password)
+			.then(function(results) {
+				if (results.length == 0) {
+					return reject(Errors.notAuthorized());
+				} else {
+					return resolve();
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		} else {
+			return knex('users')
+			.where("username", "=", username)
+			.where("pms_user_id", "=", ID)
+			.where("email", "=", email)
+			.update({
+				password: password,
+				updated_at: new Date()
+			})
+			.then(function(results) {
+				return setUserNotInPlaceboState(ID);
+			})
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+	});
+}
+
 module.exports.createOrUpdateUserSubscriptions = function(username, ID, email, password, payments, subs) {
 	var subscriptions = JSON.parse(subs);
 
 	return new Promise(function(resolve, reject) {
-		knex('users')
-		.where('username', '=', username)
-		.where('pms_user_id', '=', ID)
-		.where('email', '=', email)
-		.where('password', '=', password)
-		.limit(1)
-		.then(function(users) {
-			if (users.length == 0) { // The user doesnt exist??
-				return reject(new Error("Trying to update payments, and subscriptions but can't find the user!"));
-			} else { // The user does exist continue
-				return Promise.resolve();
-			}
+		return isUserInPlaceboState(ID)
+		.then(function(inPlaceboState) {
+			return handleInPlaceboState(inPlaceboState, username, ID, email, password);
 		})
 		.then(function() {
 			return addNewSubscriptions(ID, subscriptions);
