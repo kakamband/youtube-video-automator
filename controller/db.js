@@ -781,7 +781,7 @@ module.exports.updateUser = function(username, ID, email, password) {
 			updated_at: new Date()
 		})
 		.then(function() {
-			return Promise.resolve();
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);
