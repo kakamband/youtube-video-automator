@@ -1124,7 +1124,6 @@ function addNewSubscriptions(pmsID, subs) {
 							return reject(err);
 						});
 					} else {
-						cLogger.info("Not updating subscription because the status is the same.");
 						count++;
 						if (count < subs.length - 1) {
 							return next();
