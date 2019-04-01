@@ -18,6 +18,9 @@ module.exports.USER_UPDATE = "/user/update";
 // Introduces a new user to the server
 module.exports.USER_INTRO = "/user/create";
 
+// Updates specifically a users password (from the forget password page)
+module.exports.USER_PASSWORD_UPDATE = "/user/update/password";
+
 // Asks if a user has a token stored
 module.exports.USER_HAS_TOKEN = "/user/has-token";
 
@@ -107,6 +110,13 @@ module.exports.routes = new Map([
 		}
 	}],
 	[this.USER_UPDATE, {
+		method: "post",
+		required_body: [],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, null, null);
+		}
+	}],
+	[this.USER_PASSWORD_UPDATE, {
 		method: "post",
 		required_body: [],
 		validateParams: function(body, params) {
