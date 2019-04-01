@@ -174,6 +174,12 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('placebo_user', function(table) {
+			table.increments();
+			table.string("user_id").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;

@@ -2016,7 +2016,7 @@ jQuery(document).ready(function( $ ){
       	dashboardAuthenticator($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);
       }
     } else if (pageURL[1].startsWith("register") && canAuth) { // If we are on the register route, and we are already logged in redirect to dashboard.
-        window.location.href = "https://twitchautomator.com/dashboard/";
+        //window.location.href = "https://twitchautomator.com/dashboard/";
     } else if (pageURL[1].startsWith("videos")) { // Videos route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "videos");
     } else if (pageURL[1].startsWith("account")) { // Account route
