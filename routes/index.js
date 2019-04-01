@@ -115,9 +115,14 @@ router.post(Models.USER_REGISTER, function(req, res, next) {
 
 router.post(Models.USER_UPDATE, function(req, res, next) {
 	validFirst(Models.USER_UPDATE, req, res, next, function() {
-		console.log("The body is: ", req.body);
-		return res.json({
-			success: true
+		return Users.updateUser(req.body)
+		.then(function() {
+			return res.json({
+				success: true
+			});
+		})
+		.catch(function(err) {
+			return reject(err);
 		});
 	});
 });
