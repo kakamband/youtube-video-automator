@@ -89,16 +89,16 @@ module.exports.ADBuster = function(twitchStream) {
 		cLogger.info("Starting the AD download.");
 
 		return setTimeout(function() {
-			return resolve(cProcess);
+			return resolve([cProcess, fileName]);
 		}, 1000);
 	});
 }
 
-function killADBusterProcess(adProcess) {
+function killADBusterProcess(adProcess, adFileName) {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Killing the AD download, and deleting the file.");
 		adProcess.kill();
-		var rmCMD = "rm " + fileName + ".mp4";
+		var rmCMD = "rm " + adFileName + ".mp4";
 		return shell.exec(rmCMD, function(code, stdout, stderr) {
 			if (code != 0) {
 				ErrorHelper.scopeConfigure("hijacker.killADBusterProcess", {ouput: stderr});
@@ -110,7 +110,7 @@ function killADBusterProcess(adProcess) {
 	});
 }
 
-module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess) {
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess, adFileName) {
 	return new Promise(function(resolve, reject) {
 		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameName + "\"");
 		cLogger.info("Running command: " + lsCMD);
@@ -138,7 +138,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		cProcess = shell.exec(downloadCMD, {async: true});
 
 			  		return setTimeout(function() {
-			  			return killADBusterProcess(adProcess)
+			  			return killADBusterProcess(adProcess, adFileName)
 			  			.then(function() {
 			  				return next();
 			  			})
