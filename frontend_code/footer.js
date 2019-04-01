@@ -1408,8 +1408,9 @@ function startPollingForClipVideo($, username, ID, email, pass, downloadID) {
   return pollForAuth();
 }
 
-// Scrolls to the title and description section if it isn't filled out yet. Also updates the state to "Done (Need Title/Description)".
-function scrollToTitleAndDescIfEmpty($, scrollEnabled) {
+// Helper
+function _scrollToTitleAndDescIfEmpty($, scrollEnabled, startingVal) {
+  
   var titleVal = $("#clip-title-input").val();
   var descriptionVal = $("#clip-description-input").val();
   var missingInput = false;
@@ -1436,7 +1437,18 @@ function scrollToTitleAndDescIfEmpty($, scrollEnabled) {
     if (scrollEnabled) {
       $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
     }
+  } else if (!missingInput && startingVal != undefined) {
+    $("#clip-status").html(startingVal);
+
+    if (scrollEnabled) {
+      $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+    }
   }
+}
+
+// Scrolls to the title and description section if it isn't filled out yet. Also updates the state to "Done (Need Title/Description)".
+function scrollToTitleAndDescIfEmpty($, scrollEnabled) {
+  return _scrollToTitleAndDescIfEmpty($, scrollEnabled, undefined);
 }
 
 // Ends the current clip
@@ -1501,7 +1513,6 @@ function createClipItemCurrentOne(clipNumber) {
 
 // Updates the exclusivity of a clip in the backend
 function updateExclusive($, username, ID, email, pass, downloadID, exclusive) {
-  console.log("Type of exclusive: " + typeof exclusive);
   $.ajax({
     type: "POST",
     url: autoTuberURL + "/user/clip/exclusive",
@@ -1533,6 +1544,54 @@ function textareaAutoScaling($, ID) {
     while($(this).outerHeight() < this.scrollHeight + parseFloat($(this).css("borderTopWidth")) + parseFloat($(this).css("borderBottomWidth"))) {
         $(this).height($(this).height()+1);
     };
+  });
+}
+
+// Saves a title or description
+function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueName, value) {
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID
+  };
+  dataOBJ[valueName] = value;
+
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + urlPART,
+    data: dataOBJ,
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Updated title or description of clip.");
+        _scrollToTitleAndDescIfEmpty($, false, "Done");
+      }
+    },
+    dataType: "json"
+  });
+}
+
+// Handles a saving for a textarea
+function handleTextAreaSaving($, username, ID, email, pass, downloadID, textareaID) {
+  var textareaTimeoutID;
+  $("#" + textareaID).bind('input propertychange', function() {
+
+    clearTimeout(textareaTimeoutID);
+    textareaTimeoutID = setTimeout(function() {
+
+      if (textareaID == "clip-title-input") {
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val());
+      } else if (textareaID == "clip-description-input") {
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val());
+      }
+
+    }, 1000);
   });
 }
 
@@ -1632,6 +1691,22 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Set the title and description to autogrow
         textareaAutoScaling($, "clip-description-input");
         textareaAutoScaling($, "clip-title-input");
+
+        // Handles the title and description saving
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input");
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-title-input");
+
+        // If the title or description are already set
+        if (clipInfo.title) {
+          $("#clip-title-input").val(clipInfo.title);
+        }
+        if (clipInfo.description) {
+          $("#clip-description-input").val(clipInfo.description);
+        }
+
+        // Update the textarea sizes
+        $("#clip-description-input").height( $("#clip-description-input")[0].scrollHeight );
+        $("#clip-title-input").height( $("#clip-title-input")[0].scrollHeight );
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop") {

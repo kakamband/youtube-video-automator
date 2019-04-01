@@ -119,7 +119,7 @@ module.exports.hasNewUserToken = function(ID) {
 	});
 }
 
-module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
+function _setNotificationsSeen(pmsID, clipFlowNotifications) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
@@ -135,6 +135,10 @@ module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.setNotificationsSeen = function(pmsID, notificationNames) {
+	return _setNotificationsSeen(pmsID, notificationNames);
 }
 
 function seenNotificationHelper(pmsID, notificationName) {
@@ -1247,7 +1251,7 @@ function titleOrDescExists(type, userID, downloadID) {
 	});
 }
 
-function possiblyUpdateDownloadState(userID, downloadID) {
+function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 	var titleExists = false;
 	var descExists = false;
 	return new Promise(function(resolve, reject) {
@@ -1269,6 +1273,9 @@ function possiblyUpdateDownloadState(userID, downloadID) {
 					state: "done", // DO NOT UPDATE updated_at here since this is used to show video length.
 				})
 				.then(function(results) {
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description"]);
+				})
+				.then(function() {
 					// TODO: Send this to do encoding next
 
 					return resolve();
@@ -1284,7 +1291,7 @@ function possiblyUpdateDownloadState(userID, downloadID) {
 	});
 }
 
-function setTitleDescHelper(type, userID, downloadID, value) {
+function setTitleDescHelper(type, userID, pmsID, downloadID, value) {
 	return new Promise(function(resolve, reject) {
 		if (type == "titles" && value == "") {
 			return reject(new Error("The value passed for the title is empty. A description can be empty, but not a title."));
@@ -1301,7 +1308,7 @@ function setTitleDescHelper(type, userID, downloadID, value) {
 					updated_at: new Date()
 				})
 				.then(function(results) {
-					return possiblyUpdateDownloadState(userID, downloadID);
+					return possiblyUpdateDownloadState(userID, pmsID, downloadID);
 				})
 				.then(function() {
 					return resolve();
@@ -1319,7 +1326,7 @@ function setTitleDescHelper(type, userID, downloadID, value) {
 					created_at: new Date()
 				})
 				.then(function(results) {
-					return possiblyUpdateDownloadState(userID, downloadID);
+					return possiblyUpdateDownloadState(userID, pmsID, downloadID);
 				})
 				.then(function() {
 					return resolve();
@@ -1335,12 +1342,12 @@ function setTitleDescHelper(type, userID, downloadID, value) {
 	});
 }
 
-module.exports.setTitle = function(userID, downloadID, title) {
-	return setTitleDescHelper("titles", userID, downloadID, title);
+module.exports.setTitle = function(userID, pmsID, downloadID, title) {
+	return setTitleDescHelper("titles", userID, pmsID, downloadID, title);
 }
 
-module.exports.setDescription = function(userID, downloadID, descr) {
-	return setTitleDescHelper("descriptions", userID, downloadID, descr);
+module.exports.setDescription = function(userID, pmsID, downloadID, descr) {
+	return setTitleDescHelper("descriptions", userID, pmsID, downloadID, descr);
 }
 
 module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFile) {

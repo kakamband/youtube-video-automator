@@ -430,7 +430,7 @@ module.exports.setClipTitle = function(username, pmsID, email, password, downloa
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return dbController.setTitle(userID, downloadID, title);
+            return dbController.setTitle(userID, pmsID, downloadID, title);
         })
         .then(function() {
             return resolve(true);
@@ -449,7 +449,7 @@ module.exports.setClipDescription = function(username, pmsID, email, password, d
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return dbController.setDescription(userID, downloadID, description);
+            return dbController.setDescription(userID, pmsID, downloadID, description);
         })
         .then(function() {
             return resolve(true);
