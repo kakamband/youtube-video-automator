@@ -338,4 +338,34 @@ router.post(Models.SET_CLIP_EXCLUSIVE, function(req, res, next) {
 	});
 });
 
+router.post(Models.SET_CLIP_TITLE, function(req, res, next) {
+	validFirst(Models.SET_CLIP_TITLE, req, res, next, function() {
+		return Users.setClipTitle(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, req.body.title)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SET_CLIP_TITLE, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
+router.post(Models.SET_CLIP_DESCRIPTION, function(req, res, next) {
+	validFirst(Models.SET_CLIP_DESCRIPTION, req, res, next, function() {
+		return Users.setClipDescription(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, req.body.description)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SET_CLIP_DESCRIPTION, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

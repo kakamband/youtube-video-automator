@@ -1223,6 +1223,126 @@ module.exports.setDownloadExclusive = function(userID, downloadID, exclusive) {
 	});
 }
 
+function titleOrDescExists(type, userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		switch (type) {
+			case "titles":
+			case "descriptions":
+				return knex(type)
+				.where("user_id", "=", userID)
+				.where("download_id", "=", downloadID)
+				.then(function(results) {
+					if (results.length == 0) {
+						return resolve(false);
+					} else {
+						return resolve(true);
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default: 
+				return reject(new Error("db.titleOrDescExists: Passed in something except for titles or descriptions."));
+		}
+	});
+}
+
+function possiblyUpdateDownloadState(userID, downloadID) {
+	var titleExists = false;
+	var descExists = false;
+	return new Promise(function(resolve, reject) {
+		return titleOrDescExists("titles", userID, downloadID)
+		.then(function(tExists) {
+			titleExists = tExists;
+			return titleOrDescExists("descriptions", userID, downloadID);
+		})
+		.then(function(dExists) {
+			descExists = dExists;
+
+			if (titleExists == false || descExists == false) {
+				return resolve();
+			} else {
+				return knex('downloads')
+				.where("user_id", "=", userID)
+				.where("id", "=", downloadID)
+				.update({
+					state: "done", // DO NOT UPDATE updated_at here since this is used to show video length.
+				})
+				.then(function(results) {
+					// TODO: Send this to do encoding next
+
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function setTitleDescHelper(type, userID, downloadID, value) {
+	return new Promise(function(resolve, reject) {
+		if (type == "titles" && value == "") {
+			return reject(new Error("The value passed for the title is empty. A description can be empty, but not a title."));
+		}
+
+		return titleOrDescExists(type, userID, downloadID)
+		.then(function(results) {
+			if (results) { // Already exists
+				return knex(type)
+				.where("user_id", "=", userID)
+				.where("download_id", "=", downloadID)
+				.update({
+					value: value,
+					updated_at: new Date()
+				})
+				.then(function(results) {
+					return possiblyUpdateDownloadState(userID, downloadID);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				return knex(type)
+				.insert({
+					user_id: userID,
+					download_id: downloadID,
+					value: value,
+					updated_at: new Date(),
+					created_at: new Date()
+				})
+				.then(function(results) {
+					return possiblyUpdateDownloadState(userID, downloadID);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setTitle = function(userID, downloadID, title) {
+	return setTitleDescHelper("titles", userID, downloadID, title);
+}
+
+module.exports.setDescription = function(userID, downloadID, descr) {
+	return setTitleDescHelper("descriptions", userID, downloadID, descr);
+}
+
 module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFile) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
@@ -1243,6 +1363,9 @@ module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFi
 module.exports.getDownload = function(userID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
+		.select("*")
+		.select(knex.raw('(SELECT value FROM titles WHERE user_id=\'' + userID + '\' AND download_id=\'' + downloadID + '\') as title'))
+		.select(knex.raw('(SELECT value FROM descriptions WHERE user_id=\'' + userID + '\' AND download_id=\'' + downloadID + '\') as description'))
 		.where("id", "=", downloadID)
 		.where("user_id", "=", userID)
 		.then(function(results) {

@@ -1496,7 +1496,7 @@ function createClipItem(clipNumber, clipDate, clipStreamer, clipLink) {
 
 // Returns a row for the clip already running
 function createClipItemCurrentOne(clipNumber) {
-  return "<tr><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Active Clip!</span></h4></td></tr>"
+  return "<tr><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Current Clip!</span></h4></td></tr>"
 }
 
 // Updates the exclusivity of a clip in the backend
@@ -1681,6 +1681,12 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           // Specific things for this state
           if (clipInfo.state == "done-need-info") {
             scrollToTitleAndDescIfEmpty($, true);
+          } else if (clipInfo.downloaded_file == undefined) {
+
+            // If downloaded file isn't found yet start polling for it
+            // This is a case where maybe a refresh, and the video is still uploading to S3
+            // This is an edge case.
+            startPollingForClipVideo($, username, ID, email, pass, downloadID);
           }
 
         }
