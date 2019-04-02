@@ -460,6 +460,28 @@ module.exports.setClipDescription = function(username, pmsID, email, password, d
     });
 }
 
+// setClipDeleted
+// Sets a clip as deleted in the database. A cron will pick this up and delete it 24 hours later
+module.exports.setClipDeleted = function(username, pmsID, email, password, downloadID, deleteVal) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+
+            if (deleteVal) { // Delete it
+                return dbController.setClipAsDeleted(userID, downloadID);
+            } else { // Un delete it
+                return dbController.setClipAsUnDeleted(userID, pmsID, downloadID);
+            }
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------

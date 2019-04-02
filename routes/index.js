@@ -368,4 +368,26 @@ router.post(Models.SET_CLIP_DESCRIPTION, function(req, res, next) {
 	});
 });
 
+router.post(Models.SET_CLIP_DELETED, function(req, res, next) {
+	validFirst(Models.SET_CLIP_DELETED, req, res, next, function() {
+		var deleteVal = req.body.delete;
+		if (deleteVal == "true") {
+			deleteVal = true;
+		} else if (deleteVal == "false") {
+			deleteVal = false;
+		}
+
+		return Users.setClipDeleted(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, deleteVal)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SET_CLIP_DELETED, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

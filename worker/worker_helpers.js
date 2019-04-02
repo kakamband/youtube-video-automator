@@ -6,6 +6,7 @@ var ErrorHelper = require('../errors/errors');
 var Attr = require('../config/attributes');
 var shell = require('shelljs');
 var WorkerProducer = require('./worker_producer');
+var CronHandler = require('../cron/cron_handler');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -69,6 +70,12 @@ module.exports.decrementMsgCount = function(key) {
 // Wrapper for WorkerProducer.initProducers()
 module.exports.setupWorkerChannels = function() {
 	return WorkerProducer.initProducers();
+}
+
+// permDeleteWrapper
+// Wrapper for CronHandler.permDeleteClips()
+module.exports.permDeleteWrapper = function() {
+	return CronHandler.permDeleteClips();
 }
 
 // --------------------------------------------

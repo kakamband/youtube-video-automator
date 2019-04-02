@@ -59,6 +59,9 @@ module.exports.SET_CLIP_TITLE = "/user/clip/title";
 
 // Adds or updates a description for this clip
 module.exports.SET_CLIP_DESCRIPTION = "/user/clip/description";
+
+// Sets a clip as deleted (it will then be deleted 24 hours later)
+module.exports.SET_CLIP_DELETED = "/user/clip/delete";
 // -------------------
 
 // Route definitions
@@ -306,6 +309,22 @@ module.exports.routes = new Map([
 
 			nameAndType("download_id", "string"),
 			nameAndType("description", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.SET_CLIP_DELETED, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string"),
+			nameAndType("delete", "boolean")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

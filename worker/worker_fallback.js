@@ -115,6 +115,20 @@ function handleMessage(message, msg, ch, knex) {
         safeRetry(message, ch, msg, message);
       });
     break;
+    case "permanent_delete_task":
+      return Helpers.permDeleteWrapper()
+      .then(function() {
+          successMsg(message);
+          return Helpers.decrementMsgCount(redisFallbackKey);
+      })
+      .then(function() {
+          ch.ack(msg);
+      })
+      .catch(function(err) {
+        errMsg(message, msg, message, err);
+        safeRetry(message, ch, msg, message);
+      });
+    break;
   }
 }
 

@@ -23,6 +23,7 @@ var redis = require("redis");
 var Promise = require('bluebird');
 const readline = require('readline');
 const Sentry = require('@sentry/node');
+var CronHandler = require('./cron/cron_handler');
 
 var index = require('./routes/index');
 
@@ -273,6 +274,9 @@ switch (processType) {
 			twitch.clientID = Secrets.TWITCH_CLIENT_ID;
 			global.twitch = twitch;
 
+			return CronHandler.init();
+		})
+		.then(function() {
 			cLogger.info("Not running any process, just letting the node server run.");
 		})
 		.catch(function(err) {

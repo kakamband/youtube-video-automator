@@ -97,6 +97,8 @@ module.exports.initialize = function(knex) {
 			table.boolean("exclusive").default(false).notNullable();
 			table.string("twitch_link").notNullable();
 			table.string("downloaded_file");
+			table.boolean("deleted").default(false).notNullable();
+			table.date("deleted_at");
 			table.timestamps();
 		});
 	}).then(function() {

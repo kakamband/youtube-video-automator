@@ -1196,6 +1196,7 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 		.where("used", "=", false)
 		.where("game", "=", gameName)
 		.where("state", "=", "done")
+		.where("deleted", "=", false)
 		.orderBy("updated_at", "DESC")
 		.then(function(results) {
 			if (results.length == 0) {
@@ -1350,6 +1351,67 @@ module.exports.setDescription = function(userID, pmsID, downloadID, descr) {
 	return setTitleDescHelper("descriptions", userID, pmsID, downloadID, descr);
 }
 
+module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return _getDownload(userID, downloadID)
+		.then(function(result) {
+			if (result.state == "deleted") {
+				return reject(new Error("This has been permanetly deleted. This only happens 24 hours after marking it as deleted."));
+			} else {
+				return knex('downloads')
+				.where('id', '=', downloadID)
+				.where('user_id', '=', userID)
+				.update({
+					state: "done-need-info",
+					deleted: false,
+					deleted_at: null // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
+				})
+				.then(function(results) {
+					return possiblyUpdateDownloadState(userID, pmsID, downloadID);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setClipAsDeleted = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return _getDownload(userID, downloadID)
+		.then(function(result) {
+			if (result.state == "deleted") {
+				return reject(new Error("The clip has already been permanetly deleted."));
+			} else {
+				return knex('downloads')
+				.where("id", "=", downloadID)
+				.where("user_id", "=", userID)
+				.update({
+					state: "deleted-soon",
+					deleted: true,
+					deleted_at: new Date() // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
+				})
+				.then(function(results) {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFile) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
@@ -1367,7 +1429,7 @@ module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFi
 	});
 }
 
-module.exports.getDownload = function(userID, downloadID) {
+function _getDownload(userID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.select("*")
@@ -1385,6 +1447,10 @@ module.exports.getDownload = function(userID, downloadID) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.getDownload = function(userID, downloadID) {
+	return _getDownload(userID, downloadID);
 }
 
 module.exports.addDownload = function(downloadObj) {
@@ -1718,6 +1784,44 @@ function setDownloadToDoneNeedInfo(userID, pmsID, downloadID) {
 			return createNeedTitleOrDescriptionNotification(pmsID, JSON.stringify({download_id: downloadID}));
 		})
 		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getAllDeleted = function() {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where('state', '=', 'deleted-soon')
+		.where('deleted', '=', true)
+		.orderBy("deleted_at", "ASC")
+		.limit(100)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setAsPermanentlyDeleted = function(downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where('id', '=', downloadID)
+		.update({
+			deleted: true,
+			state: 'deleted',
+			downloaded_file: null
+		})
+		.then(function(results) {
 			return resolve();
 		})
 		.catch(function(err) {
