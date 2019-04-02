@@ -1595,6 +1595,77 @@ function handleTextAreaSaving($, username, ID, email, pass, downloadID, textarea
   });
 }
 
+// Tells the server that this clip is now deleted
+function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal) {
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "delete": deleteVal
+  };
+
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/delete",
+    data: dataOBJ,
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Succesfully set clip deleted to: " + deleteVal);
+      }
+    },
+    dataType: "json"
+  });
+}
+
+// Handles the delete button
+function handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID) {
+  scrollToTitleAndDescIfEmpty($, false);
+  $(".delete-clip-button").removeClass("a-tag-disabled");
+  var clipDeleted = false;
+
+  var originalStatus = $("#clip-status").html();
+  if (clipInfo.state == "deleted") {
+    $(".delete-clip-button").addClass("a-tag-disabled");
+    console.log("This clip is permanently deleted, cannot undelete.");
+    $("#clip-status").removeClass("clip-status-active");
+    $("#clip-status").addClass("clip-status-done");
+    $("#clip-status").html("Permanently Deleted");
+    $(".delete-clip-button").text("Clip Deleted");
+    return;
+  } else if (clipInfo.state == "deleted-soon") {
+    clipDeleted = true;
+    $("#clip-status").removeClass("clip-status-active");
+    $("#clip-status").addClass("clip-status-done");
+    $("#clip-status").html("Deleted Soon (48hr)");
+    $(".delete-clip-button").text("Recover Clip");
+  }
+
+  $(".delete-clip-button").click(function() {
+    if (clipDeleted) {
+      deleteClipCall($, username, ID, email, pass, downloadID, false);
+      console.log("UnDeleting.");
+      clipDeleted = false;
+      $("#clip-status").html(originalStatus);
+      $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+      $(".delete-clip-button").text("Delete Clip");
+    } else {
+      deleteClipCall($, username, ID, email, pass, downloadID, true);
+      console.log("Deleting.");
+      clipDeleted = true;
+      $("#clip-status").html("Deleted Soon (48hr)");
+      $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
+      $(".delete-clip-button").text("Recover Clip");
+    }
+  });
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $("#current-clip-video").hide();
@@ -1616,6 +1687,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
     success: function(result,status,xhr) {
       if (result && result.clip_info) {
         let clipInfo = result.clip_info;
+        var clipSeconds = 0;
 
         // Set the clip game
         $("#clip-game").text(clipInfo.game);
@@ -1710,13 +1782,14 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
+          $(".delete-clip-button").addClass("a-tag-disabled");
 
           // Still running get the difference in time between start and now
           var diff = currentDate.getTime() - clipStart.getTime();
           var diffTmp = diff / 1000;
 
           // Number of seconds that the clip has been running
-          var clipSeconds = Math.abs(diffTmp);
+          clipSeconds = Math.abs(diffTmp);
 
           // Number of seconds the clip has been running + previous clips
           var totalVidSeconds = clipSeconds + extraVidTime;
@@ -1739,11 +1812,13 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
           // Watch for the stop clipping button
           $(".stop-clipping-button").click(function() {
-            return endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
+            handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+            endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
           });
 
         } else if (clipInfo.state == "done" || clipInfo.state == "done-need-info") { // The clip is in the stop state
 
+          // Update the timers to the correct time
           var stoppedDate = new Date(clipInfo.updated_at);
           var diff = stoppedDate.getTime() - clipStart.getTime();
           var diffTmp = diff / 1000;
@@ -1764,6 +1839,35 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             startPollingForClipVideo($, username, ID, email, pass, downloadID);
           }
 
+          // Handle possible deletions
+          handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+
+        } else if (clipInfo.state == "deleted") {
+
+          // Update the timers to the correct time
+          var stoppedDate = new Date(clipInfo.updated_at);
+          var diff = stoppedDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+          var clipSeconds = Math.abs(diffTmp);
+          var totalVidSeconds = clipSeconds + extraVidTime;
+          updateTimer($, clipSeconds, totalVidSeconds);
+          setClipStatusDone($);
+
+          $(".stop-clipping-button").addClass("a-tag-disabled");
+            handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+        } else if (clipInfo.state == "deleted-soon" || clipInfo.deleted) {
+
+          // Update the timers to the correct time
+          var stoppedDate = new Date(clipInfo.updated_at);
+          var diff = stoppedDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+          var clipSeconds = Math.abs(diffTmp);
+          var totalVidSeconds = clipSeconds + extraVidTime;
+          updateTimer($, clipSeconds, totalVidSeconds);
+          setClipStatusDone($);
+
+          $(".stop-clipping-button").addClass("a-tag-disabled");
+            handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
         }
 
         // Set the exclusive checkbox value

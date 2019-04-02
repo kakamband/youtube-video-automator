@@ -60,7 +60,7 @@ module.exports.SET_CLIP_TITLE = "/user/clip/title";
 // Adds or updates a description for this clip
 module.exports.SET_CLIP_DESCRIPTION = "/user/clip/description";
 
-// Sets a clip as deleted (it will then be deleted 24 hours later)
+// Sets a clip as deleted (it will then be deleted 48 hours later)
 module.exports.SET_CLIP_DELETED = "/user/clip/delete";
 // -------------------
 

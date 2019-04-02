@@ -469,7 +469,7 @@ module.exports.setClipDeleted = function(username, pmsID, email, password, downl
             userID = id;
 
             if (deleteVal) { // Delete it
-                return dbController.setClipAsDeleted(userID, downloadID);
+                return dbController.setClipAsDeleted(userID, pmsID, downloadID);
             } else { // Un delete it
                 return dbController.setClipAsUnDeleted(userID, pmsID, downloadID);
             }

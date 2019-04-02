@@ -1351,6 +1351,28 @@ module.exports.setDescription = function(userID, pmsID, downloadID, descr) {
 	return setTitleDescHelper("descriptions", userID, pmsID, downloadID, descr);
 }
 
+function reEnableNeedClipInfoNotification(pmsID, content) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.where("notification", "=", "need-title-or-description")
+		.where("pms_user_id", "=", pmsID)
+		.where("content", "=", content)
+		.update({
+			seen: false,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure("db.reEnableNeedClipInfoNotification", {pms_user_id: pmsID});
+			ErrorHelper.emitSimpleError(err);
+
+			return resolve();
+		});
+	});
+}
+
 module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return _getDownload(userID, downloadID)
@@ -1367,6 +1389,9 @@ module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 					deleted_at: null // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
 				})
 				.then(function(results) {
+					return reEnableNeedClipInfoNotification(pmsID, JSON.stringify({download_id: downloadID}));
+				})
+				.then(function() {
 					return possiblyUpdateDownloadState(userID, pmsID, downloadID);
 				})
 				.then(function() {
@@ -1383,7 +1408,7 @@ module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 	});
 }
 
-module.exports.setClipAsDeleted = function(userID, downloadID) {
+module.exports.setClipAsDeleted = function(userID, pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return _getDownload(userID, downloadID)
 		.then(function(result) {
@@ -1399,6 +1424,9 @@ module.exports.setClipAsDeleted = function(userID, downloadID) {
 					deleted_at: new Date() // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
 				})
 				.then(function(results) {
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description"]);
+				})
+				.then(function() {
 					return resolve();
 				})
 				.catch(function(err) {
