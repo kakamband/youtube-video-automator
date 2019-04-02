@@ -151,6 +151,27 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 	});
 }
 
+// startPermDeleteCycle
+// Starts a permanent delete cycle
+module.exports.startPermDeleteCycle = function() {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime()
+		};
+
+		return makePermDeletePost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -196,6 +217,10 @@ function makeTransferToS3Post(msgOptions) {
 
 function makeDownloadPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "downloading_task");
+}
+
+function makePermDeletePost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "permanent_delete_task");
 }
 
 function getMessagesAndConsumers(queueName) {

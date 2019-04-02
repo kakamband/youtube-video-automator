@@ -22,6 +22,7 @@
     "cli-progress": "^2.1.1",
     "color-log": "0.0.2",
     "cookie-parser": "~1.4.3",
+    "cron": "^1.7.0",
     "dateformat": "^3.0.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
