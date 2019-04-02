@@ -1356,7 +1356,7 @@ module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 		return _getDownload(userID, downloadID)
 		.then(function(result) {
 			if (result.state == "deleted") {
-				return reject(new Error("This has been permanetly deleted. This only happens 24 hours after marking it as deleted."));
+				return reject(new Error("This has been permanetly deleted. This only happens 48 hours after marking it as deleted."));
 			} else {
 				return knex('downloads')
 				.where('id', '=', downloadID)
