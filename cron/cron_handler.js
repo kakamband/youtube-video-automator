@@ -6,25 +6,21 @@ var shell = require('shelljs');
 const CronJob = require('cron').CronJob;
 var WorkerProducer = require('../worker/worker_producer');
 var ErrorHelper = require('../errors/errors');
+var CronDefinitions = require('./cron_definitions');
 
 // init
 // Starts the cron job and schedules all the needed tasks
 module.exports.init = function() {
 	return new Promise(function(resolve, reject) {
-		const midnightCron = "00 00 00 * * *";
 
-		const job = new CronJob(midnightCron, function() {
-			WorkerProducer.startPermDeleteCycle()
-			.then(function() {
-				cLogger.info("Done posting permanent delete cycle.");
-			})
-			.catch(function(err) {
-				ErrorHelper.scopeConfigure("cron_handler.init", {job_name: "perm_delete_job"});
-				ErrorHelper.emitSimpleError(err);
-			});
-		});
+		// Get all of the cron jobs
+		var jobs = CronDefinitions.getCronJobs();
 
-		job.start();
+		// Start all of the cron jobs
+		for (var i = 0; i < jobs.length; i++) {
+			jobs[i].start();
+		}
+
 		return resolve();
 	});
 }
