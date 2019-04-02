@@ -1389,7 +1389,7 @@ module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 					deleted_at: null // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
 				})
 				.then(function(results) {
-					return reEnableNeedClipInfoNotification(pmsID, JSON.stringify({download_id: downloadID}));
+					return reEnableNeedClipInfoNotification(pmsID, JSON.stringify({download_id: parseInt(downloadID)}));
 				})
 				.then(function() {
 					return possiblyUpdateDownloadState(userID, pmsID, downloadID);
