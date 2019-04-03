@@ -36,6 +36,7 @@
     "pug": "2.0.0-beta11",
     "redis": "^2.8.0",
     "serve-favicon": "~2.4.5",
+    "sha256": "^0.2.0",
     "shelljs": "^0.8.3",
     "stripe": "^6.26.0",
     "twitch-api-v5": "^2.0.4"

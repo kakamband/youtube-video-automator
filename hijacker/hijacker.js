@@ -11,6 +11,7 @@ var Combiner = require('../combiner/combiner');
 var Uploader = require('../uploader/uploader');
 var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+var sha256 = require('sha256');
 
 const redisDownloadKey = "download_in_progress_id_";
 const redisDownloadTTL = 1800; // 30 Minutes.
@@ -112,14 +113,14 @@ function killADBusterProcess(adProcess, adFileName) {
 
 module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess, adFileName) {
 	return new Promise(function(resolve, reject) {
-		var gameNameFolder = btoa(gameName);
+		var gameNameFolder = sha256(gameName);
 
 		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameNameFolder + "\"");
 		cLogger.info("Running command: " + lsCMD);
 		return shell.exec(lsCMD, function(code, stdout, stderr) {
 			if (code != 0) {
 				shell.mkdir(ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder);
-				cLogger.info("No folder for (" gameName + ") " + gameNameFolder + " creating it.");
+				cLogger.info("No folder for (" + gameName + ") " + gameNameFolder + " creating it.");
 			}
 
 			var hijacking = false;
