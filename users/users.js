@@ -709,10 +709,15 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
         })
         .then(function(gameThumbnail) {
             info.thumbnails = {
-                game: gameThumbnail.game,
-                default_image: gameThumbnail.image_name,
-                specific_image: null
+                game: null, default_image: null, specific_image: null
             };
+
+            // Include the game thumbnail if it exists
+            if (gameThumbnail != null) {
+                info.thumbnails.game = gameThumbnail.game;
+                info.thumbnails.default_image = gameThumbnail.image_name;
+            }
+
             return resolve(info);
         })
         .catch(function(err) {
