@@ -112,12 +112,14 @@ function killADBusterProcess(adProcess, adFileName) {
 
 module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess, adFileName) {
 	return new Promise(function(resolve, reject) {
-		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameName + "\"");
+		var gameNameFolder = btoa(gameName);
+
+		var lsCMD = ("ls " + ORIGIN_PATH + "video_data_hijacks/" + " | grep \"" + gameNameFolder + "\"");
 		cLogger.info("Running command: " + lsCMD);
 		return shell.exec(lsCMD, function(code, stdout, stderr) {
 			if (code != 0) {
-				shell.mkdir(ORIGIN_PATH + "video_data_hijacks/" + gameName);
-				cLogger.info("No folder for " + gameName + " creating it.");
+				shell.mkdir(ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder);
+				cLogger.info("No folder for (" gameName + ") " + gameNameFolder + " creating it.");
 			}
 
 			var hijacking = false;
@@ -132,7 +134,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		hijacking = true;
 
 			  		var epoch = (new Date).getTime();
-			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameName + "/") + userID + "-finished-" + epoch;
+			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder + "/") + userID + "-finished-" + epoch;
 
 			  		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
 			  		cProcess = shell.exec(downloadCMD, {async: true});
