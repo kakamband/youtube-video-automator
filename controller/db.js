@@ -1861,7 +1861,7 @@ module.exports.setAsPermanentlyDeleted = function(downloadID) {
 module.exports.getYoutubeVideoSettings = function(pmsID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
-		.select(knex.raw('(SELECT playlist_id FROM playlists WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game) as playlist'))
+		.select(knex.raw('(SELECT playlist_id FROM playlists WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game ORDER BY created_at DESC LIMIT 1) as playlist'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-category\') as category'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-language\') as vid_language'))
 		.select(knex.raw('(SELECT signature FROM signatures WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game ORDER BY created_at DESC LIMIT 1) as signature'))
@@ -1870,7 +1870,7 @@ module.exports.getYoutubeVideoSettings = function(pmsID, downloadID) {
 		.where("id", "=", downloadID)
 		.then(function(results) {
 			if (results.length == 0) {
-				return resolve({playlist: null, category: null, vid_language: null});
+				return resolve({playlist: null, category: null, vid_language: null, signature: null, liked: "true", comments_count: "0"});
 			} else {
 				return resolve(results[0]);
 			}
