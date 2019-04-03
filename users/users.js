@@ -373,7 +373,7 @@ module.exports.getClipInfo = function(username, pmsID, email, password, download
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return getClipInfoHelper(userID, downloadID);
+            return getClipInfoHelper(userID, pmsID, downloadID);
         })
         .then(function(info) {
             return resolve(info);
@@ -695,7 +695,33 @@ function getClipVideoHelper(userID, downloadID) {
     });
 }
 
-function getClipInfoHelper(userID, downloadID) {
+function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
+    var info = {};
+    return new Promise(function(resolve, reject) {
+        return dbController.getYoutubeVideoSettings(pmsID, downloadID)
+        .then(function(results) {
+            info = results;
+            return dbController.getAllTags(pmsID, gameName);
+        })
+        .then(function(tags) {
+            info.tags = tags;
+            return dbController.getGameThumbnail(pmsID, gameName);
+        })
+        .then(function(gameThumbnail) {
+            info.thumbnails = {
+                game: gameThumbnail.game,
+                default_image: gameThumbnail.image_name,
+                specific_image: null
+            };
+            return resolve(info);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+function getClipInfoHelper(userID, pmsID, downloadID) {
     var info = {};
     var gameName = null;
     return new Promise(function(resolve, reject) {
@@ -733,6 +759,10 @@ function getClipInfoHelper(userID, downloadID) {
             }
 
             info.videos_to_combine = toCombineVids;
+            return getClipYoutubeSettings(userID, pmsID, downloadID, gameName);
+        })
+        .then(function(ytSettings) {
+            info.youtube_settings = ytSettings;
             return resolve(info);
         })
         .catch(function(err) {
