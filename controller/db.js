@@ -1919,3 +1919,49 @@ module.exports.getGameThumbnail = function(pmsID, gameName) {
 		})
 	});
 }
+
+module.exports.addCustomOption = function(userID, downloadID, optionName, optionValue) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.where("option_name", "=", optionName)
+		.then(function(results) {
+			if (results.length == 0) {
+				return knex('custom_options')
+				.insert({
+					user_id: userID,
+					download_id: downloadID,
+					option_name: optionName,
+					option_value: optionValue,
+					created_at: new Date(),
+					updated_at: new Date()
+				})
+				.then(function(results) {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				return knex('custom_options')
+				.where("user_id", "=", userID)
+				.where("download_id", "=", downloadID)
+				.where("option_name", "=", optionName)
+				.insert({
+					option_value: optionValue,
+					updated_at: new Date()
+				})
+				.then(function(results) {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

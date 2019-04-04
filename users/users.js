@@ -482,6 +482,24 @@ module.exports.setClipDeleted = function(username, pmsID, email, password, downl
         });
     });
 }
+
+// setClipCustomOption
+// Sets a custom clip option if they are authorized to. The option name and option value are validated for integrity.
+module.exports.setClipCustomOption = function(username, pmsID, email, password, downloadID, optionName, optionValue) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            return customOptionHandler(id, downloadID, optionName, optionValue);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -773,6 +791,49 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
         .catch(function(err) {
             return reject(err);
         });
+    });
+}
+
+
+function customThumbnail(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        var validImageTypes = [".png", ".jpg", ".jpeg", ".webp"];
+        var validImageType = false;
+
+        for (var i = 0; i < validImageTypes.length; i++) {
+            if (optionValue.endsWith(validImageTypes[i])) {
+                validImageType = true;
+            }
+        }
+
+        if (!validImageType) {
+            return reject(Errors.invalidImageType());
+        } else {
+            return dbController.addCustomOption(userID, downloadID, "custom_thumbnail", optionValue)
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        }
+    });
+}
+
+function customOptionHandler(userID, downloadID, optionName, optionValue) {
+    return new Promise(function(resolve, reject) {
+        switch (optionName) {
+            case "custom_thumbnail":
+                return customThumbnail(userID, downloadID, optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            default:
+                return reject(Errors.invalidCustomOption());
+        }
     });
 }
 
