@@ -736,6 +736,11 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
                 info.thumbnails.default_image = gameThumbnail.image_name;
             }
 
+            return dbController.getCustomClipThumbnail(userID, downloadID);
+        })
+        .then(function(customThumbnail) {
+            info.thumbnails.specific_image = customThumbnail;
+
             return resolve(info);
         })
         .catch(function(err) {
@@ -804,6 +809,11 @@ function customThumbnail(userID, downloadID, optionValue) {
             if (optionValue.endsWith(validImageTypes[i])) {
                 validImageType = true;
             }
+        }
+
+        // It can also be the value 'none'
+        if (!validImageType && optionValue == "none") {
+            validImageType = true;
         }
 
         if (!validImageType) {

@@ -29,12 +29,17 @@ module.exports.errorHelper = function(next, err) {
 	Sentry.captureException(err);
 	cLogger.error(err);
 
-	// Sanitize the error for the client, shouldn't be returning it.
-	var newError = DefinedErrors.internalServerError();
-
-	next(newError);
+	next(err);
 }
 
 module.exports.emitSimpleError = function(err) {
+	cLogger.error(err);
 	Sentry.captureException(err);
+}
+
+module.exports.dbError = function(err) {
+	Sentry.captureException(err);
+	cLogger.error(err);
+
+	return DefinedErrors.internalServerError();
 }
