@@ -47,15 +47,30 @@ module.exports.finishedDownloading = function(userID, gameName, twitchStream, do
 
 module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 	return new Promise(function(resolve, reject) {
-		knex('downloads')
+		return knex('downloads')
 		.where("id", "=", downloadID)
 		.where("user_id", "=", userID)
 		.where("twitch_link", "=", twitchLink)
-		.update({
-			state: "init-stop",
-		})
 		.then(function(results) {
-			return resolve();
+			if (results.length == 0) {
+				return reject(new Error("The download doesn't seem to exist..."));
+			} else if (results[0].state != "active") {
+				return reject(new Error("The download state is not active, cannot stop."));
+			} else {
+				return knex('downloads')
+				.where("id", "=", downloadID)
+				.where("user_id", "=", userID)
+				.where("twitch_link", "=", twitchLink)
+				.update({
+					state: "init-stop",
+				})
+				.then(function(results) {
+					return resolve();
+				})
+				.catch(function(err) {
+					return Errors.dbError(err);
+				});
+			}
 		})
 		.catch(function(err) {
 			return Errors.dbError(err);
