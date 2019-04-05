@@ -1,4 +1,5 @@
 var Promise = require('bluebird');
+var DefinedErrors = require('../errors/defined_errors');
 
 // Routes
 // -------------------
@@ -62,6 +63,9 @@ module.exports.SET_CLIP_DESCRIPTION = "/user/clip/description";
 
 // Sets a clip as deleted (it will then be deleted 48 hours later)
 module.exports.SET_CLIP_DELETED = "/user/clip/delete";
+
+// Sets a custom option for a specific clip only
+module.exports.SET_CUSTOM_OPTION = "/user/clip/custom/option";
 // -------------------
 
 // Route definitions
@@ -330,6 +334,23 @@ module.exports.routes = new Map([
 			return validateHelper(body, params, this.required_body, null);
 		}
 	}],
+	[this.SET_CUSTOM_OPTION, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string"),
+			nameAndType("option_name", "string"),
+			nameAndType("option_value", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
 ]);
 
 function nameAndType(n, t) {
@@ -378,12 +399,7 @@ function validateHelper(body, params, neededBody, neededParams) {
 	}
 
 	if (missingBody.length > 0 || badTypeParams.length > 0 || missingParams.length > 0) {
-		var err = new Error(
-			'Missing from body: [' + missingBody.toString() + ']. ' +
-			'Inproper type parameters: [' + badTypeParams.toString() + ']. ' +
-			'Missing parameters: [' + missingParams.toString() + '].');
-    	err.status = 400;
-    	return err;
+		return DefinedErrors.missingBodyParams(missingBody.toString(), badTypeParams.toString(), missingParams.toString());
 	}
 
 	return undefined;

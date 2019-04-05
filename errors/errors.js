@@ -1,4 +1,6 @@
 var Promise = require('bluebird');
+var DefinedErrors = require('./defined_errors');
+var cLogger = require('color-log');
 
 module.exports.scopeConfigureWUsername = function(routeName, body, username) {
 	Sentry.configureScope((scope) => {
@@ -25,9 +27,19 @@ module.exports.scopeConfigure = function(routeName, body) {
 
 module.exports.errorHelper = function(next, err) {
 	Sentry.captureException(err);
+	cLogger.error(err);
+
 	next(err);
 }
 
 module.exports.emitSimpleError = function(err) {
+	cLogger.error(err);
 	Sentry.captureException(err);
+}
+
+module.exports.dbError = function(err) {
+	Sentry.captureException(err);
+	cLogger.error(err);
+
+	return DefinedErrors.internalServerError();
 }

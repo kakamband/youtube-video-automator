@@ -182,6 +182,15 @@ module.exports.initialize = function(knex) {
 			table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('custom_options', function(table) {
+			table.increments();
+			table.string("user_id").notNullable();
+			table.string("download_id").notNullable();
+			table.string("option_name").notNullable();
+			table.string("option_value").notNullable();
+			table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;

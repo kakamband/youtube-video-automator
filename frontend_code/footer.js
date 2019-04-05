@@ -843,7 +843,7 @@ function thumbnailSettings($, username, ID, email, pass) {
     var currentDate = new Date();
     var currentMonth = ('0' + (currentDate.getMonth() + 1)).slice(-2);
     var currentYear = currentDate.getFullYear();
-    fileNameSanitized = "/" + currentYear + "/" + currentMonth + "/" + "user_" + ID + "_" + fileNameSanitized;
+    fileNameSanitized = "/" + "user_" + ID + "_" + fileNameSanitized;
 
     var gameBtoa = btoa(currGameName);
     var fileNameBtoa = btoa(fileNameSanitized);
@@ -1691,6 +1691,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Set the clip game
         $("#clip-game").text(clipInfo.game);
+        $("#clip-game").attr("href", "https://twitch.tv/directory/game/" + clipInfo.game);
 
         // Set the clip streamer
         var twitchLinkSplit = clipInfo.twitch_link.split("twitch.tv/");
@@ -1779,6 +1780,22 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Update the textarea sizes
         $("#clip-description-input").height( $("#clip-description-input")[0].scrollHeight );
         $("#clip-title-input").height( $("#clip-title-input")[0].scrollHeight );
+
+        // Handle the thumbnail being displayed if it exists
+        var urlPrefix = "https://twitchautomator.com/wp-content/uploads";
+        if (clipInfo.youtube_settings.thumbnails.specific_image != null) {
+          $(".current-clip-thumbnail-not-set").hide();
+          $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
+          $(".current-clip-thumbnail-set").show();
+          $("#remove-set-thumbnail").show();
+          $("#change-set-thumbnail").show();
+        } else if (clipInfo.youtube_settings.thumbnails.default_image != null) {
+          $(".current-clip-thumbnail-not-set").hide();
+          $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.default_image + ")");
+          $(".current-clip-thumbnail-set").show();
+          $("#remove-set-thumbnail").show();
+          $("#change-set-thumbnail").show();
+        }
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop") {

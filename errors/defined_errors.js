@@ -1,77 +1,89 @@
-module.exports.clipDoesntExist = function() {
-    var err = new Error("The clip does not exist.");
-    err.status = 400;
+function setupErr(statusCode, errorValue) {
+    var err = new Error(errorValue);
+    err.status = statusCode;
     return err;
+}
+
+function setup400Err(errorValue) {
+    return setupErr(400, errorValue);
+}
+
+function setup403Err(errorValue) {
+    return setupErr(403, errorValue);
+}
+
+function setup404Err(errorValue) {
+    return setupErr(404, errorValue);
+}
+
+function setup500Err(errorValue) {
+    return setupErr(500, errorValue);
+}
+
+module.exports.internalServerError = function() {
+    return setup500Err("Internal Server Error.");
+}
+
+module.exports.missingBodyParams = function(missingBody, badTypes, missingParams) {
+    return setup400Err(('Missing from body: [' + missingBody + ']. Inproper type parameters: [' + badTypes + ']. Missing parameters: [' + missingParams + '].'));
+}
+
+module.exports.clipDoesntExist = function() {
+    return setup404Err("The clip does not exist.");
 }
 
 module.exports.alreadyClippingErr = function() {
-    var err = new Error("The user already has a clip running.");
-    err.status = 400;
-    return err;
+    return setup400Err("The user already has a clip running.");
 }
 
 module.exports.invalidThumbnail = function() {
-    var err = new Error("Invalid Thumbnail.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Thumbnail.");
 }
 
 module.exports.shouldHaveObtainedFromOverview = function() {
-    var err = new Error("This value should have been obtained from the overview scope.");
-    err.status = 400;
-    return err;
+    return setup400Err("This value should have been obtained from the overview scope.");
+}
+
+module.exports.invalidImageType = function() {
+    return setup400Err("Invalid Image Type.");
+}
+
+module.exports.invalidCustomOption = function() {
+    return setup400Err("Invalid custom option passed.");
 }
 
 module.exports.invalidScope = function() {
-    var err = new Error("Invalid Scope.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Scope.");
 }
 
 module.exports.invalidTag = function() {
-    var err = new Error("Invalid Signature.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Tag.");
 }
 
 module.exports.invalidSignature = function() {
-    var err = new Error("Invalid Signature.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Signature.");
 }
 
 module.exports.invalidComment = function() {
-    var err = new Error("Invalid Comment.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Comment.");
 }
 
 module.exports.invalidSetting = function() {
-    var err = new Error("Invalid Setting Name.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Setting Name.");
 }
 
 module.exports.invalidPlaylist = function() {
-    var err = new Error("Invalid Playlist.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Playlist.");
 }
 
 module.exports.invalidLanguage = function() {
-    var err = new Error("Invalid Language.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Language.");
 }
 
 module.exports.invalidCategory = function() {
-    var err = new Error("Invalid Category.");
-    err.status = 400;
-    return err;
+    return setup400Err("Invalid Category.");
 }
 
 module.exports.notAuthorized = function() {
-	var err = new Error("Not Authorized.");
-	err.status = 403;
-	return err;
+    return setup403Err("Not Authorized.");
 }

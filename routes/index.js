@@ -390,4 +390,19 @@ router.post(Models.SET_CLIP_DELETED, function(req, res, next) {
 	});
 });
 
+router.post(Models.SET_CUSTOM_OPTION, function(req, res, next) {
+	validFirst(Models.SET_CUSTOM_OPTION, req, res, next, function() {
+		return Users.setClipCustomOption(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id, req.body.option_name, req.body.option_value)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SET_CUSTOM_OPTION, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
