@@ -78,7 +78,7 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	});
 }
 
-function _isVideoLongerThan(fileName, durationSec) {
+function _isVideoLongerHelper(fileName, durationSec) {
 	return new Promise(function(resolve, reject) {
 		return getVideoDurationInSeconds(fileName)
 		.then((duration) => {
@@ -94,27 +94,52 @@ function _isVideoLongerThan(fileName, durationSec) {
 	});
 }
 
+function _isVideoLongerThan(fileName, durationSec) {
+	return new Promise(function(resolve, reject) {
+
+		var count = 0;
+		var max = 10;
+
+		function next() {
+			return _isVideoLongerHelper(fileName, durationSec)
+			.then(function(results) {
+				return resolve(results);
+			})
+			.catch(function(err) {
+				count++;
+				if (count > max) {
+					cLogger.error(err);
+					return reject(err);
+				} else {
+					return setTimeout(function() {
+						return next();
+					}, 500);
+				}
+			});
+		}
+
+		return next();
+	});
+}
+
 function _isVideoAnAD(fileName) {
 	var condition1 = false;
 	return new Promise(function(resolve, reject) {
 
-		// Delay for 1 second to make sure the download is done.
-		return setTimeout(function() {
-			// First possible indication that this is an AD is that the video duration is greater or equal to 30seconds.
-			// This shows its an AD since we are only downloading for 7 seconds, and since AD's aren't livestreamed
-			// it can be downloaded in a very short amount of time, thus twitch will buffer the entire ad + black data after the AD.
-			return _isVideoLongerThan(fileName, 30)
-			.then(function(isLonger) {
-				if (isLonger) {
-					condition1 = true;
-				}
+		// First possible indication that this is an AD is that the video duration is greater or equal to 30seconds.
+		// This shows its an AD since we are only downloading for 7 seconds, and since AD's aren't livestreamed
+		// it can be downloaded in a very short amount of time, thus twitch will buffer the entire ad + black data after the AD.
+		return _isVideoLongerThan(fileName, 30)
+		.then(function(isLonger) {
+			if (isLonger) {
+				condition1 = true;
+			}
 
-				return resolve(condition1);
-			})
-			.catch(function(err) {
-				return reject(err);
-			});
-		}, 1000);
+			return resolve(condition1);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
