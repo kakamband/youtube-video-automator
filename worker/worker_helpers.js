@@ -44,13 +44,15 @@ module.exports.downloadContent = function(userID, gameName, twitchStream, downlo
 // Transfers a file to the S3 bucket
 module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
-		return transferToS3Helper(userID, twitchStream, downloadID)
-		.then(function() {
-			return resolve();
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
+		return setTimeout(function() {
+			return transferToS3Helper(userID, twitchStream, downloadID)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}, 5000);
 	});
 }
 
