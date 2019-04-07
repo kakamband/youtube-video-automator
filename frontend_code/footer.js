@@ -1197,6 +1197,14 @@ function foundAuth($, username, ID, email, pass) {
   $("#youtube-settings-link").click(function() {
     window.location.href = "https://twitchautomator.com/defaults";
   });
+  $("#why-clipping-delay-btn").click(function() {
+    if ($(".why-clipping-delay-explanation").is(":visible")) {
+      $(".why-clipping-delay-explanation").hide();
+    } else {
+      $(".why-clipping-delay-explanation").show();
+      $('html, body').animate({ scrollTop: $(".why-clipping-delay-explanation").position().top + 200 }, 'slow');
+    }
+  });
   stretchAWB($);
 }
 
@@ -1595,6 +1603,39 @@ function handleTextAreaSaving($, username, ID, email, pass, downloadID, textarea
   });
 }
 
+// Tells the server that this clip should have no thumbnail set
+function setNoThumbnailOption($, username, ID, email, pass, downloadID) {
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "option_name": "custom_thumbnail",
+    "option_value": "none"
+  };
+
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/custom/option",
+    data: dataOBJ,
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Set this clip to not have a thumbnail.");
+        $(".current-clip-thumbnail-set").hide();
+        $(".remove-change-thumbnail-btn").hide();
+        $(".current-clip-thumbnail-not-set").show();
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Tells the server that this clip is now deleted
 function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal) {
   var dataOBJ = {
@@ -1784,11 +1825,15 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Handle the thumbnail being displayed if it exists
         var urlPrefix = "https://twitchautomator.com/wp-content/uploads";
         if (clipInfo.youtube_settings.thumbnails.specific_image != null) {
-          $(".current-clip-thumbnail-not-set").hide();
-          $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
-          $(".current-clip-thumbnail-set").show();
-          $("#remove-set-thumbnail").show();
-          $("#change-set-thumbnail").show();
+          if (clipInfo.youtube_settings.thumbnails.specific_image == "none") {
+            console.log("No thumbnail set.");
+          } else {
+            $(".current-clip-thumbnail-not-set").hide();
+            $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
+            $(".current-clip-thumbnail-set").show();
+            $("#remove-set-thumbnail").show();
+            $("#change-set-thumbnail").show();
+          }
         } else if (clipInfo.youtube_settings.thumbnails.default_image != null) {
           $(".current-clip-thumbnail-not-set").hide();
           $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.default_image + ")");
@@ -1796,6 +1841,11 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           $("#remove-set-thumbnail").show();
           $("#change-set-thumbnail").show();
         }
+
+        // Watch for the thumbnail options
+        $("#remove-set-thumbnail").click(function() {
+          setNoThumbnailOption($, username, ID, email, pass, downloadID);
+        });
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop") {

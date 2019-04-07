@@ -127,6 +127,7 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 		var downloadObj = {
 			game: gameName,
 			user_id: userID,
+			state: "preparing",
 			twitch_link: twitchLink,
 			created_at: new Date(),
 			updated_at: new Date()

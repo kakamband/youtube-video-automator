@@ -78,31 +78,145 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	});
 }
 
-// Handles all the logic related to trying to get around Twitch ads.
-// As of now this simply starts the stream, and kills it 1 second later.
-// Doing this will usually (hypothetically) get the AD out of the way for the actual stream hijack.
-module.exports.ADBuster = function(twitchStream) {
+function _isVideoLongerThan(fileName, durationSec) {
 	return new Promise(function(resolve, reject) {
+		return getVideoDurationInSeconds(fileName)
+		.then((duration) => {
+			if (duration >= durationSec) {
+				return resolve(true);
+			} else {
+				return resolve(false);
+			}
+		});
+	});
+}
+
+function _isVideoAnAD(fileName) {
+	var condition1 = false;
+	return new Promise(function(resolve, reject) {
+
+		// First possible indication that this is an AD is that the video duration is greater or equal to 30seconds.
+		// This shows its an AD since we are only downloading for 7 seconds, and since AD's aren't livestreamed
+		// it can be downloaded in a very short amount of time, thus twitch will buffer the entire ad + black data after the AD.
+		return _isVideoLongerThan(fileName, 30)
+		.then(function(isLonger) {
+			if (isLonger) {
+				condition1 = true;
+			}
+
+			return resolve(condition1);
+		});
+	});
+}
+
+function _startADDownload(twitchStream) {
+	return new Promise(function(resolve, _) {
 		var epoch = (new Date).getTime();
 		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
 		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f worst -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
 		var cProcess = shell.exec(downloadCMD, {async: true});
 		cLogger.info("Starting the AD download.");
-
-		return setTimeout(function() {
-			return resolve([cProcess, fileName]);
-		}, 1000);
+		return resolve([cProcess, fileName]);
 	});
 }
 
-function killADBusterProcess(adProcess, adFileName) {
+function _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max) {
 	return new Promise(function(resolve, reject) {
-		cLogger.info("Killing the AD download, and deleting the file.");
-		adProcess.kill();
+		if (current > max) {
+			return reject(ErrorHelper.dbError(new Error("Trying to get around AD's has hit its maximum retries! This user's download will not have worked...")));
+		}
+
+		// First do a 2 second download to see if the previous AD got the AD out of the way
+		return _startADDownload(twitchStream)
+		.then(function(adDownload) {
+			let cProcess = adDownload[0];
+			let fileName = adDownload[1];
+
+			return setTimeout(function() {
+				cProcess.kill();
+
+				// If this was greater than 8 seconds, probably another AD
+				return _isVideoLongerThan(fileName + ".mp4", 8)
+				.then(function(isLonger) {
+
+					return deleteTempADDownload(fileName)
+					.then(function() {
+						if (isLonger) {
+
+							// So we just got served with two AD's in a row, increase the delay time and try again.
+							return _doShortAdDownload(twitchStream, delayTime + 5000, current + 1, max);
+							.then(function() {
+								return resolve();
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
+						} else {
+
+							// This was the actual stream download, so we can start clipping
+							return resolve();
+						}
+					}); // This can't error
+				}); // This can't error
+			}, 2000);
+		}); // This can't error
+	});
+}
+
+function _doShortAdDownload(twitchStream, delayTime, current, max) {
+	return new Promise(function(resolve, reject) {
+		return _startADDownload(twitchStream)
+		.then(function(adDownload) {
+			let cProcess = adDownload[0];
+			let fileName = adDownload[1];
+
+			// Wait some seconds before killing the download
+			return setTimeout(function() {
+				cLogger.info("Killing the AD download.");
+				cProcess.kill();
+				return _isVideoAnAD(fileName + ".mp4")
+				.then(function(isAD) {
+					if (isAD) {
+						cLogger.info("This was an AD, attempting another download.");
+						return deleteTempADDownload(fileName)
+						.then(function() {
+							return _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max)
+							.then(function() {
+								return resolve();
+							})
+							.catch(function(err) {
+								return reject(err);
+							});
+						});
+					} else {
+						cLogger.info("This was not an AD, can start download.");
+						return deleteTempADDownload(fileName)
+						.then(function() {
+							return resolve();
+						});
+					}
+				}); // Can't be an error
+			}, delayTime);
+		}); // Can't be a reject
+	});
+}
+
+// Handles all the logic related to trying to get around Twitch ads.
+// As of now this simply starts the stream, and kills it 1 second later.
+// Doing this will usually (hypothetically) get the AD out of the way for the actual stream hijack.
+module.exports.ADBuster = function(twitchStream) {
+	const initialADTime = 7000; // 7 seconds
+	const maxADRetries = 15;
+
+	return _doShortAdDownload(twitchStream, initialADTime, 0, maxADRetries);
+}
+
+function deleteTempADDownload(adFileName) {
+	return new Promise(function(resolve, reject) {
 		var rmCMD = "rm " + adFileName + ".mp4";
 		return shell.exec(rmCMD, function(code, stdout, stderr) {
 			if (code != 0) {
-				ErrorHelper.scopeConfigure("hijacker.killADBusterProcess", {ouput: stderr});
+				ErrorHelper.scopeConfigure("hijacker.deleteTempADDownload", {ouput: stderr});
 				ErrorHelper.emitSimpleError(new Error("Deleting the temporary AD file has errored, need to manually do this."));
 			}
 
@@ -111,7 +225,7 @@ function killADBusterProcess(adProcess, adFileName) {
 	});
 }
 
-module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, adProcess, adFileName) {
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
 		var gameNameFolder = sha256(gameName);
 
@@ -141,13 +255,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		cProcess = shell.exec(downloadCMD, {async: true});
 
 			  		return setTimeout(function() {
-			  			return killADBusterProcess(adProcess, adFileName)
-			  			.then(function() {
-			  				return next();
-			  			})
-			  			.catch(function(err) {
-			  				return next();
-			  			});
+			  			return next();
 			  		}, 5000);
 				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
 					return stopHelper(userID, gameName, twitchStream, downloadID)
