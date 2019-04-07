@@ -87,6 +87,9 @@ function _isVideoLongerThan(fileName, durationSec) {
 			} else {
 				return resolve(false);
 			}
+		})
+		.catch(function(err) {
+			return reject(err);
 		});
 	});
 }
@@ -95,17 +98,23 @@ function _isVideoAnAD(fileName) {
 	var condition1 = false;
 	return new Promise(function(resolve, reject) {
 
-		// First possible indication that this is an AD is that the video duration is greater or equal to 30seconds.
-		// This shows its an AD since we are only downloading for 7 seconds, and since AD's aren't livestreamed
-		// it can be downloaded in a very short amount of time, thus twitch will buffer the entire ad + black data after the AD.
-		return _isVideoLongerThan(fileName, 30)
-		.then(function(isLonger) {
-			if (isLonger) {
-				condition1 = true;
-			}
+		// Delay for 1 second to make sure the download is done.
+		return setTimeout(function() {
+			// First possible indication that this is an AD is that the video duration is greater or equal to 30seconds.
+			// This shows its an AD since we are only downloading for 7 seconds, and since AD's aren't livestreamed
+			// it can be downloaded in a very short amount of time, thus twitch will buffer the entire ad + black data after the AD.
+			return _isVideoLongerThan(fileName, 30)
+			.then(function(isLonger) {
+				if (isLonger) {
+					condition1 = true;
+				}
 
-			return resolve(condition1);
-		});
+				return resolve(condition1);
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}, 1000);
 	});
 }
 
@@ -144,7 +153,7 @@ function _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max) 
 						if (isLonger) {
 
 							// So we just got served with two AD's in a row, increase the delay time and try again.
-							return _doShortAdDownload(twitchStream, delayTime + 5000, current + 1, max);
+							return _doShortAdDownload(twitchStream, delayTime + 5000, current + 1, max)
 							.then(function() {
 								return resolve();
 							})
@@ -157,7 +166,10 @@ function _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max) 
 							return resolve();
 						}
 					}); // This can't error
-				}); // This can't error
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
 			}, 2000);
 		}); // This can't error
 	});
