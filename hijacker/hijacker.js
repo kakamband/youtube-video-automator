@@ -254,9 +254,15 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
 			  		cProcess = shell.exec(downloadCMD, {async: true});
 
-			  		return setTimeout(function() {
-			  			return next();
-			  		}, 5000);
+			  		return dbController.setDownloadActive(downloadID)
+			  		.then(function() {
+				  		return setTimeout(function() {
+				  			return next();
+				  		}, 4000);
+			  		})
+			  		.catch(function(err) {
+			  			return reject(err);
+			  		});
 				} else { // We are already hijacking now. Check if we need to terminate every 1 second.
 					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {

@@ -2001,3 +2001,20 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 		});
 	});
 }
+
+module.exports.setDownloadActive = function(downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.update({
+			state: "started",
+			created_at: new Date() // We update this since this is when the actual download starts
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
