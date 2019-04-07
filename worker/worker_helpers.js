@@ -44,16 +44,13 @@ module.exports.downloadContent = function(userID, gameName, twitchStream, downlo
 // Transfers a file to the S3 bucket
 module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
-		// Wait 5 seconds since we wait 5 seconds before cutting off the download
-		return setTimeout(function() {
-			return transferToS3Helper(userID, twitchStream, downloadID)
-			.then(function() {
-				return resolve();
-			})
-			.catch(function(err) {
-				return reject(err);
-			})
-		}, 5000);
+		return transferToS3Helper(userID, twitchStream, downloadID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
@@ -162,10 +159,10 @@ function decrKey(key) {
 	});
 }
 
-function uploadFileToS3(file) {
+function _uploadFileToS3(file) {
 	return new Promise(function(resolve, reject) {
 		var cmd = "aws s3 cp " + file + " s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_BUCKET_VIDEO_PATH + " --acl public-read";
-		cLogger.info("Running cmd: " + cmd);
+		cLogger.info("Running CMD: " + cmd);
 		return shell.exec(cmd, function(code, stdout, stderr) {
 			if (code != 0) {
 				return reject(stderr);
@@ -173,7 +170,35 @@ function uploadFileToS3(file) {
 
 			return resolve();
 		});
-	})
+	});
+}
+
+function uploadFileToS3(file) {
+	const maxAttempts = 15;
+
+	return new Promise(function(resolve, reject) {
+
+		var count = 0;
+		function next() {
+			return _uploadFileToS3(file)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				count++;
+				if (count > maxAttempts) {
+					return reject(err);
+				} else {
+					cLogger.info("Uploading to S3 isn't available yet. Waiting 500ms and restarting.");
+					return setTimeout(function() {
+						return next();
+					}, 500);
+				}
+			});
+		}
+
+		return next();
+	});
 }
 
 function deleteOldFile(file) {
