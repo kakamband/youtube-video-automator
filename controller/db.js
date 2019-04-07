@@ -2007,7 +2007,7 @@ module.exports.setDownloadActive = function(downloadID) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.update({
-			state: "started",
+			state: "active",
 			created_at: new Date() // We update this since this is when the actual download starts
 		})
 		.then(function(results) {
