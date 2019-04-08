@@ -143,17 +143,6 @@ function _isVideoAnAD(fileName) {
 	});
 }
 
-function _startADDownload(twitchStream) {
-	return new Promise(function(resolve, _) {
-		var epoch = (new Date).getTime();
-		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
-		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f worst -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
-		var cProcess = shell.exec(downloadCMD, {async: true});
-		cLogger.info("Starting the AD download.");
-		return resolve([cProcess, fileName]);
-	});
-}
-
 function _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max) {
 	return new Promise(function(resolve, reject) {
 		if (current > max) {
@@ -200,42 +189,161 @@ function _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max) 
 	});
 }
 
-function _doShortAdDownload(twitchStream, delayTime, current, max) {
+function getStreamPlaylistLink(twitchStream) {
+	return new Promise(function(resolve, reject) {
+		var cmd = ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream;
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve(stdout.replace(/\r?\n|\r/g, ""));
+		});
+	});
+}
+
+function _spawnDownloadProcess(twitchStream, cmd, args1, args2) {
+	var spawn = require('child_process').spawn;
+	return new Promise(function(resolve, reject) {
+		return getStreamPlaylistLink(twitchStream)
+		.then(function(playlistLINK) {
+			var totalArgs = args1;
+			totalArgs = totalArgs.concat([playlistLINK]);
+			totalArgs = totalArgs.concat(args2);
+
+			var cProcess = spawn(cmd, totalArgs);
+			return resolve(cProcess);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function spawnDownloadProcess(twitchStream, fileName) {
+  	var downloadInitCMD = ffmpegPath;
+	var downloadCMDArgs = ["-c", "copy", "-preset", "medium", (fileName + '.mp4')];
+	return _spawnDownloadProcess(twitchStream, downloadInitCMD, ["-i"], downloadCMDArgs)
+}
+
+function _startADDownload(twitchStream) {
+	return new Promise(function(resolve, _) {
+		var epoch = (new Date).getTime();
+		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
+		cLogger.info("Starting the AD buster download.");
+		return spawnDownloadProcess(twitchStream, fileName)
+		.then(function(cProcess) {
+			return resolve([cProcess, fileName]);
+		})
+		.catch(function(err) {
+			return reject(err);
+		})
+	});
+}
+
+function extractSeconds(line) {
+	return new Promise(function(resolve, reject) {
+		// Template of the time is: "frame= 1167 fps= 83 q=-1.0 size=   19200kB time=00:00:19.45 bitrate=8083.1kbits/s speed=1.38x"
+
+		var splitOnTime = line.split("time=");
+		var splitOnTimeAndSpace = splitOnTime[splitOnTime.length - 1].split(" ");
+		var timeStr = splitOnTimeAndSpace[0];
+		var timeStrSplit = timeStr.split(":");
+
+		// Get the hours
+		var hourSeconds = parseInt(timeStrSplit[0]) * 60 * 60; // Hours * 60min/hr * 60sec/min
+		var minuteSeconds = parseInt(timeStrSplit[1]) * 60; // Minutes * 60sec/min
+		var seconds = parseInt(timeStrSplit[2]); // Seconds
+
+		return resolve(hourSeconds + minuteSeconds + seconds);
+	});
+}
+
+function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
 	return new Promise(function(resolve, reject) {
 		return _startADDownload(twitchStream)
-		.then(function(adDownload) {
-			let cProcess = adDownload[0];
-			let fileName = adDownload[1];
+		.then(function(processVals) {
+			let cProcess = processVals[0];
+			let fileName = processVals[1];
+			var processStart = new Date();
 
-			// Wait some seconds before killing the download
+			// Check if after 15 seconds if the AD has corrupted it
+			var lastLine = "";
+			var keepUpdating = true;
+			cProcess.stderr.on('data', (data) => {
+				if (keepUpdating && data.indexOf("time=") > 0) {
+					lastLine = data.toString();
+				}
+			});
+
+			cLogger.info("Waiting 15 seconds to check if AD.");
 			return setTimeout(function() {
-				cLogger.info("Killing the AD download.");
-				cProcess.kill();
-				return _isVideoAnAD(fileName + ".mp4")
-				.then(function(isAD) {
-					if (isAD) {
-						cLogger.info("This was an AD, attempting another download.");
+				return extractSeconds(lastLine)
+				.then(function(sec1) {
+					if (sec1 >= 300) { // Greater than 5 minutes it has to be an AD
 						return deleteTempADDownload(fileName)
 						.then(function() {
-							return _doShortAdDownloadRecurseHelper(twitchStream, delayTime, current, max)
-							.then(function() {
-								return resolve();
+							if (currentAtmpts > maxAtmpts) {
+								return reject(new Error("Attempted to start clip but got too many AD's in a row."));
+							} else {
+								currentAtmpts++;
+								cLogger.info("Restarting download due to AD.");
+								return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
+								.then(function(results) {
+									return resolve(results);
+								})
+								.catch(function(err) {
+									return reject(err);
+								});
+							}
+						});
+					} else {
+						cLogger.info("Waiting another 15 seconds to check for AD.");
+						return setTimeout(function() {
+							return extractSeconds(lastLine)
+							.then(function(sec2) {
+								if (sec1 >= 300) {
+									return deleteTempADDownload(fileName)
+									.then(function() {
+										if (currentAtmpts > maxAtmpts) {
+											return reject(new Error("Attempted to start clip but got too many AD's in a row."));
+										} else {
+											currentAtmpts++;
+											cLogger.info("Restarting download due to AD.");
+											return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
+											.then(function() {
+												return resolve(results);
+											})
+											.catch(function(err) {
+												return reject(err);
+											});
+										}
+									});
+								} else {
+									keepUpdating = false;
+									cLogger.info("No AD detected. Can Continue.");
+									return resolve([cProcess, fileName, processStart]);
+								}
 							})
 							.catch(function(err) {
 								return reject(err);
 							});
-						});
-					} else {
-						cLogger.info("This was not an AD, can start download.");
-						return deleteTempADDownload(fileName)
-						.then(function() {
-							return resolve();
-						});
+						}, 15000);
 					}
-				}); // Can't be an error
-			}, delayTime);
-		}); // Can't be a reject
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}, 15500);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
+}
+
+function _startDownloadCheckForADS(twitchStream) {
+	return _startDownloadCheckHelper(twitchStream, 0, 5);
 }
 
 // Handles all the logic related to trying to get around Twitch ads.
@@ -245,7 +353,7 @@ module.exports.ADBuster = function(twitchStream) {
 	const initialADTime = 7000; // 7 seconds
 	const maxADRetries = 15;
 
-	return _doShortAdDownload(twitchStream, initialADTime, 0, maxADRetries);
+	return _startDownloadCheckForADS(twitchStream);
 }
 
 function deleteTempADDownload(adFileName) {
@@ -262,7 +370,7 @@ function deleteTempADDownload(adFileName) {
 	});
 }
 
-module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, cProcess, fileName, processStart) {
 	return new Promise(function(resolve, reject) {
 		var gameNameFolder = sha256(gameName);
 
@@ -275,23 +383,18 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			}
 
 			var hijacking = false;
-			var cProcess = null;
-			var fileName = null;
 			var endingHijack = false;
+
+			// The new file location where we are moving the temporary file
+			var epoch = processStart.getTime();
+			var newFileLocation = ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder + "/" + userID + "_" + epoch;
 
 			function next() {
 				if (!hijacking) { // Start the hijack now.
-					cLogger.info("Starting the hijack! You will see some text appear shortly.");
 					redis.set((redisDownloadKey + downloadID), "active", "EX", redisDownloadTTL);
 			  		hijacking = true;
 
-			  		var epoch = (new Date).getTime();
-			  		fileName = (ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder + "/") + userID + "-finished-" + epoch;
-
-			  		var downloadCMD = ffmpegPath + ' -i $(' + ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream + ') -c copy -preset medium ' + fileName + '.mp4';
-			  		cProcess = shell.exec(downloadCMD, {async: true});
-
-			  		return dbController.setDownloadActive(downloadID)
+					return dbController.setDownloadActive(downloadID, (fileName + ".mp4"), processStart)
 			  		.then(function() {
 				  		return setTimeout(function() {
 				  			return next();
@@ -326,7 +429,16 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 				}
 			}
 
-			return next();
+			var mvCMD = "mv " + fileName + ".mp4 " + newFileLocation + ".mp4";
+			fileName = newFileLocation;
+			cLogger.info("Running command: " + mvCMD);
+			return shell.exec(mvCMD, function(code, stdout, stderr) {
+				if (code != 0) {
+					return reject(stderr);
+				}
+
+				return next();
+			})
 		});
 	});
 }

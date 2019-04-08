@@ -21,8 +21,12 @@ module.exports.downloadContent = function(userID, gameName, twitchStream, downlo
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Starting to download content for user: " + userID + " and the following game and stream: " + gameName + " (" + twitchStream + ")");
 		Hijacker.ADBuster(twitchStream)
-		.then(function() {
-			return Hijacker.startHijack(userID, gameName, twitchStream, downloadID);
+		.then(function(processAttr) {
+			let cProcess = processAttr[0];
+			let fileName = processAttr[1];
+			let processStart = processAttr[2];
+
+			return Hijacker.startHijack(userID, gameName, twitchStream, downloadID, cProcess, fileName, processStart);
 		})
 		.then(function() {
 			cLogger.info("Done hijacking. Starting transfer to S3.");

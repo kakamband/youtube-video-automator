@@ -1360,6 +1360,11 @@ function updateTimer($, sec, totalVidSeconds) {
   }
 }
 
+// Sets the clip status to Preparing
+function setClipStatusPreparing($) {
+  $("#clip-status").text("Preparing");
+}
+
 // Sets the clip status to the done state
 function setClipStatusDone($) {
   $("#clip-status").removeClass("clip-status-active");
@@ -1847,8 +1852,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           setNoThumbnailOption($, username, ID, email, pass, downloadID);
         });
 
-        // The clip is still running in this state
-        if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
+        function clipRunningLogic() {
           $(".delete-clip-button").addClass("a-tag-disabled");
 
           // Still running get the difference in time between start and now
@@ -1882,7 +1886,13 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
             endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
           });
+        }
 
+        // The clip is still running in this state
+        if (clipInfo.state == "preparing") {
+          setClipStatusPreparing($);
+        } else if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
+          clipRunningLogic();
         } else if (clipInfo.state == "done" || clipInfo.state == "done-need-info") { // The clip is in the stop state
 
           // Update the timers to the correct time

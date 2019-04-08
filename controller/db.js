@@ -2002,13 +2002,14 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 	});
 }
 
-module.exports.setDownloadActive = function(downloadID) {
+module.exports.setDownloadActive = function(downloadID, fileLocation, processStart) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.update({
 			state: "started",
-			created_at: new Date() // We update this since this is when the actual download starts
+			downloaded_file: fileLocation,
+			created_at: processStart
 		})
 		.then(function(results) {
 			return resolve();
