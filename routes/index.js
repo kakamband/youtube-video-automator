@@ -405,4 +405,19 @@ router.post(Models.SET_CUSTOM_OPTION, function(req, res, next) {
 	});
 });
 
+router.post(Models.POLL_AD_PHASE, function(req, res, next) {
+	validFirst(Models.POLL_AD_PHASE, req, res, next, function() {
+		return Users.pollADPhase(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id)
+		.then(function(results) {
+			return res.json({
+				download: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.POLL_AD_PHASE, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
