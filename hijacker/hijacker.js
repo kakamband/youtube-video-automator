@@ -155,9 +155,8 @@ function _ADPoller(cProcess) {
 
 	return new Promise(function(resolve, reject) {
 		var lastLine = "";
-		var keepUpdating = true;
 		cProcess.stderr.on('data', (data) => {
-			if (keepUpdating && data.indexOf("time=") > 0) {
+			if (data.indexOf("time=") >= 0) {
 				lastLine = data.toString();
 			}
 		});
