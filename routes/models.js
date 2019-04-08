@@ -66,6 +66,9 @@ module.exports.SET_CLIP_DELETED = "/user/clip/delete";
 
 // Sets a custom option for a specific clip only
 module.exports.SET_CUSTOM_OPTION = "/user/clip/custom/option";
+
+// Checks if the clip has passed the AD testing phase (this is polled every 5 seconds)
+module.exports.POLL_AD_PHASE = "/user/clip/ad/free";
 // -------------------
 
 // Route definitions
@@ -346,6 +349,21 @@ module.exports.routes = new Map([
 			nameAndType("download_id", "string"),
 			nameAndType("option_name", "string"),
 			nameAndType("option_value", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.POLL_AD_PHASE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

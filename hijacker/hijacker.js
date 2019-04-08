@@ -148,6 +148,46 @@ function extractSeconds(line) {
 	});
 }
 
+// Polls the process every 2 seconds, to check for an AD. Goes up to 16 times (ie. 32 seconds)
+// If it finds an it returns 
+function _ADPoller(cProcess) {
+	const pollingInterval = 2000; // 2 seconds
+
+	return new Promise(function(resolve, reject) {
+		var lastLine = "";
+		var keepUpdating = true;
+		cProcess.stderr.on('data', (data) => {
+			if (keepUpdating && data.indexOf("time=") > 0) {
+				lastLine = data.toString();
+			}
+		});
+
+		var count = 0;
+		var max = 16;
+
+		// Start polling
+		cLogger.info("Starting to poll video every " + (pollingInterval / 1000) + " seconds.");
+		var pollInterval = setInterval(function() {
+			return extractSeconds(lastLine)
+			.then(function(secs) {
+				// If the video is ever greater than 5 minutes than we know that an AD has been added, and the video gets corrupted.
+				// This is an event I have been able to reproduce on every singe AD.
+				if (secs >= 300) {
+					return resolve(false);
+				} else {
+					count++;
+					if (count > max) {
+						return resolve(true);
+					} else {
+						// No AD found at (count * 2) seconds. Continuing.
+						cLogger.mark("No AD at time: " + (count * 2) + " seconds.");
+					}
+				}
+			});
+		}, pollingInterval);
+	});
+}
+
 function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
 	return new Promise(function(resolve, reject) {
 		return _startADDownload(twitchStream)
@@ -156,74 +196,26 @@ function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
 			let fileName = processVals[1];
 			var processStart = new Date();
 
-			// Check if after 15 seconds if the AD has corrupted it
-			var lastLine = "";
-			var keepUpdating = true;
-			cProcess.stderr.on('data', (data) => {
-				if (keepUpdating && data.indexOf("time=") > 0) {
-					lastLine = data.toString();
+			// Check if an AD appears in 32 seconds
+			return _ADPoller(cProcess)
+			.then(function(success) {
+				if (success) {
+					cLogger.info("No AD detected. Can Continue.");
+					return resolve([cProcess, fileName, processStart]);
+				} else {
+					cLogger.info("Restarting download due to AD.");
+					return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
+					.then(function(results) {
+						return resolve(results);
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
 				}
+			})
+			.catch(function(err) {
+				return reject(err);
 			});
-
-			cLogger.info("Waiting 15 seconds to check if AD.");
-			return setTimeout(function() {
-				return extractSeconds(lastLine)
-				.then(function(sec1) {
-					if (sec1 >= 300) { // Greater than 5 minutes it has to be an AD
-						return deleteTempADDownload(fileName)
-						.then(function() {
-							if (currentAtmpts > maxAtmpts) {
-								return reject(new Error("Attempted to start clip but got too many AD's in a row."));
-							} else {
-								currentAtmpts++;
-								cLogger.info("Restarting download due to AD.");
-								return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
-								.then(function(results) {
-									return resolve(results);
-								})
-								.catch(function(err) {
-									return reject(err);
-								});
-							}
-						});
-					} else {
-						cLogger.info("Waiting another 15 seconds to check for AD.");
-						return setTimeout(function() {
-							return extractSeconds(lastLine)
-							.then(function(sec2) {
-								if (sec1 >= 300) {
-									return deleteTempADDownload(fileName)
-									.then(function() {
-										if (currentAtmpts > maxAtmpts) {
-											return reject(new Error("Attempted to start clip but got too many AD's in a row."));
-										} else {
-											currentAtmpts++;
-											cLogger.info("Restarting download due to AD.");
-											return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
-											.then(function() {
-												return resolve(results);
-											})
-											.catch(function(err) {
-												return reject(err);
-											});
-										}
-									});
-								} else {
-									keepUpdating = false;
-									cLogger.info("No AD detected. Can Continue.");
-									return resolve([cProcess, fileName, processStart]);
-								}
-							})
-							.catch(function(err) {
-								return reject(err);
-							});
-						}, 15000);
-					}
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			}, 15500);
 		})
 		.catch(function(err) {
 			return reject(err);

@@ -83,6 +83,11 @@ module.exports.permDeleteClips = function() {
 
 function deleteFromS3Bucket(fileName) {
 	return new Promise(function(resolve, reject) {
+		// If the filename doesn't exist (null) for whatever case just continue
+		if (fileName == null || fileName == "") {
+			return resolve();
+		}
+
 		var fileNameSplit = fileName.split(Attr.AWS_S3_BUCKET_VIDEO_PATH);
 		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
 
@@ -90,7 +95,9 @@ function deleteFromS3Bucket(fileName) {
 		cLogger.info("Running cmd: " + cmd);
 		return shell.exec(cmd, function(code, stdout, stderr) {
 			if (code != 0) {
-				return reject(stderr);
+				// If this errors just report to sentry and continue
+				ErrorHelper.scopeConfigure("cron_handler.deleteFromS3Bucket", {error: stderr});
+				ErrorHelper.emitSimpleError(new Error("Failed to delete from s3."));
 			}
 
 			return resolve();

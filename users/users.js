@@ -500,6 +500,32 @@ module.exports.setClipCustomOption = function(username, pmsID, email, password, 
     });
 }
 
+// pollADPhase
+// Endpoint that gets polled while the clip is in the 'preparing' state. Just returns the download
+// state and created at.
+module.exports.pollADPhase = function(username, pmsID, email, password, downloadID) {
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            return dbController.getDownload(id, downloadID);
+        })
+        .then(function(download) {
+            if (download == undefined) {
+                return reject(Errors.clipDoesntExist());
+            } else {
+                return resolve({
+                    download_id: downloadID,
+                    state: download.state,
+                    created_at: download.created_at
+                });
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
