@@ -843,6 +843,24 @@ function customCategory(userID, downloadID, optionValue) {
     });
 }
 
+function customLanguage(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        var validLanguage = validLanguage(optionValue);
+
+        if (!validLanguage) {
+            return reject(Errors.invalidLanguage());
+        } else {
+            return dbController.addCustomOption(userID, downloadID, "custom_language", optionValue)
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        }
+    });
+}
+
 function customThumbnail(userID, downloadID, optionValue) {
     return new Promise(function(resolve, reject) {
         var validImageTypes = [".png", ".jpg", ".jpeg", ".webp"];
@@ -886,6 +904,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
                 });
             case "custom_category":
                 return customCategory(userID, downloadID, optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "custom_language":
+                return customLanguage(userID, downloadID, optionValue)
                 .then(function() {
                     return resolve();
                 })

@@ -1816,6 +1816,44 @@ function smartThumbnails($, clipInfo) {
   }
 }
 
+// Makes request to custom option endpoint
+function _setCustomOption($, dataOBJ) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/custom/option",
+    data: dataOBJ,
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".dashboard-internal-server-error").show();
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Succesfully set custom option.");
+      }
+    },
+    dataType: "json"
+  });
+}
+
+// Handles a custom language
+function handleCustomLanguage($, username, ID, email, pass, downloadID) {
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "option_name": "custom_language",
+  };
+
+  $("#languages-selector").change(function() {
+      dataOBJ.option_value = $("#languages-selector").val();
+
+      _setCustomOption($, dataOBJ);
+  });
+}
+
 // Handles a custom category
 function handleCustomCategory($, username, ID, email, pass, downloadID) {
   var dataOBJ = {
@@ -1831,21 +1869,7 @@ function handleCustomCategory($, username, ID, email, pass, downloadID) {
   $("#categories-selector").change(function() {
       dataOBJ.option_value = $("#categories-selector").val();
 
-      $.ajax({
-        type: "POST",
-        url: autoTuberURL + "/user/clip/custom/option",
-        data: dataOBJ,
-        error: function(xhr,status,error) {
-          console.log("Error: ", error);
-          $(".dashboard-internal-server-error").show();
-        },
-        success: function(result,status,xhr) {
-          if (result.success) {
-            console.log("Succesfully set custom category.");
-          }
-        },
-        dataType: "json"
-      });
+      _setCustomOption($, dataOBJ);
   });
 }
 
@@ -2025,6 +2049,10 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           $("#categories-selector").val(clipInfo.youtube_settings.category);
         }
         handleCustomCategory($, username, ID, email, pass, downloadID);
+
+        // Handles setting up the language list
+        updateLanguagesView($);
+        handleCustomLanguage($, username, ID, email, pass, downloadID);
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
