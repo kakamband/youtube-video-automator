@@ -742,7 +742,7 @@ function getClipVideoHelper(userID, downloadID) {
 function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
     var info = {};
     return new Promise(function(resolve, reject) {
-        return dbController.getYoutubeVideoSettings(pmsID, downloadID)
+        return dbController.getYoutubeVideoSettings(userID, pmsID, downloadID)
         .then(function(results) {
             info = results;
             return dbController.getAllTags(pmsID, gameName);
@@ -825,6 +825,23 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
     });
 }
 
+function customCategory(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        var validCategory = isValidCategory(optionValue);
+
+        if (!validCategory) {
+            return reject(Errors.invalidCategory());
+        } else {
+            return dbController.addCustomOption(userID, downloadID, "custom_category", optionValue)
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        }
+    });
+}
 
 function customThumbnail(userID, downloadID, optionValue) {
     return new Promise(function(resolve, reject) {
@@ -861,6 +878,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
         switch (optionName) {
             case "custom_thumbnail":
                 return customThumbnail(userID, downloadID, optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "custom_category":
+                return customCategory(userID, downloadID, optionValue)
                 .then(function() {
                     return resolve();
                 })
@@ -1378,7 +1403,11 @@ function isValidCategory(item) {
         44 // - Trailers
     ];
 
-    return (categories.indexOf(parseInt(item)) >= 0);
+    try {
+        return (categories.indexOf(parseInt(item)) >= 0);
+    } catch (e) {
+        return false;
+    }
 }
 
 function validThumbnailItems(items) {

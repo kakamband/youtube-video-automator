@@ -1816,6 +1816,39 @@ function smartThumbnails($, clipInfo) {
   }
 }
 
+// Handles a custom category
+function handleCustomCategory($, username, ID, email, pass, downloadID) {
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "option_name": "custom_category",
+  };
+
+  $("#categories-selector").change(function() {
+      dataOBJ.option_value = $("#categories-selector").val();
+
+      $.ajax({
+        type: "POST",
+        url: autoTuberURL + "/user/clip/custom/option",
+        data: dataOBJ,
+        error: function(xhr,status,error) {
+          console.log("Error: ", error);
+          $(".dashboard-internal-server-error").show();
+        },
+        success: function(result,status,xhr) {
+          if (result.success) {
+            console.log("Succesfully set custom category.");
+          }
+        },
+        dataType: "json"
+      });
+  });
+}
+
 // Handles a custom thumbnail upload
 function handleCustomThumbnailUpload($, ID, clipInfo) {
   function allowUpload() {
@@ -1977,7 +2010,17 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           setNoThumbnailOption($, username, ID, email, pass, downloadID);
         });
 
-        function clipRunningLogic() {
+        // Handles setting up the category list
+        updateCategoriesView($);
+        var categories = validCategories();
+        var categorySanitized = categories.get(parseInt(clipInfo.youtube_settings.category));
+        if (categorySanitized) {
+          $("#categories-selector").val(clipInfo.youtube_settings.category);
+        }
+        handleCustomCategory($, username, ID, email, pass, downloadID);
+
+        // The clip is still running in this state
+        if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
           $(".delete-clip-button").addClass("a-tag-disabled");
 
           // Still running get the difference in time between start and now
@@ -2033,11 +2076,6 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           } else {
             watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval);
           }
-        }
-
-        // The clip is still running in this state
-        if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
-          clipRunningLogic();
         } else if (clipInfo.state == "done" || clipInfo.state == "done-need-info") { // The clip is in the stop state
 
           // Update the timers to the correct time
