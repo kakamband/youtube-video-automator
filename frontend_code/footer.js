@@ -841,9 +841,9 @@ function thumbnailSettings($, username, ID, email, pass) {
     var fileName = $("#my-thumbnail-submission").val();
     var fileNameSanitized = fileName.split("fakepath\\")[1];
     var currentDate = new Date();
-    var currentMonth = ('0' + (currentDate.getMonth() + 1)).slice(-2);
-    var currentYear = currentDate.getFullYear();
-    fileNameSanitized = "/" + "user_" + ID + "_" + fileNameSanitized;
+
+    // Format is: 'user_USERID_DAYOFMONTH_HOUROFDAY_YEAR_FILENAME'
+    fileNameSanitized = "/" + "user_" + ID + "_" + ('0' + currentDate.getUTCDate()).slice(-2) + "_" + ('0' + currentDate.getUTCHours()).slice(-2) + "_" + currentDate.getUTCFullYear() + "_" + fileNameSanitized;
 
     var gameBtoa = btoa(currGameName);
     var fileNameBtoa = btoa(fileNameSanitized);
@@ -1360,11 +1360,6 @@ function updateTimer($, sec, totalVidSeconds) {
   }
 }
 
-// Sets the clip status to Preparing
-function setClipStatusPreparing($) {
-  $("#clip-status").text("Preparing");
-}
-
 // Sets the clip status to the done state
 function setClipStatusDone($) {
   $("#clip-status").removeClass("clip-status-active");
@@ -1641,6 +1636,43 @@ function setNoThumbnailOption($, username, ID, email, pass, downloadID) {
   });
 }
 
+// Tells the backend server about a custom thumbnail image
+function uploadCustomThumbnailToBackendServer($, username, ID, email, pass, fileName, downloadID) {
+  var realFileName = atob(fileName);
+
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "/user/clip/custom/option",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "download_id": downloadID,
+      "option_name": "custom_thumbnail",
+      "option_value": realFileName
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+    },
+    success: function(result,status,xhr) {
+      if (result.success) {
+        console.log("Success uploading image.");
+        if (history.pushState) {
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?clipping=true&download_id=" + downloadID;
+            window.history.pushState({path:newurl},'',newurl);
+        }
+
+        getAndUpdateThumbnails($, username, ID, email, pass);
+      } else {
+        console.log("Error uploading image.");
+      }
+    },
+    dataType: "json"
+  });
+}
+
 // Tells the server that this clip is now deleted
 function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal) {
   var dataOBJ = {
@@ -1709,6 +1741,115 @@ function handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID)
       $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
       $(".delete-clip-button").text("Recover Clip");
     }
+  });
+}
+
+// Limited functionality for the first 32 seconds atleast
+function inADPreparingState($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval, cb) {
+  $(".stop-clipping-button").addClass("a-tag-disabled");
+
+  function next() {
+    setTimeout(function() {
+        var dataOBJ = {
+          "username": username,
+          "user_id": ID,
+          "email": email,
+          "password": pass,
+
+          "download_id": downloadID
+        };
+
+      $.ajax({
+        type: "POST",
+        url: autoTuberURL + "/user/clip/ad/free",
+        data: dataOBJ,
+        error: function(xhr,status,error) {
+          console.log("Error: ", error);
+          $(".dashboard-internal-server-error").show();
+        },
+        success: function(result,status,xhr) {
+          if (result.download.state == "started") {
+            console.log("The clip is in the started state. AD Free now.");
+            $(".stop-clipping-button").removeClass("a-tag-disabled");
+            watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval);
+            return cb(result.download.created_at);
+          } else {
+            return next();
+          }
+        },
+        dataType: "json"
+      });
+    }, 5000);
+  }
+
+  return next();
+}
+
+// Watches the stop clipping button
+function watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval) {
+  // Watch for the stop clipping button
+  $(".stop-clipping-button").click(function() {
+    handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+    endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
+  });
+}
+
+// Handles smartly displaying the thumbnails
+function smartThumbnails($, clipInfo) {
+  var urlPrefix = "https://twitchautomator.com/wp-content/uploads";
+  if (clipInfo.youtube_settings.thumbnails.specific_image != null) {
+    if (clipInfo.youtube_settings.thumbnails.specific_image == "none") {
+      console.log("No thumbnail set.");
+    } else {
+      $(".current-clip-thumbnail-not-set").hide();
+      $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
+      $(".current-clip-thumbnail-set").show();
+      $("#remove-set-thumbnail").show();
+      $("#change-set-thumbnail").show();
+    }
+  } else if (clipInfo.youtube_settings.thumbnails.default_image != null) {
+    $(".current-clip-thumbnail-not-set").hide();
+    $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.default_image + ")");
+    $(".current-clip-thumbnail-set").show();
+    $("#remove-set-thumbnail").show();
+    $("#change-set-thumbnail").show();
+  }
+}
+
+// Handles a custom thumbnail upload
+function handleCustomThumbnailUpload($, ID, clipInfo) {
+  function allowUpload() {
+    $("#change-set-thumbnail").hide();
+    $("#remove-set-thumbnail").hide();
+    $(".current-clip-thumbnail-not-set").hide();
+    $(".current-clip-thumbnail-set").hide();
+    $(".set-current-clip-thumbnail").show();
+    $("#ugc-input-success_page").val(window.location.href + "&thumbnail_upload=false");
+    $("#my-thumbnail-submission").change(function() {
+      var fileName = $("#my-thumbnail-submission").val();
+      var fileNameSanitized = fileName.split("fakepath\\")[1];
+      var currentDate = new Date();
+
+      // Format is: 'user_USERID_DAYOFMONTH_HOUROFDAY_YEAR_FILENAME'
+      fileNameSanitized = "/" + "user_" + ID + "_" + ('0' + currentDate.getUTCDate()).slice(-2) + "_" + ('0' + currentDate.getUTCHours()).slice(-2) + "_" + currentDate.getUTCFullYear() + "_" + fileNameSanitized;
+
+      var fileNameBtoa = btoa(fileNameSanitized);
+      $("#ugc-input-success_page").val(window.location.href + "&thumbnail_upload=true&file_name=" + fileNameBtoa);
+    });
+  }
+
+  $(".current-clip-thumbnail-not-set").click(function() {
+    allowUpload();
+  });
+  $(".current-clip-thumbnail-set").click(function() {
+    allowUpload();
+  });
+  $("#change-set-thumbnail").click(function() {
+    allowUpload();
+  });
+  $("#cancel-thumbnail-upload").click(function() {
+    $(".set-current-clip-thumbnail").hide();
+    smartThumbnails($, clipInfo);
   });
 }
 
@@ -1828,26 +1969,10 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         $("#clip-title-input").height( $("#clip-title-input")[0].scrollHeight );
 
         // Handle the thumbnail being displayed if it exists
-        var urlPrefix = "https://twitchautomator.com/wp-content/uploads";
-        if (clipInfo.youtube_settings.thumbnails.specific_image != null) {
-          if (clipInfo.youtube_settings.thumbnails.specific_image == "none") {
-            console.log("No thumbnail set.");
-          } else {
-            $(".current-clip-thumbnail-not-set").hide();
-            $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
-            $(".current-clip-thumbnail-set").show();
-            $("#remove-set-thumbnail").show();
-            $("#change-set-thumbnail").show();
-          }
-        } else if (clipInfo.youtube_settings.thumbnails.default_image != null) {
-          $(".current-clip-thumbnail-not-set").hide();
-          $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.default_image + ")");
-          $(".current-clip-thumbnail-set").show();
-          $("#remove-set-thumbnail").show();
-          $("#change-set-thumbnail").show();
-        }
+        smartThumbnails($, clipInfo);
 
         // Watch for the thumbnail options
+        handleCustomThumbnailUpload($, ID, clipInfo);
         $("#remove-set-thumbnail").click(function() {
           setNoThumbnailOption($, username, ID, email, pass, downloadID);
         });
@@ -1881,17 +2006,37 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             updateTimer($, clipSeconds, totalVidSeconds);
           }
 
-          // Watch for the stop clipping button
-          $(".stop-clipping-button").click(function() {
-            handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
-            endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
-          });
+          if (clipInfo.state == "preparing") {
+            inADPreparingState($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval, function(newCreatedAt) {
+              var newCreatedAtDate = new Date(newCreatedAt);
+              if (clipStart != newCreatedAtDate) {
+                var diff = newCreatedAtDate.getTime() - clipStart.getTime();
+                var diffSecs = diff / 1000;
+
+                // Subtract this difference to update the timer
+                console.log("Updating timer by " + diffSecs + " seconds.");
+
+                // Display that we are removing the AD, and thats why there is a change in time
+                if (parseInt(diffSecs) >= 15) {
+                  var tmpOriginalVal = $("#clip-status").html();
+                  $("#clip-status").html("Removing AD.");
+                  setTimeout(function() {
+                    $("#clip-status").html(tmpOriginalVal);
+                  }, 5000);
+                }
+
+                totalVidSeconds -= diffSecs;
+                clipSeconds -= diffSecs;
+                updateTimer($, clipSeconds, totalVidSeconds);
+              }
+            });
+          } else {
+            watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID, updateTimerInterval);
+          }
         }
 
         // The clip is still running in this state
-        if (clipInfo.state == "preparing") {
-          setClipStatusPreparing($);
-        } else if (clipInfo.state == "started" || clipInfo.state == "init-stop") {
+        if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
           clipRunningLogic();
         } else if (clipInfo.state == "done" || clipInfo.state == "done-need-info") { // The clip is in the stop state
 
@@ -2257,6 +2402,8 @@ jQuery(document).ready(function( $ ){
     // Dashboard route
     if (pageURL[1].startsWith("dashboard")) {
       var urlParams = new URLSearchParams(window.location.search);
+
+      // Check if this is the Auth popup
       var isPopup = urlParams.get('done_auth');
       var popupReason = urlParams.get('reason');
       if (isPopup) { // If this is a popup
@@ -2273,6 +2420,14 @@ jQuery(document).ready(function( $ ){
         }
       }
       
+      // Check if this is a thumbnail upload
+      var isThumbnailSuccess = urlParams.get("thumbnail_upload");
+      var fileName = urlParams.get("file_name");
+      var downloadID = urlParams.get("download_id");
+      if (isThumbnailSuccess && isThumbnailSuccess == "true") {
+        uploadCustomThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, fileName, downloadID);
+      }
+
       // If we can authenticate get the dashboard elements
       if (canAuth) {
       	dashboardAuthenticator($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);
@@ -2285,6 +2440,8 @@ jQuery(document).ready(function( $ ){
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
     } else if (pageURL[1].startsWith("defaults")) { // Defaults route
         var urlParams = new URLSearchParams(window.location.search);
+
+        // Check if this is a thumbnail upload
         var isThumbnailSuccess = urlParams.get("thumbnail_upload");
         var thumbnailGame = urlParams.get("gameName");
         var fileName = urlParams.get("fileName");
