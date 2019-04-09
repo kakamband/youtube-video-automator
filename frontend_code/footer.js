@@ -2013,8 +2013,15 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Handles setting up the category list
         updateCategoriesView($);
         var categories = validCategories();
+        var customCategory = false;
+        if (clipInfo.youtube_settings.custom_category != null && clipInfo.youtube_settings.custom_category != "" && categories.get(parseInt(clipInfo.youtube_settings.custom_category))) {
+          customCategory = true;
+        }
+
         var categorySanitized = categories.get(parseInt(clipInfo.youtube_settings.category));
-        if (categorySanitized) {
+        if (customCategory) {
+          $("#categories-selector").val(clipInfo.youtube_settings.custom_category);
+        } else if (categorySanitized) {
           $("#categories-selector").val(clipInfo.youtube_settings.category);
         }
         handleCustomCategory($, username, ID, email, pass, downloadID);

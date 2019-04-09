@@ -1878,7 +1878,7 @@ module.exports.getYoutubeVideoSettings = function(userID, pmsID, downloadID) {
 		return knex('downloads')
 		.select(knex.raw('(SELECT playlist_id FROM playlists WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game ORDER BY created_at DESC LIMIT 1) as playlist'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-category\') as category'))
-		.select(knex.raw('(SELECT option_value FROM custom_options WHERE user_id=\'' + userID + '\' AND option_name=\'custom_category\' ORDER BY created_at DESC LIMIT 1) as custom_category'))
+		.select(knex.raw('(SELECT option_value FROM custom_options WHERE user_id=\'' + userID + '\' AND option_name=\'custom_category\' AND download_id=\'' + downloadID + '\' ORDER BY created_at DESC LIMIT 1) as custom_category'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-language\') as vid_language'))
 		.select(knex.raw('(SELECT signature FROM signatures WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game ORDER BY created_at DESC LIMIT 1) as signature'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-like\') as liked'))
