@@ -54,8 +54,8 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 		.then(function(results) {
 			if (results.length == 0) {
 				return reject(new Error("The download doesn't seem to exist..."));
-			} else if (results[0].state != "started") {
-				return reject(new Error("The download state is not active, cannot stop."));
+			} else if (results[0].state != "started" && results[0].state != "preparing") {
+				return reject(new Error("The download state is not active or preparing, cannot stop."));
 			} else {
 				return knex('downloads')
 				.where("id", "=", downloadID)
