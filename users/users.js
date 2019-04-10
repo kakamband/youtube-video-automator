@@ -845,9 +845,9 @@ function customCategory(userID, downloadID, optionValue) {
 
 function customLanguage(userID, downloadID, optionValue) {
     return new Promise(function(resolve, reject) {
-        var validLanguage = validLanguage(optionValue);
+        var vLanguage = validLanguage(optionValue);
 
-        if (!validLanguage) {
+        if (!vLanguage) {
             return reject(Errors.invalidLanguage());
         } else {
             return dbController.addCustomOption(userID, downloadID, "custom_language", optionValue)
