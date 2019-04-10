@@ -1597,6 +1597,20 @@ function handleTextAreaSaving($, username, ID, email, pass, downloadID, textarea
         saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val());
       } else if (textareaID == "clip-description-input") {
         saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val());
+      } else if (textareaID == "clip-playlist-input") {
+
+        var dataOBJ = {
+          "username": username,
+          "user_id": ID,
+          "email": email,
+          "password": pass,
+
+          "download_id": downloadID,
+          "option_name": "custom_playlist",
+          "option_value": $("#" + textareaID).val()
+        };
+
+        _setCustomOption($, dataOBJ);
       }
 
     }, 1000);
@@ -1854,6 +1868,21 @@ function handleCustomLanguage($, username, ID, email, pass, downloadID) {
   });
 }
 
+// Handles a custom playlist
+function handleCustomPlaylist($, username, ID, email, pass, downloadID) {
+  handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input");
+  $(".playlist-item-not-set").click(function() {
+    $(".playlist-item-not-set").hide();
+    $("#clip-playlist-input").show();
+    $(".playlist-item-cancel-input").show();
+  });
+  $(".playlist-item-cancel-input").click(function() {
+    $(".playlist-item-not-set").show();
+    $("#clip-playlist-input").hide();
+    $(".playlist-item-cancel-input").hide();
+  });
+}
+
 // Handles a custom category
 function handleCustomCategory($, username, ID, email, pass, downloadID) {
   var dataOBJ = {
@@ -2008,6 +2037,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Set the title and description to autogrow
         textareaAutoScaling($, "clip-description-input");
         textareaAutoScaling($, "clip-title-input");
+        textareaAutoScaling($, "clip-playlist-input");
 
         // Handles the title and description saving
         handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input");
@@ -2052,7 +2082,21 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Handles setting up the language list
         updateLanguagesView($);
+        var languages = getLanguageMap();
+        var customLanguage = false;
+        if (clipInfo.youtube_settings.custom_language != null && clipInfo.youtube_settings.custom_language != "" && languages[clipInfo.youtube_settings.custom_language]) {
+          customLanguage = true;
+        }
+
+        if (customLanguage) {
+          $("#languages-selector").val(clipInfo.youtube_settings.custom_language);
+        } else if (languages[clipInfo.youtube_settings.vid_language]) {
+          $("#languages-selector").val(clipInfo.youtube_settings.vid_language);
+        }
         handleCustomLanguage($, username, ID, email, pass, downloadID);
+
+        // Handles setting up the custom playlist
+        handleCustomPlaylist($, username, ID, email, pass, downloadID);
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {

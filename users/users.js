@@ -918,6 +918,15 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
                 .catch(function(err) {
                     return reject(err);
                 });
+            case "custom_playlist":
+                // No validation here, either the user gets it right or wrong. Dont care.
+                return dbController.addCustomOption(userID, downloadID, "custom_playlist", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return reject(Errors.invalidCustomOption());
         }
