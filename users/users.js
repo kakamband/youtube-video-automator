@@ -748,7 +748,14 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
             return dbController.getAllTags(pmsID, gameName);
         })
         .then(function(tags) {
-            info.tags = tags;
+
+            // Remove all the unneccessary information on the tags. Only include the tag name
+            var tagsSimple = [];
+            for (var i = 0; i < tags.length; i++) {
+                tagsSimple.push(tags[i].tag);
+            }
+
+            info.tags = tagsSimple;
             return dbController.getGameThumbnail(pmsID, gameName);
         })
         .then(function(gameThumbnail) {

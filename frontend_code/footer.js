@@ -419,6 +419,7 @@ function contentAlreadyExists(arr, gameName, playlistID) {
 // Calls the server for the thumbnail items, and then once returned updates the view
 function getAndUpdateThumbnails($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-thumbnail", function(result) {
+    getAndPopulateGames($);
     for (var i = 0; i < result.results.length; i++) {
       if (contentAlreadyExists(gameThumbnailsCombo, result.results[i].game, result.results[i].image_name)) continue;
       gameThumbnailsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].image_name, drawn: false, hardSaved: true, userDeleted: false});
@@ -431,13 +432,13 @@ function getAndUpdateThumbnails($, username, ID, email, pass) {
     toggleThumbnailsBtnDisable($);
 
     drawOptions($, gameThumbnailsCombo, "#thumbnails-saved-table-body", "thumbnail");
-    getAndPopulateGames($);
   });
 }
 
 // Calls the server for the comment items, and then once returned updates the view
 function getAndUpdateCommentsView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-comments", function(result) {
+    getAndPopulateGames($);
     for (var i = 0; i < result.results.length; i++) {
       if (contentAlreadyExists(gameCommentsCombo, result.results[i].game, result.results[i].comment)) continue;
       gameCommentsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].comment, drawn: false, hardSaved: true, userDeleted: false});
@@ -449,13 +450,13 @@ function getAndUpdateCommentsView($, username, ID, email, pass) {
     toggleCommentsBtnDisable($);
 
     drawOptions($, gameCommentsCombo, "#comments-saved-table-body", "comment");
-    getAndPopulateGames($);
   });
 }
 
 // Calls the server for the comment items, and then once returned updates the view
 function getAndUpdateTagsView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-tags", function(result) {
+    getAndPopulateGames($);
     for (var i = 0; i < result.results.length; i++) {
       if (contentAlreadyExists(gameTagsCombo, result.results[i].game, result.results[i].tag)) continue;
       gameTagsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].tag, drawn: false, hardSaved: true, userDeleted: false});
@@ -467,13 +468,13 @@ function getAndUpdateTagsView($, username, ID, email, pass) {
     toggleTagBtnDisable($);
 
     drawOptions($, gameTagsCombo, "#tags-saved-table-body", "tag");
-    getAndPopulateGames($);
   });
 }
 
 // Calls the server for the playlist items, and then once returned updates the view
 function getAndUpdatePlaylistView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "game-playlists", function(result) {
+    getAndPopulateGames($);
     for (var i = 0; i < result.results.length; i++) {
       if (contentAlreadyExists(gamePlaylistsCombo, result.results[i].game, result.results[i].playlist_id)) continue;
       gamePlaylistsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].playlist_id, drawn: false, hardSaved: true, userDeleted: false});
@@ -485,13 +486,13 @@ function getAndUpdatePlaylistView($, username, ID, email, pass) {
     togglePlaylistsBtnDisable($);
 
     drawOptions($, gamePlaylistsCombo, "#playlists-saved-table-body", "playlist");
-    getAndPopulateGames($);
   });
 }
 
 // Calls the server for the signature items, and then once returned updates the view
 function getAndUpdateSignatureView($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "default-signature", function(result) {
+    getAndPopulateGames($);
     for (var i = 0; i < result.results.length; i++) {
       if (contentAlreadyExists(gameDescriptionsCombo, result.results[i].game, result.results[i].signature)) continue;
       gameDescriptionsCombo.push({gameName: result.results[i].game, playlistID: result.results[i].signature, drawn: false, hardSaved: true, userDeleted: false});
@@ -503,7 +504,6 @@ function getAndUpdateSignatureView($, username, ID, email, pass) {
     toggleSignatureBtnDisable($);
 
     drawOptions($, gameDescriptionsCombo, "#signatures-saved-table-body", "description");
-    getAndPopulateGames($);
   });
 }
 
@@ -701,11 +701,7 @@ function hideShowInlineBlock(item1, item2) {
 // Handles the playlist settings
 function playlistSettings($, username, ID, email, pass) {
   $("#playlists-default-setting").click(function() {
-    if (settingsOverview != null && settingsOverview.playlists_count > gamePlaylistsCombo.length) {
-      // This means its opened for the first time
-      // We can pretty much guarantee this since we never hard delete stored options
-      getAndUpdatePlaylistView($, username, ID, email, pass);
-    }
+    getAndUpdatePlaylistView($, username, ID, email, pass);
 
     $("#playlists-vid-subsection").toggle();
   });
@@ -749,11 +745,7 @@ function playlistSettings($, username, ID, email, pass) {
 // Handles the comments settings
 function commentsSettings($, username, ID, email, pass) {
   $("#comments-default-setting").click(function() {
-    if (settingsOverview != null && settingsOverview.comments_count > gameCommentsCombo.length) {
-      // This means its opened for the first time
-      // We can pretty much guarantee this since we never hard delete stored options
-      getAndUpdateCommentsView($, username, ID, email, pass);
-    }
+    getAndUpdateCommentsView($, username, ID, email, pass);
 
     $("#comments-vid-subsection").toggle();
   });
@@ -819,12 +811,7 @@ function likeSettings($, username, ID, email, pass) {
 // Handles the thumbnail settings
 function thumbnailSettings($, username, ID, email, pass) {
   $("#thumbnails-default-setting").click(function() {
-    getAndPopulateGames($);
-    if (settingsOverview != null && settingsOverview.thumbnails_count > gameThumbnailsCombo.length) {
-      // This means its opened for the first time
-      // We can pretty much guarantee this since we never hard delete stored options
-      getAndUpdateThumbnails($, username, ID, email, pass);
-    }
+    getAndUpdateThumbnails($, username, ID, email, pass);
 
     $("#thumbnails-default-subsection").toggle();
   });
@@ -884,11 +871,7 @@ function categorySettings($, username, ID, email, pass) {
 // Handles the signatures settings
 function signatureSettings($, username, ID, email, pass) {
   $("#description-default-setting").click(function() {
-    if (settingsOverview != null && settingsOverview.signatures_count > gameDescriptionsCombo.length) {
-      // This means its opened for the first time
-      // We can pretty much guarantee this since we never hard delete stored options
-      getAndUpdateSignatureView($, username, ID, email, pass);
-    }
+    getAndUpdateSignatureView($, username, ID, email, pass);
 
     $("#default-description-subsection").toggle();
   });
@@ -932,11 +915,7 @@ function signatureSettings($, username, ID, email, pass) {
 // Handles the tag settings
 function tagSettings($, username, ID, email, pass) {
   $("#tags-default-setting").click(function() {
-    if (settingsOverview != null && settingsOverview.tags_count > gameTagsCombo.length) {
-      // This means its opened for the first time
-      // We can pretty much guarantee this since we never hard delete stored options
-      getAndUpdateTagsView($, username, ID, email, pass);
-    }
+    getAndUpdateTagsView($, username, ID, email, pass);
 
     $("#default-tags-subsection").toggle();
   });
@@ -1869,17 +1848,56 @@ function handleCustomLanguage($, username, ID, email, pass, downloadID) {
 }
 
 // Handles a custom playlist
-function handleCustomPlaylist($, username, ID, email, pass, downloadID) {
+function handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo) {
+  var customPlaylist = false;
+  var defaultPlaylist = false;
+
+  if (clipInfo.youtube_settings.custom_playlist) {
+    customPlaylist = true;
+  }
+  if (clipInfo.youtube_settings.playlist) {
+    defaultPlaylist = true;
+  }
+
+  if (customPlaylist) {
+    $(".playlist-item-not-set").hide();
+    $(".playlist-item-set").show();
+    $(".playlist-item-set-change").show();
+    $(".playlist-item-set").attr("href", ("https://www.youtube.com/playlist?list=" + clipInfo.youtube_settings.custom_playlist));
+    $("#clip-playlist-input").val(clipInfo.youtube_settings.custom_playlist);
+  } else if (defaultPlaylist) {
+    $(".playlist-item-not-set").hide();
+    $(".playlist-item-set").show();
+    $(".playlist-item-set-change").show();
+    $(".playlist-item-set").attr("href", ("https://www.youtube.com/playlist?list=" + clipInfo.youtube_settings.playlist));
+    $("#clip-playlist-input").val(clipInfo.youtube_settings.playlist);
+  }
+
   handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input");
+  $(".playlist-item-set-change").click(function() {
+    $(".playlist-item-set").hide();
+    $(".playlist-item-set-change").hide();
+    $(".playlist-item-not-set").hide();
+    $("#clip-playlist-input").show();
+    $(".playlist-item-cancel-input").show();
+  });
   $(".playlist-item-not-set").click(function() {
     $(".playlist-item-not-set").hide();
     $("#clip-playlist-input").show();
     $(".playlist-item-cancel-input").show();
   });
   $(".playlist-item-cancel-input").click(function() {
-    $(".playlist-item-not-set").show();
-    $("#clip-playlist-input").hide();
-    $(".playlist-item-cancel-input").hide();
+    if ($("#clip-playlist-input").val() != "") {
+      $("#clip-playlist-input").hide();
+      $(".playlist-item-cancel-input").hide();
+      $(".playlist-item-set").show();
+      $(".playlist-item-set-change").show();
+      $(".playlist-item-set").attr("href", ("https://www.youtube.com/playlist?list=" + $("#clip-playlist-input").val()));
+    } else {
+      $(".playlist-item-not-set").show();
+      $("#clip-playlist-input").hide();
+      $(".playlist-item-cancel-input").hide();
+    }
   });
 }
 
@@ -2096,7 +2114,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         handleCustomLanguage($, username, ID, email, pass, downloadID);
 
         // Handles setting up the custom playlist
-        handleCustomPlaylist($, username, ID, email, pass, downloadID);
+        handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo);
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
