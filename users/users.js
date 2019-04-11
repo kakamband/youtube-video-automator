@@ -533,6 +533,7 @@ module.exports.pollADPhase = function(username, pmsID, email, password, download
 // Uploads an image to s3, then depending on what the scope is updates the db.
 module.exports.uploadThumbnailImage = function(username, pmsID, email, password, gameName, imgB64, scope) {
     var userID = pmsID;
+    var thumbnailImg = null;
     return new Promise(function(resolve, reject) {
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
@@ -540,10 +541,11 @@ module.exports.uploadThumbnailImage = function(username, pmsID, email, password,
             return uploadImageToS3(userID, imgB64);
         })
         .then(function(imgURL) {
+            thumbnailImg = imgURL;
             return addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imgURL);
         })
         .then(function() {
-            return resolve(true);
+            return resolve(thumbnailImg);
         })
         .catch(function(err) {
             return reject(err);

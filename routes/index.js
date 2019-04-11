@@ -425,7 +425,7 @@ router.post(Models.UPLOAD_THUMBNAIL_IMG, function(req, res, next) {
 		return Users.uploadThumbnailImage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game_name, req.body.image_b64, req.body.scope)
 		.then(function(results) {
 			return res.json({
-				success: results
+				image_url: results
 			});
 		})
 		.catch(function(err) {

@@ -230,8 +230,8 @@ function deleteAddedSetting(name, index) {
       var fileName = elem.cells[1].innerHTML;
 
       // Remove everything upto the /uploads part of the html
-      var fileNameSplit = fileName.split("/uploads");
-      fileName = fileNameSplit[fileNameSplit.length - 1];
+      var fileNameSplit = fileName.split("https");
+      fileName = "https" + fileNameSplit[fileNameSplit.length - 1];
 
       // Remove the last two character '">'
       fileName = fileName.substring(0, fileName.length - 2);
@@ -828,6 +828,7 @@ function uploadThumbnailImg($, username, ID, email, pass, gameName, imgData, sco
     },
     success: function(result,status,xhr) {
       console.log("Succesfully uploaded image.");
+      $("#my-thumbnail-submission").val("");
     },
     dataType: "json"
   });  
