@@ -24,6 +24,7 @@ module.exports = {
 	FINAL_FALLBACK_NO_CONSUMERS_AVAILABLE: "echo 'this should never happen ideally.'", // This command gets run if we can't find any consumers.
 	AWS_S3_BUCKET_NAME: "", // Specifies the name of the S3 bucket
 	AWS_S3_BUCKET_VIDEO_PATH: "", // Specifies the path to the S3 bucket where videos are stored
+	AWS_S3_THUMBNAIL_PATH: "", // Specifies the path to the folder to upload thumbnails
 	POLLED_GAMES: [
 		// ADD THE GAMES YOU WANT TO POLL HERE
 		// DefinedGames.FORTNITE

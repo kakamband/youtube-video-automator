@@ -808,8 +808,34 @@ function likeSettings($, username, ID, email, pass) {
   });
 }
 
+// Handles uploading an image to our backend server
+function uploadThumbnailImg($, username, ID, email, pass, gameName, imgData, scope) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "user/thumbnail/upload",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "game_name": gameName,
+      "image_b64": imgData,
+      "scope": scope
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+    },
+    success: function(result,status,xhr) {
+      console.log("Succesfully uploaded image.");
+    },
+    dataType: "json"
+  });  
+}
+
 // Handles the thumbnail settings
 function thumbnailSettings($, username, ID, email, pass) {
+  var dataURL = null;
   $("#thumbnails-default-setting").click(function() {
     getAndUpdateThumbnails($, username, ID, email, pass);
 
@@ -821,29 +847,28 @@ function thumbnailSettings($, username, ID, email, pass) {
   });
 
   $("#my-thumbnail-submission").change(function() {
-    var currGameName = $("#ugc-input-select-game").val();
-    if (currGameName == "") {
-      currGameName = "None";
+    var file = document.getElementById('my-thumbnail-submission').files[0];
+    var reader  = new FileReader();
+
+    reader.addEventListener("load", function () {
+      dataURL = reader.result;
+    }, false);
+
+    if (file) {
+      reader.readAsDataURL(file);
     }
-    var fileName = $("#my-thumbnail-submission").val();
-    var fileNameSanitized = fileName.split("fakepath\\")[1];
-    var currentDate = new Date();
-
-    // Format is: 'user_USERID_DAYOFMONTH_HOUROFDAY_YEAR_FILENAME'
-    fileNameSanitized = "/" + "user_" + ID + "_" + ('0' + currentDate.getUTCDate()).slice(-2) + "_" + ('0' + currentDate.getUTCHours()).slice(-2) + "_" + currentDate.getUTCFullYear() + "_" + fileNameSanitized;
-
-    var gameBtoa = btoa(currGameName);
-    var fileNameBtoa = btoa(fileNameSanitized);
-    $("#ugc-input-success_page").val("https://twitchautomator.com/defaults/?thumbnail_upload=true&gameName=" + gameBtoa + "&fileName=" + fileNameBtoa);
   });
 
   $("#upload-thumbnail-btn").click(function() {
-    if ($("#ugc-input-select-game").val() == "other") {
-      var initial = $("#ugc-input-success_page").val();
-      var splitOnGameName = initial.split("gameName=");
-      var splitOnFileName = splitOnGameName[1].split("&fileName=");
-      var newURL = splitOnGameName[0] + "gameName=" + btoa($("#images-other-game-input").val()) + "&fileName=" + splitOnFileName[1];
-      $("#ugc-input-success_page").val(newURL);
+    if (dataURL != null) {
+      var gameName = $("#ugc-input-select-game").val();
+
+      // If they chose a game not in the list
+      if (gameName == "other") {
+        $("#images-other-game-input").val();
+      }
+
+      uploadThumbnailImg($, username, ID, email, pass, gameName, dataURL, "default-thumbnail");
     }
   });
 }
@@ -1847,6 +1872,20 @@ function handleCustomLanguage($, username, ID, email, pass, downloadID) {
   });
 }
 
+// Handles a custom tag area
+function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
+  var tagsSet = false;
+  if (clipInfo.youtube_settings.tags.length > 0) {
+    $(".no-tags-set-yet").hide();
+    $(".tags-display-container").show();
+
+    // Display the tags
+    for (var i = 0; i < clipInfo.youtube_settings.tags.length; i++) {
+      $(".tag-display-list").append("<li style=\"list-style: none;\"><a class=\"tag-display\">" + clipInfo.youtube_settings.tags[i] + "</a>");
+    }
+  }
+}
+
 // Handles a custom playlist
 function handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo) {
   var customPlaylist = false;
@@ -2115,6 +2154,9 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Handles setting up the custom playlist
         handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo);
+
+        // Handles the tags area
+        handleCustomTags($, username, ID, email, pass, downloadID, clipInfo);
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {
@@ -2574,21 +2616,6 @@ jQuery(document).ready(function( $ ){
     } else if (pageURL[1].startsWith("account")) { // Account route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
     } else if (pageURL[1].startsWith("defaults")) { // Defaults route
-        var urlParams = new URLSearchParams(window.location.search);
-
-        // Check if this is a thumbnail upload
-        var isThumbnailSuccess = urlParams.get("thumbnail_upload");
-        var thumbnailGame = urlParams.get("gameName");
-        var fileName = urlParams.get("fileName");
-        if (isThumbnailSuccess) {
-          if (isThumbnailSuccess == "true") {
-            uploadThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, thumbnailGame, fileName);
-            getAndPopulateGames($);
-            $("#thumbnails-default-subsection").toggle();
-            $("html, body").animate({ scrollTop: $('#thumbnails-top-table').offset().top + 25}, 2000);
-          }
-        }
-
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
         defaultSettings($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier);
     } else {
