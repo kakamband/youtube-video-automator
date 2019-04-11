@@ -265,7 +265,7 @@ function drawOptions($, arr, anchor, name) {
       var gameContent = arr[i].playlistID;
       if (name == "thumbnail") {
         var urlPrefix = "https://twitchautomator.com/wp-content/uploads"; // Switch this to cdn later when automatically uploading to s3
-        gameContent = "<img src=\"" + urlPrefix + gameContent + "\">";
+        gameContent = "<img src=\"" + gameContent + "\">";
       }
 
       $(anchor).append("<tr id=\"" + name + "-" + i + "\"><td class=\"defaults-td\">" + arr[i].gameName + "</td><td class=\"defaults-td\">" + gameContent + "</td><td class=\"defaults-td\"><span class=\"remove-defaults-cross\" style=\"display: inline-block; color: red; font-weight: 700;\" onclick=\"deleteAddedSetting('" + name + "', " + i + ")\">Delete</span></td><td class=\"defaults-td\">" + hardSavedIndicator + "</td></tr>");

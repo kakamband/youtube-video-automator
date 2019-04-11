@@ -571,6 +571,25 @@ function _uploadFileToS3(file) {
     });
 }
 
+function deleteThumbnailFromS3(image) {
+    return new Promise(function(resolve, reject) {
+        var imageSplit = image.split("/");
+        var fileNameActual = imageSplit[imageSplit.length - 1];
+
+        var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_THUMBNAIL_PATH + fileNameActual;
+        cLogger.info("Running cmd: " + cmd);
+        return shell.exec(cmd, function(code, stdout, stderr) {
+            if (code != 0) {
+                // If this errors just report to sentry and continue
+                ErrorHelper.scopeConfigure("users.deleteThumbnailFromS3", {error: stderr});
+                ErrorHelper.emitSimpleError(new Error("Failed to delete from s3."));
+            }
+
+            return resolve();
+        });
+    });
+}
+
 function addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imageLink) {
     return new Promise(function(resolve, reject) {
         switch (scope) {
@@ -1490,12 +1509,18 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
                 function next9() {
                     return dbController.deleteThumbnail(pmsID, setting[count].gameName, setting[count].image)
                     .then(function() {
-                        count++;
-                        if (count < setting.length) {
-                            return next9();
-                        } else {
-                            return resolve(true);
-                        }
+                        return deleteThumbnailFromS3(setting[count].image)
+                        .then(function() {
+                            count++;
+                            if (count < setting.length) {
+                                return next9();
+                            } else {
+                                return resolve(true);
+                            }
+                        })
+                        .catch(function(err) {
+                            return reject(err);
+                        });
                     })
                     .catch(function(err) {
                         return reject(err);
