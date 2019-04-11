@@ -1923,7 +1923,7 @@ module.exports.getCustomClipThumbnail = function(userID, downloadID) {
 		.where("user_id", "=", userID)
 		.where("download_id", "=", downloadID)
 		.where("option_name", "=", "custom_thumbnail")
-		.orderBy("created_at", "DESC") // Should never be useful.
+		.orderBy("created_at", "DESC")
 		.limit(1)
 		.then(function(results) {
 			if (results.length == 0) {
@@ -1956,6 +1956,26 @@ module.exports.getGameThumbnail = function(pmsID, gameName) {
 		.catch(function(err) {
 			return Errors.dbError(err);
 		})
+	});
+}
+
+module.exports.insertCustomOption = function(userID, downloadID, optionName, optionValue) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.insert({
+			user_id: userID,
+			download_id: downloadID,
+			option_name: optionName,
+			option_value: optionValue,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
@@ -2001,6 +2021,24 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 		})
 		.catch(function(err) {
 			return Errors.dbError(err);
+		});
+	});
+}
+
+module.exports.getAllCustomThumbnails = function(downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.where("download_id", "=", downloadID)
+		.where("option_name", "=", "custom_thumbnail")
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
 		});
 	});
 }

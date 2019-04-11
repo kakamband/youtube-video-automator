@@ -53,6 +53,12 @@ module.exports.permDeleteClips = function() {
 						return deleteFromS3Bucket(currentDeleteObj.downloaded_file);
 					})
 					.then(function() {
+						return dbController.getAllCustomThumbnails(currentDeleteObj.id);
+					})
+					.then(function(customThumbnails) {
+						return deleteAllCustomThumbnails(customThumbnails);
+					})
+					.then(function() {
 						count++;
 						if (count > results.length - 1) {
 							return resolve();
@@ -77,6 +83,54 @@ module.exports.permDeleteClips = function() {
 		})
 		.catch(function(err) {
 			return reject(err);
+		});
+	});
+}
+
+function deleteAllCustomThumbnails(customThumbnails) {
+	return new Promise(function(resolve, reject) {
+		if (customThumbnails.length == 0) {
+			return resolve();
+		}
+
+		var count = 0;
+		function next() {
+			return deleteThumbnailFromBucket(customThumbnails[count])
+			.then(function() {
+				count++;
+				if (count < customThumbnails.length) {
+					return next();
+				} else {
+					return resolve();
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function deleteThumbnailFromBucket(thumbnail) {
+	return new Promise(function(resolve, reject) {
+		if (thumbnail == null || thumbnail.option_value == null | thumbnail.option_value == "") {
+			return resolve();
+		}
+
+		var fileNameSplit = thumbnail.option_value.split("/");
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+
+		var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_THUMBNAIL_PATH + fileNameActual;
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				// If this errors just report to sentry and continue
+				ErrorHelper.scopeConfigure("cron_handler.deleteThumbnailFromBucket", {error: stderr});
+				ErrorHelper.emitSimpleError(new Error("Failed to delete thumbnail from s3."));
+			}
+
+			return resolve();
 		});
 	});
 }

@@ -422,7 +422,7 @@ router.post(Models.POLL_AD_PHASE, function(req, res, next) {
 
 router.post(Models.UPLOAD_THUMBNAIL_IMG, function(req, res, next) {
 	validFirst(Models.UPLOAD_THUMBNAIL_IMG, req, res, next, function() {
-		return Users.uploadThumbnailImage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game_name, req.body.image_b64, req.body.scope)
+		return Users.uploadThumbnailImage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.extra_data, req.body.image_b64, req.body.scope)
 		.then(function(results) {
 			return res.json({
 				image_url: results

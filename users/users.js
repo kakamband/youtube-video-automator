@@ -531,7 +531,7 @@ module.exports.pollADPhase = function(username, pmsID, email, password, download
 
 // uploadThumbnailImage
 // Uploads an image to s3, then depending on what the scope is updates the db.
-module.exports.uploadThumbnailImage = function(username, pmsID, email, password, gameName, imgB64, scope) {
+module.exports.uploadThumbnailImage = function(username, pmsID, email, password, extraData, imgB64, scope) {
     var userID = pmsID;
     var thumbnailImg = null;
     return new Promise(function(resolve, reject) {
@@ -542,7 +542,7 @@ module.exports.uploadThumbnailImage = function(username, pmsID, email, password,
         })
         .then(function(imgURL) {
             thumbnailImg = imgURL;
-            return addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imgURL);
+            return addThumbnailBasedOnScope(userID, pmsID, scope, extraData, imgURL);
         })
         .then(function() {
             return resolve(thumbnailImg);
@@ -592,11 +592,13 @@ function deleteThumbnailFromS3(image) {
     });
 }
 
-function addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imageLink) {
+function addThumbnailBasedOnScope(userID, pmsID, scope, extraData, imageLink) {
     return new Promise(function(resolve, reject) {
         switch (scope) {
             case "default-thumbnail":
-                if (!validThumbnailItem({gameName: gameName, image: imageLink})) {
+                // The extra data here is gameName
+
+                if (!validThumbnailItem({gameName: extraData, image: imageLink})) {
                     return reject(Errors.invalidThumbnail());
                 }
 
@@ -605,7 +607,21 @@ function addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imageLink) {
                 redis.del(redisKey);
 
                 // Only one image can be uploaded at a time in this route.
-                return dbController.addThumbnail(pmsID, gameName, imageLink, false, null)
+                return dbController.addThumbnail(pmsID, extraData, imageLink, false, null)
+                .then(function() {
+                    return resolve(true);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "custom-thumbnail":
+                // The extra data here is downloadID
+                
+                if (extraData == null || extraData == "") {
+                    return reject(Errors.clipDoesntExist());
+                }
+
+                return dbController.insertCustomOption(userID, extraData, "custom_thumbnail", imageLink)
                 .then(function() {
                     return resolve(true);
                 })

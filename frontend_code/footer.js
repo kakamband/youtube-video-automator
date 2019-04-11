@@ -809,7 +809,7 @@ function likeSettings($, username, ID, email, pass) {
 }
 
 // Handles uploading an image to our backend server
-function uploadThumbnailImg($, username, ID, email, pass, gameName, imgData, scope) {
+function uploadThumbnailImg($, username, ID, email, pass, extraData, imgData, scope) {
   $.ajax({
     type: "POST",
     url: autoTuberURL + "user/thumbnail/upload",
@@ -819,7 +819,7 @@ function uploadThumbnailImg($, username, ID, email, pass, gameName, imgData, sco
       "email": email,
       "password": pass,
 
-      "game_name": gameName,
+      "extra_data": extraData,
       "image_b64": imgData,
       "scope": scope
     },
@@ -827,8 +827,30 @@ function uploadThumbnailImg($, username, ID, email, pass, gameName, imgData, sco
       console.log("Error: ", error);
     },
     success: function(result,status,xhr) {
-      console.log("Succesfully uploaded image.");
-      $("#my-thumbnail-submission").val("");
+      if (result.image_url) {
+        console.log("Succesfully uploaded image.");
+        $("#my-thumbnail-submission").val("");
+
+        if (scope == "default-thumbnail") {
+          // Add the image to the table and redraw
+          gameThumbnailsCombo.push({gameName: extraData, playlistID: result.image_url, drawn: false, hardSaved: true, userDeleted: false});
+
+          // Add one to the count of thumbnails
+          var currentCount = globalJQuery("#thumbnails-count-value").text();
+          globalJQuery("#thumbnails-count-value").text(parseInt(currentCount) + 1);
+
+          drawOptions($, gameThumbnailsCombo, "#thumbnails-saved-table-body", "thumbnail");
+        } else if (scope == "custom-thumbnail") {
+          smartThumbnails($, {
+            youtube_settings: {
+              thumbnails: {
+                default_image: null,
+                specific_image: result.image_url
+              }
+            }
+          });
+        }
+      }
     },
     dataType: "json"
   });  
@@ -1815,20 +1837,19 @@ function watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID
 
 // Handles smartly displaying the thumbnails
 function smartThumbnails($, clipInfo) {
-  var urlPrefix = "https://twitchautomator.com/wp-content/uploads";
   if (clipInfo.youtube_settings.thumbnails.specific_image != null) {
     if (clipInfo.youtube_settings.thumbnails.specific_image == "none") {
       console.log("No thumbnail set.");
     } else {
       $(".current-clip-thumbnail-not-set").hide();
-      $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.specific_image + ")");
+      $(".current-clip-thumbnail-set").css("background-image", "url(" + clipInfo.youtube_settings.thumbnails.specific_image + ")");
       $(".current-clip-thumbnail-set").show();
       $("#remove-set-thumbnail").show();
       $("#change-set-thumbnail").show();
     }
   } else if (clipInfo.youtube_settings.thumbnails.default_image != null) {
     $(".current-clip-thumbnail-not-set").hide();
-    $(".current-clip-thumbnail-set").css("background-image", "url(" + urlPrefix + clipInfo.youtube_settings.thumbnails.default_image + ")");
+    $(".current-clip-thumbnail-set").css("background-image", "url(" + clipInfo.youtube_settings.thumbnails.default_image + ")");
     $(".current-clip-thumbnail-set").show();
     $("#remove-set-thumbnail").show();
     $("#change-set-thumbnail").show();
@@ -1961,24 +1982,30 @@ function handleCustomCategory($, username, ID, email, pass, downloadID) {
 }
 
 // Handles a custom thumbnail upload
-function handleCustomThumbnailUpload($, ID, clipInfo) {
+function handleCustomThumbnailUpload($, username, ID, email, pass, downloadID, clipInfo) {
+  var dataURL = null;
   function allowUpload() {
     $("#change-set-thumbnail").hide();
     $("#remove-set-thumbnail").hide();
     $(".current-clip-thumbnail-not-set").hide();
     $(".current-clip-thumbnail-set").hide();
     $(".set-current-clip-thumbnail").show();
-    $("#ugc-input-success_page").val(window.location.href + "&thumbnail_upload=false");
     $("#my-thumbnail-submission").change(function() {
-      var fileName = $("#my-thumbnail-submission").val();
-      var fileNameSanitized = fileName.split("fakepath\\")[1];
-      var currentDate = new Date();
+      var file = document.getElementById('my-thumbnail-submission').files[0];
+      var reader  = new FileReader();
 
-      // Format is: 'user_USERID_DAYOFMONTH_HOUROFDAY_YEAR_FILENAME'
-      fileNameSanitized = "/" + "user_" + ID + "_" + ('0' + currentDate.getUTCDate()).slice(-2) + "_" + ('0' + currentDate.getUTCHours()).slice(-2) + "_" + currentDate.getUTCFullYear() + "_" + fileNameSanitized;
+      reader.addEventListener("load", function () {
+        dataURL = reader.result;
+      }, false);
 
-      var fileNameBtoa = btoa(fileNameSanitized);
-      $("#ugc-input-success_page").val(window.location.href + "&thumbnail_upload=true&file_name=" + fileNameBtoa);
+      if (file) {
+        reader.readAsDataURL(file);
+      }
+    });
+    $("#upload-thumbnail-btn").click(function() {
+      if (dataURL != null) {
+        uploadThumbnailImg($, username, ID, email, pass, downloadID, dataURL, "custom-thumbnail");
+      }
     });
   }
 
@@ -2117,7 +2144,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         smartThumbnails($, clipInfo);
 
         // Watch for the thumbnail options
-        handleCustomThumbnailUpload($, ID, clipInfo);
+        handleCustomThumbnailUpload($, username, ID, email, pass, downloadID, clipInfo);
         $("#remove-set-thumbnail").click(function() {
           setNoThumbnailOption($, username, ID, email, pass, downloadID);
         });
@@ -2596,14 +2623,6 @@ jQuery(document).ready(function( $ ){
           stretchAWB($);
           return;
         }
-      }
-      
-      // Check if this is a thumbnail upload
-      var isThumbnailSuccess = urlParams.get("thumbnail_upload");
-      var fileName = urlParams.get("file_name");
-      var downloadID = urlParams.get("download_id");
-      if (isThumbnailSuccess && isThumbnailSuccess == "true") {
-        uploadCustomThumbnailToBackendServer($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, fileName, downloadID);
       }
 
       // If we can authenticate get the dashboard elements
