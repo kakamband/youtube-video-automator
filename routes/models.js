@@ -69,6 +69,9 @@ module.exports.SET_CUSTOM_OPTION = "/user/clip/custom/option";
 
 // Checks if the clip has passed the AD testing phase (this is polled every 5 seconds)
 module.exports.POLL_AD_PHASE = "/user/clip/ad/free";
+
+// Uploads an thumbnail image from the frontend
+module.exports.UPLOAD_THUMBNAIL_IMG = "/user/thumbnail/upload";
 // -------------------
 
 // Route definitions
@@ -364,6 +367,22 @@ module.exports.routes = new Map([
 			nameAndType("password", "string"),
 
 			nameAndType("download_id", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.UPLOAD_THUMBNAIL_IMG, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("image_b64", "string"),
+			nameAndType("scope", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

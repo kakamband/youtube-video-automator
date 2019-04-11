@@ -1,4 +1,5 @@
 var Promise = require('bluebird');
+var base64Img = require('base64-img');
 var cLogger = require('color-log');
 var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
@@ -6,6 +7,8 @@ var Hijacker = require('../hijacker/hijacker');
 var Worker = require('../worker/worker_producer');
 var ErrorHelper = require('../errors/errors');
 var Errors = require('../errors/defined_errors');
+var Attr = require('../config/attributes');
+var shell = require('shelljs');
 
 // --------------------------------------------
 // Constants below.
@@ -526,11 +529,104 @@ module.exports.pollADPhase = function(username, pmsID, email, password, download
     });
 }
 
+// uploadThumbnailImage
+// Uploads an image to s3, then depending on what the scope is updates the db.
+module.exports.uploadThumbnailImage = function(username, pmsID, email, password, gameName, imgB64, scope) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return uploadImageToS3(userID, imgB64);
+        })
+        .then(function(imgURL) {
+            return addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imgURL);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _uploadFileToS3(file) {
+    return new Promise(function(resolve, reject) {
+        var cmd = "aws s3 cp " + file + " s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_THUMBNAIL_PATH + " --acl public-read";
+        cLogger.info("Running CMD: " + cmd);
+        return shell.exec(cmd, function(code, stdout, stderr) {
+            if (code != 0) {
+                return reject(stderr);
+            }
+
+            return resolve();
+        });
+    });
+}
+
+function addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imageLink) {
+    return new Promise(function(resolve, reject) {
+        switch (scope) {
+            case "default-thumbnail":
+                if (!validThumbnailItem({gameName: gameName, image: imageLink})) {
+                    return reject(Errors.invalidThumbnail());
+                }
+
+                // Only one image can be uploaded at a time in this route.
+                return dbController.addThumbnail(pmsID, gameName, imageLink, false, null)
+                .then(function() {
+                    return resolve(true);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            default:
+                return reject(Errors.invalidScope());
+        }
+    });
+}
+
+function uploadImageToS3(userID, imgB64) {
+    return new Promise(function(resolve, reject) {
+        var currDate = new Date();
+        var filePath = ORIGIN_PATH + "tmp_img_files/";
+        var fileName = "user_" + userID + "_timestamp_" + currDate.getTime();
+
+        return base64Img.img(imgB64, filePath, fileName, function(err, filepath) {
+            if (err) {
+                return reject(err);
+            }
+
+            var filepathSplit = filepath.split("/");
+            var fileNameInCDN = "https://d2b3tzzd3kh620.cloudfront.net/thumbnails_dev/" + filepathSplit[filepathSplit.length - 1];
+
+            return _uploadFileToS3(filepath)
+            .then(function() {
+
+                // Delete the local file since its not uploaded to S3
+                var rmCMD = "rm " + filepath;
+                cLogger.info("Running CMD: " + rmCMD);
+                return shell.exec(rmCMD, function(code, stdout, stderr) {
+                    if (code != 0) {
+                        return reject(stderr);
+                    }
+
+                    return resolve(fileNameInCDN);
+                });
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        });
+    });
+}
 
 function updateUserHelper(userData) {
     return new Promise(function(resolve, reject) {
