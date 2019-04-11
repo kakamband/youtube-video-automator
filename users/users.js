@@ -579,6 +579,10 @@ function addThumbnailBasedOnScope(userID, pmsID, scope, gameName, imageLink) {
                     return reject(Errors.invalidThumbnail());
                 }
 
+                // Remove the cached settings since this is a default thumbnail change
+                var redisKey = userDefaultsOverviewKey + (pmsID + "");
+                redis.del(redisKey);
+
                 // Only one image can be uploaded at a time in this route.
                 return dbController.addThumbnail(pmsID, gameName, imageLink, false, null)
                 .then(function() {
