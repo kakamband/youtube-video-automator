@@ -605,7 +605,7 @@ function uploadImageToS3(userID, imgB64) {
             }
 
             var filepathSplit = filepath.split("/");
-            var fileNameInCDN = "https://d2b3tzzd3kh620.cloudfront.net/thumbnails_dev/" + filepathSplit[filepathSplit.length - 1];
+            var fileNameInCDN = "https://d2b3tzzd3kh620.cloudfront.net/" + Attr.AWS_S3_THUMBNAIL_PATH + filepathSplit[filepathSplit.length - 1];
 
             return _uploadFileToS3(filepath)
             .then(function() {
