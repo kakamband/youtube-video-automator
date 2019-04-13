@@ -1922,8 +1922,18 @@ function deleteVideoTag(downloadID, index) {
   if (globalJQuery == null) return;
   if (!canAuth) return;
 
-  console.log("Need to delete downloadID: " + downloadID + " and index: " + index);
   if (confirm("Delete " + videoTagsList[index].tag_name)) {
+    var dataOBJ = {
+      "username": theUser.username,
+      "user_id": theUser.id,
+      "email": theUser.email,
+      "password": theUser.unique_identifier,
+
+      "download_id": downloadID,
+      "option_name": "remove_tags",
+      "option_value": globalJQuery("#displayed-tag-" + index + " > .tag-display").text()
+    };
+    _setCustomOption(globalJQuery, dataOBJ);
     globalJQuery("#displayed-tag-" + index).hide();
   } else {
     console.log("Dont delete.");

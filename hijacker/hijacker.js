@@ -201,15 +201,23 @@ function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
 				if (success) {
 					cLogger.info("No AD detected. Can Continue.");
 					return resolve([cProcess, fileName, processStart]);
-				} else {
-					cLogger.info("Restarting download due to AD.");
-					return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
-					.then(function(results) {
-						return resolve(results);
-					})
-					.catch(function(err) {
-						return reject(err);
-					});
+				} else {					
+					if (currentAtmpts > maxAtmpts) {
+						return reject(new Error("Couldn't start a clip without an AD. We are losing this customer."));
+					}
+
+					// Delay 7 seconds to get the AD out of the way
+					cLogger.info("Watching AD for another 7 seconds to mimic a user watching it.");
+					return setTimeout(function() {
+						cLogger.info("Restarting download due to AD.");
+						return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
+						.then(function(results) {
+							return resolve(results);
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					}, 7000);
 				}
 			})
 			.catch(function(err) {
