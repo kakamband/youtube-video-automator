@@ -31,6 +31,7 @@ var gameCommentsCombo = [];
 var gameDescriptionsCombo = [];
 var gameTagsCombo = [];
 var gameThumbnailsCombo = [];
+var videoTagsList = [];
 var definedCategory = "20";
 var definedLanguage = "en";
 
@@ -841,6 +842,7 @@ function uploadThumbnailImg($, username, ID, email, pass, extraData, imgData, sc
 
           drawOptions($, gameThumbnailsCombo, "#thumbnails-saved-table-body", "thumbnail");
         } else if (scope == "custom-thumbnail") {
+          $(".set-current-clip-thumbnail").hide();
           smartThumbnails($, {
             youtube_settings: {
               thumbnails: {
@@ -958,6 +960,23 @@ function signatureSettings($, username, ID, email, pass) {
       }
     }
   });
+}
+
+// Handles opening up a default view
+function handleDefaultViewOpen($, username, ID, email, pass, openView) {
+  switch (openView) {
+    case "tags":
+      getAndUpdateTagsView($, username, ID, email, pass);
+      $("#default-tags-subsection").toggle();
+
+      // Scroll to the top of the tags area
+      setTimeout(function() {
+        $('html, body').animate({ scrollTop: $("#tags-default-setting").offset().top}, 'slow');
+      }, 500);
+      break;
+    default:
+      console.log("The view that is set as open hasn't been setup yet.");
+  }
 }
 
 // Handles the tag settings
@@ -1853,6 +1872,8 @@ function smartThumbnails($, clipInfo) {
     $(".current-clip-thumbnail-set").show();
     $("#remove-set-thumbnail").show();
     $("#change-set-thumbnail").show();
+  } else {
+    $(".current-clip-thumbnail-not-set").show();
   }
 }
 
@@ -1894,6 +1915,16 @@ function handleCustomLanguage($, username, ID, email, pass, downloadID) {
   });
 }
 
+// Helper to display the tags
+function _displayTagsHelper($) {
+  for (var i = 0; i < videoTagsList.length; i++) {
+    if (videoTagsList[i].drawn) continue;
+
+    $(".tag-display-list").append("<li style=\"list-style: none;\"><a class=\"tag-display\">" + videoTagsList[i].tag_name + "</a>");
+    videoTagsList[i].drawn = true;
+  }
+}
+
 // Handles a custom tag area
 function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
   var tagsSet = false;
@@ -1903,9 +1934,31 @@ function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
 
     // Display the tags
     for (var i = 0; i < clipInfo.youtube_settings.tags.length; i++) {
-      $(".tag-display-list").append("<li style=\"list-style: none;\"><a class=\"tag-display\">" + clipInfo.youtube_settings.tags[i] + "</a>");
+      videoTagsList.push({tag_name: clipInfo.youtube_settings.tags[i], drawn: false});
     }
+
+    _displayTagsHelper($)
   }
+
+  // Watch to see if the user wants to add custom tags
+  $(".add-custom-tags-btn").click(function() {
+    $(".add-custom-tags-btn").hide();
+    $("#custom-tag-input-box").show();
+    $(".add-unique-tag-btn").show();
+
+    $(".add-unique-tag-btn").click(function() {
+      // Make sure these are visible
+      $(".no-tags-set-yet").hide();
+      $(".tags-display-container").show();
+
+      var tagValue = $("#custom-tag-input-box").val();
+      if (tagValue && tagValue != "") {
+        $("#custom-tag-input-box").val("");
+        videoTagsList.push({tag_name: tagValue, drawn: false});
+        _displayTagsHelper($)
+      }
+    });
+  });
 }
 
 // Handles a custom playlist
@@ -2636,6 +2689,14 @@ jQuery(document).ready(function( $ ){
     } else if (pageURL[1].startsWith("account")) { // Account route
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "account");
     } else if (pageURL[1].startsWith("defaults")) { // Defaults route
+        var urlParams = new URLSearchParams(window.location.search);
+
+        // Check if we need to automatically open up a view
+        var viewOpen = urlParams.get("view");
+        if (viewOpen) {
+          handleDefaultViewOpen($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, viewOpen);
+        }
+
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
         defaultSettings($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier);
     } else {

@@ -893,6 +893,15 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
             }
 
             info.tags = tagsSimple;
+            return dbController.getCustomTags(userID, downloadID);
+        })
+        .then(function(customVidTags) {
+
+            // Remove all the unneccessary information on the tags. Only include the tag name
+            for (var i = 0; i < customVidTags.length; i++) {
+                info.tags.push(customVidTags[i].option_value);
+            }
+
             return dbController.getGameThumbnail(pmsID, gameName);
         })
         .then(function(gameThumbnail) {
@@ -1065,6 +1074,15 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
             case "custom_playlist":
                 // No validation here, either the user gets it right or wrong. Dont care.
                 return dbController.addCustomOption(userID, downloadID, "custom_playlist", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "custom_tags":
+                // No validation here its just free text. leave it up to the user.
+                return dbController.addCustomOption(userID, downloadID, "custom_tag", optionValue)
                 .then(function() {
                     return resolve();
                 })

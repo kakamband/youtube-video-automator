@@ -2025,6 +2025,25 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 	});
 }
 
+module.exports.getCustomTags = function(userID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.where("option_name", "=", "custom_tag")
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getAllCustomThumbnails = function(downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('custom_options')
