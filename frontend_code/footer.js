@@ -1955,7 +1955,20 @@ function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
       if (tagValue && tagValue != "") {
         $("#custom-tag-input-box").val("");
         videoTagsList.push({tag_name: tagValue, drawn: false});
-        _displayTagsHelper($)
+        _displayTagsHelper($);
+
+        // Send it to the server
+        var dataOBJ = {
+          "username": username,
+          "user_id": ID,
+          "email": email,
+          "password": pass,
+
+          "download_id": downloadID,
+          "option_name": "custom_tags",
+          "option_value": tagValue
+        };
+        _setCustomOption($, dataOBJ);
       }
     });
   });

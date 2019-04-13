@@ -1082,7 +1082,7 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
                 });
             case "custom_tags":
                 // No validation here its just free text. leave it up to the user.
-                return dbController.addCustomOption(userID, downloadID, "custom_tag", optionValue)
+                return dbController.insertCustomOption(userID, downloadID, "custom_tag", optionValue)
                 .then(function() {
                     return resolve();
                 })
