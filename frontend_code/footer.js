@@ -1915,12 +1915,27 @@ function handleCustomLanguage($, username, ID, email, pass, downloadID) {
   });
 }
 
-// Helper to display the tags
-function _displayTagsHelper($) {
-  for (var i = 0; i < videoTagsList.length; i++) {
-    if (videoTagsList[i].drawn) continue;
+// Deletes a tag for this video only
+function deleteVideoTag(downloadID, index) {
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
+  if (index < 0 || index >= videoTagsList.length) return;
+  if (globalJQuery == null) return;
+  if (!canAuth) return;
 
-    $(".tag-display-list").append("<li style=\"list-style: none;\"><a class=\"tag-display\">" + videoTagsList[i].tag_name + "</a>");
+  console.log("Need to delete downloadID: " + downloadID + " and index: " + index);
+  if (confirm("Delete " + videoTagsList[index].tag_name)) {
+    globalJQuery("#displayed-tag-" + index).hide();
+  } else {
+    console.log("Dont delete.");
+  }
+}
+
+// Helper to display the tags
+function _displayTagsHelper($, downloadID) {
+  for (var i = 0; i < videoTagsList.length; i++) {
+    if (videoTagsList[i].drawn || videoTagsList[i].deleted) continue;
+
+    $(".tag-display-list").append("<li id=\"displayed-tag-" + i + "\" style=\"list-style: none;\"><a class=\"tag-display\" onclick=\"deleteVideoTag('" + downloadID + "', " + i + ")\">" + videoTagsList[i].tag_name + "</a>");
     videoTagsList[i].drawn = true;
   }
 }
@@ -1934,10 +1949,10 @@ function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
 
     // Display the tags
     for (var i = 0; i < clipInfo.youtube_settings.tags.length; i++) {
-      videoTagsList.push({tag_name: clipInfo.youtube_settings.tags[i], drawn: false});
+      videoTagsList.push({tag_name: clipInfo.youtube_settings.tags[i], drawn: false, deleted: false});
     }
 
-    _displayTagsHelper($)
+    _displayTagsHelper($, downloadID)
   }
 
   // Watch to see if the user wants to add custom tags
@@ -1954,8 +1969,8 @@ function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
       var tagValue = $("#custom-tag-input-box").val();
       if (tagValue && tagValue != "") {
         $("#custom-tag-input-box").val("");
-        videoTagsList.push({tag_name: tagValue, drawn: false});
-        _displayTagsHelper($);
+        videoTagsList.push({tag_name: tagValue, drawn: false, deleted: false});
+        _displayTagsHelper($, downloadID);
 
         // Send it to the server
         var dataOBJ = {

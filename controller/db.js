@@ -1899,11 +1899,12 @@ module.exports.getYoutubeVideoSettings = function(userID, pmsID, downloadID) {
 	});
 }
 
-module.exports.getAllTags = function(pmsID, gameName) {
+module.exports.getAllTags = function(pmsID, userID, downloadID, gameName) {
 	return new Promise(function(resolve, reject) {
 		return knex('tags')
 		.where("pms_user_id", "=", pmsID)
 		.where("game", "=", gameName)
+		.whereNotExists(knex.select('*').from('custom_options').whereRaw('tags.tag = custom_options.option_value AND custom_options.option_name = \'custom_tag_deletion\' AND custom_options.download_id = \'' + downloadID + '\' AND custom_options.user_id = \'' + userID + '\''))
 		.then(function(tags) {
 			if (tags.length == 0) {
 				return resolve([]);
@@ -2021,6 +2022,43 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 		})
 		.catch(function(err) {
 			return Errors.dbError(err);
+		});
+	});
+}
+
+module.exports.deleteCustomOption = function(userID, downloadID, optionName, optionValue) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.where("option_name", "=", optionName)
+		.where("option_value", "=", optionValue)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.customTagExists = function(userID, downloadID, optionValue) {
+	return new Promise(function(resolve, reject) {
+		return knex('custom_options')
+		.where("user_id", "=", userID)
+		.where("download_id", "=", downloadID)
+		.where("option_name", "=", "custom_tag")
+		.where("option_value", "=", optionValue)
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(true);
+			} else {
+				return resolve(false);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
 		});
 	});
 }
