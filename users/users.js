@@ -882,7 +882,7 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
         return dbController.getYoutubeVideoSettings(userID, pmsID, downloadID)
         .then(function(results) {
             info = results;
-            return dbController.getAllTags(pmsID, gameName);
+            return dbController.getAllTags(pmsID, userID, downloadID, gameName);
         })
         .then(function(tags) {
 
@@ -1044,6 +1044,25 @@ function customThumbnail(userID, downloadID, optionValue) {
     });
 }
 
+function deleteVideoTag(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        return dbController.customTagExists(userID, downloadID, optionValue)
+        .then(function(exists) {
+            if (exists) {
+                return dbController.deleteCustomOption(userID, downloadID, "custom_tag", optionValue);
+            } else {
+                return dbController.insertCustomOption(userID, downloadID, "custom_tag_deletion", optionValue);
+            }
+        })
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 function customOptionHandler(userID, downloadID, optionName, optionValue) {
     return new Promise(function(resolve, reject) {
         switch (optionName) {
@@ -1083,6 +1102,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
             case "custom_tags":
                 // No validation here its just free text. leave it up to the user.
                 return dbController.insertCustomOption(userID, downloadID, "custom_tag", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "remove_tags":
+                return deleteVideoTag(userID, downloadID, optionValue)
                 .then(function() {
                     return resolve();
                 })
