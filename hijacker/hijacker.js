@@ -78,6 +78,12 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	});
 }
 
+// TODO: Migrate to streamlink to utilize their new '--twitch-disable-ads' feature which automatically skips HLS AD segments.
+// Streamlink Example: streamlink -o test.mp4 TWITCH_URL best --twitch-disable-ads
+// Reference: https://github.com/streamlink/streamlink/issues/2368
+// Reference 2: https://github.com/instance01/Twitch-HLS-AdBlock
+// Code Reference: https://github.com/streamlink/streamlink/pull/2372
+// HLS Reference: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23
 function getStreamPlaylistLink(twitchStream) {
 	return new Promise(function(resolve, reject) {
 		var cmd = ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream;
@@ -209,6 +215,7 @@ function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
 					// Delay 7 seconds to get the AD out of the way
 					cLogger.info("Watching AD for another 7 seconds to mimic a user watching it.");
 					return setTimeout(function() {
+						cProcess.kill();
 						cLogger.info("Restarting download due to AD.");
 						return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
 						.then(function(results) {
