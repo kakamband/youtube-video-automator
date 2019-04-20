@@ -50,7 +50,7 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.where("user_id", "=", userID)
-		.where("twitch_link", "=", twitchLink)
+		//.where("twitch_link", "=", twitchLink) This just leads to errors
 		.then(function(results) {
 			if (results.length == 0) {
 				return reject(new Error("The download doesn't seem to exist..."));
