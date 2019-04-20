@@ -78,194 +78,39 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 	});
 }
 
-// TODO: Migrate to streamlink to utilize their new '--twitch-disable-ads' feature which automatically skips HLS AD segments.
 // Streamlink Example: streamlink -o test.mp4 TWITCH_URL best --twitch-disable-ads
-// Reference: https://github.com/streamlink/streamlink/issues/2368
-// Reference 2: https://github.com/instance01/Twitch-HLS-AdBlock
-// Code Reference: https://github.com/streamlink/streamlink/pull/2372
+// Reference of AD blocker: https://github.com/streamlink/streamlink/issues/2368
+// Reference 2 of AD blocker this is based on: https://github.com/instance01/Twitch-HLS-AdBlock
+// AD Block Code Reference: https://github.com/streamlink/streamlink/pull/2372
 // HLS Reference: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23
-function getStreamPlaylistLink(twitchStream) {
+function startStreamDownload(twitchStream, fileName) {
 	return new Promise(function(resolve, reject) {
-		var cmd = ORIGIN_PATH + 'youtube-dl -f \\(\"bestvideo[width>=1920]\"/bestvideo\\)+bestaudio/best -g ' + twitchStream;
-		return shell.exec(cmd, function(code, stdout, stderr) {
-			if (code != 0) {
-				return reject(stderr);
-			}
-
-			return resolve(stdout.replace(/\r?\n|\r/g, ""));
-		});
+		var downloadCMD = "streamlink -o " + fileName + ".ts " + twitchStream + " best --twitch-disable-ads";
+		var cProcess = shell.exec(downloadCMD, {async: true});
+		return resolve(cProcess);
 	});
 }
 
-function _spawnDownloadProcess(twitchStream, cmd, args1, args2) {
-	var spawn = require('child_process').spawn;
+// Converts a TS file to a MP4 file.
+// This needs to be done since streamlink provides a 'ts' file (and trying to force it to download into .mp4 will result in a file without the right info, will be corrupted.)
+// Has a 1 second delay just to make sure the stream is actually done downloading. Usually not needed but doesn't hurt.
+function convertTSFileToMP4(fileName) {
 	return new Promise(function(resolve, reject) {
-		return getStreamPlaylistLink(twitchStream)
-		.then(function(playlistLINK) {
-			var totalArgs = args1;
-			totalArgs = totalArgs.concat([playlistLINK]);
-			totalArgs = totalArgs.concat(args2);
-
-			var cProcess = spawn(cmd, totalArgs);
-			return resolve(cProcess);
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
-	});
-}
-
-function spawnDownloadProcess(twitchStream, fileName) {
-  	var downloadInitCMD = ffmpegPath;
-	var downloadCMDArgs = ["-c", "copy", "-preset", "medium", (fileName + '.mp4')];
-	return _spawnDownloadProcess(twitchStream, downloadInitCMD, ["-i"], downloadCMDArgs)
-}
-
-function _startADDownload(twitchStream) {
-	return new Promise(function(resolve, _) {
-		var epoch = (new Date).getTime();
-		var fileName = ORIGIN_PATH + "tmp_ad_content/tmp_" + epoch;
-		cLogger.info("Starting the AD buster download.");
-		return spawnDownloadProcess(twitchStream, fileName)
-		.then(function(cProcess) {
-			return resolve([cProcess, fileName]);
-		})
-		.catch(function(err) {
-			return reject(err);
-		})
-	});
-}
-
-function extractSeconds(line) {
-	return new Promise(function(resolve, reject) {
-		// Template of the time is: "frame= 1167 fps= 83 q=-1.0 size=   19200kB time=00:00:19.45 bitrate=8083.1kbits/s speed=1.38x"
-
-		var splitOnTime = line.split("time=");
-		var splitOnTimeAndSpace = splitOnTime[splitOnTime.length - 1].split(" ");
-		var timeStr = splitOnTimeAndSpace[0];
-		var timeStrSplit = timeStr.split(":");
-
-		// Get the hours
-		var hourSeconds = parseInt(timeStrSplit[0]) * 60 * 60; // Hours * 60min/hr * 60sec/min
-		var minuteSeconds = parseInt(timeStrSplit[1]) * 60; // Minutes * 60sec/min
-		var seconds = parseInt(timeStrSplit[2]); // Seconds
-
-		return resolve(hourSeconds + minuteSeconds + seconds);
-	});
-}
-
-// Polls the process every 2 seconds, to check for an AD. Goes up to 16 times (ie. 32 seconds)
-// If it finds an it returns 
-function _ADPoller(cProcess) {
-	const pollingInterval = 2000; // 2 seconds
-
-	return new Promise(function(resolve, reject) {
-		var lastLine = "";
-		cProcess.stderr.on('data', (data) => {
-			if (data.indexOf("time=") >= 0) {
-				lastLine = data.toString();
-			}
-		});
-
-		var count = 0;
-		var max = 16;
-
-		// Start polling
-		cLogger.info("Starting to poll video every " + (pollingInterval / 1000) + " seconds.");
-		var pollInterval = setInterval(function() {
-			return extractSeconds(lastLine)
-			.then(function(secs) {
-				// If the video is ever greater than 5 minutes than we know that an AD has been added, and the video gets corrupted.
-				// This is an event I have been able to reproduce on every singe AD.
-				if (secs >= 300) {
-					return resolve(false);
-				} else {
-					count++;
-					if (count > max) {
-						return resolve(true);
-					} else {
-						// No AD found at (count * 2) seconds. Continuing.
-						cLogger.mark("No AD at time: " + (count * 2) + " seconds.");
-					}
+		return setTimeout(function() {
+			var cmd = ffmpegPath + " -i " + fileName + ".ts -c copy " + fileName + ".mp4";
+			cLogger.info("Converting TS file to Mp4 file.");
+			return shell.exec(cmd, function(code, stdout, stderr) {
+				if (code != 0) {
+					return reject(err);
 				}
+
+				return resolve();
 			});
-		}, pollingInterval);
+		}, 1000);
 	});
 }
 
-function _startDownloadCheckHelper(twitchStream, currentAtmpts, maxAtmpts) {
-	return new Promise(function(resolve, reject) {
-		return _startADDownload(twitchStream)
-		.then(function(processVals) {
-			let cProcess = processVals[0];
-			let fileName = processVals[1];
-			var processStart = new Date();
-
-			// Check if an AD appears in 32 seconds
-			return _ADPoller(cProcess)
-			.then(function(success) {
-				if (success) {
-					cLogger.info("No AD detected. Can Continue.");
-					return resolve([cProcess, fileName, processStart]);
-				} else {					
-					if (currentAtmpts > maxAtmpts) {
-						return reject(new Error("Couldn't start a clip without an AD. We are losing this customer."));
-					}
-
-					// Delay 7 seconds to get the AD out of the way
-					cLogger.info("Watching AD for another 7 seconds to mimic a user watching it.");
-					return setTimeout(function() {
-						cProcess.kill();
-						cLogger.info("Restarting download due to AD.");
-						return _startDownloadCheckHelper(twitchStream, currentAtmpts + 1, maxAtmpts)
-						.then(function(results) {
-							return resolve(results);
-						})
-						.catch(function(err) {
-							return reject(err);
-						});
-					}, 7000);
-				}
-			})
-			.catch(function(err) {
-				return reject(err);
-			});
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
-	});
-}
-
-function _startDownloadCheckForADS(twitchStream) {
-	return _startDownloadCheckHelper(twitchStream, 0, 5);
-}
-
-// Handles all the logic related to trying to get around Twitch ads.
-// As of now this simply starts the stream, and kills it 1 second later.
-// Doing this will usually (hypothetically) get the AD out of the way for the actual stream hijack.
-module.exports.ADBuster = function(twitchStream) {
-	const initialADTime = 7000; // 7 seconds
-	const maxADRetries = 15;
-
-	return _startDownloadCheckForADS(twitchStream);
-}
-
-function deleteTempADDownload(adFileName) {
-	return new Promise(function(resolve, reject) {
-		var rmCMD = "rm " + adFileName + ".mp4";
-		return shell.exec(rmCMD, function(code, stdout, stderr) {
-			if (code != 0) {
-				ErrorHelper.scopeConfigure("hijacker.deleteTempADDownload", {ouput: stderr});
-				ErrorHelper.emitSimpleError(new Error("Deleting the temporary AD file has errored, need to manually do this."));
-			}
-
-			return resolve();
-		});
-	});
-}
-
-module.exports.startHijack = function(userID, gameName, twitchStream, downloadID, cProcess, fileName, processStart) {
+module.exports.startHijack = function(userID, gameName, twitchStream, downloadID) {
 	return new Promise(function(resolve, reject) {
 		var gameNameFolder = sha256(gameName);
 
@@ -279,9 +124,11 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 
 			var hijacking = false;
 			var endingHijack = false;
+			var cProcess = null;
 
 			// The new file location where we are moving the temporary file
-			var epoch = processStart.getTime();
+			var currentDateTime = new Date();
+			var epoch = currentDateTime.getTime();
 			var newFileLocation = ORIGIN_PATH + "video_data_hijacks/" + gameNameFolder + "/" + userID + "_" + epoch;
 
 			function next() {
@@ -289,7 +136,11 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 					redis.set((redisDownloadKey + downloadID), "active", "EX", redisDownloadTTL);
 			  		hijacking = true;
 
-					return dbController.setDownloadActive(downloadID, (fileName + ".mp4"), processStart)
+			  		return startStreamDownload(twitchStream, newFileLocation)
+			  		.then(function(downloadProcess) {
+			  			cProcess = downloadProcess;
+			  			return dbController.setDownloadActive(downloadID, (newFileLocation + ".ts"), currentDateTime)
+			  		})
 			  		.then(function() {
 				  		return setTimeout(function() {
 				  			return next();
@@ -302,7 +153,10 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 					return stopHelper(userID, gameName, twitchStream, downloadID)
 					.then(function() {
 						cProcess.kill();
-						return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID, (fileName + ".mp4"))
+						return convertTSFileToMP4(newFileLocation)
+						.then(function() {
+							return dbController.finishedDownloading(userID, gameName, twitchStream, downloadID, (newFileLocation + ".mp4"));
+						})
 						.then(function() {
 							return resolve();
 						})
@@ -324,16 +178,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 				}
 			}
 
-			var mvCMD = "mv " + fileName + ".mp4 " + newFileLocation + ".mp4";
-			fileName = newFileLocation;
-			cLogger.info("Running command: " + mvCMD);
-			return shell.exec(mvCMD, function(code, stdout, stderr) {
-				if (code != 0) {
-					return reject(stderr);
-				}
-
-				return next();
-			})
+			return next();
 		});
 	});
 }
