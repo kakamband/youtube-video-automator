@@ -41,10 +41,10 @@ There are a few very heavy weight dependencies that we need in order for this au
 Global Dependencies Needed:
 
 
-| Dependency | Usage Description                                                                                                                             |
-|------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| [FFMPEG](https://www.ffmpeg.org/)     | Used in the download process of twitch clips (youtube-dl uses this).  As well as plays the biggest role in combining clips into one main one. |
-| [youtube-dl](https://rg3.github.io/youtube-dl/) | Used to download twitch clips at the highest quality.                                                                                         |
+| Dependency                                                                                             | Usage Description                                                                                                                            |
+|--------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| [FFMPEG](https://www.ffmpeg.org/)                                                                      | Used in the download process of twitch clips (youtube-dl uses this).,As well as plays the biggest role in combining clips into one main one. |
+| [Streamlink](https://github.com/streamlink/streamlink) & [StreamLink 2](https://streamlink.github.io/) | Used to download twitch streams at the highest possible quality, while also removing the AD's from the HLS stream data.                      |
 
 Node Dependencies Needed:
 
@@ -69,7 +69,7 @@ Node Dependencies Needed:
 
 1) Download & Install [PostgreSQL](https://www.postgresql.org/download/).
 2) Download & Install [FFMPEG](https://www.ffmpeg.org/download.html).
-3) Download & Install [Youtube-DL](https://rg3.github.io/youtube-dl/download.html).
+3) Download & Install [SteamLink TODO](www.google.com).
 4) Run `npm install`
 5) Change the config/basic_config.js file to how you see fit (or leave it, as the defaults are fine).
 6) Fill out the config/local_attributes_template.js file and save it as config/local_attributes.js.
@@ -80,8 +80,7 @@ Node Dependencies Needed:
 ### Future Plans
 
 1) Scale out to an [EC2 AWS Machine](https://aws.amazon.com/ec2/pricing/on-demand/) ([storage sizes](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html))
-2) Use Selenium to automate browser uploading to guarantee we can always upload.
-3) [Example](https://www.quora.com/Is-there-a-way-to-allow-someone-else-to-upload-videos-to-my-channel-without-giving-them-my-login-credentials) of how users will need to allow our account to post for them.
+2) [Example](https://www.quora.com/Is-there-a-way-to-allow-someone-else-to-upload-videos-to-my-channel-without-giving-them-my-login-credentials) of how users will need to allow our account to post for them.
 
 
 ### Installing onto AWS EC2 Box
@@ -100,11 +99,12 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 2) Make sure you have the PostgreSQL server running (sudo service postgresql start)
 3) Make sure you have the SSL certificates in the correct place. (Look at nginx_default.conf for location)
 4) Make sure you have set the /etc/nginx/nginx.conf to be the nginx_default.conf file.
-5) Make sure you have the NGinx server running (sudo service nginx start)
-6) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
-7) Make sure the above files are filled out correctly.
-8) Make sure you make the migrations directory.
-9) Test to see that you can run the server initially without issue (npm start open).
-10) Start production services: pm2 start my-production-apps.json
-11) Monitor which services are up: pm2 list
+5) Make sure you have streamlink downloaded, and runnable.
+6) Make sure you have the NGinx server running (sudo service nginx start)
+7) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
+8) Make sure the above files are filled out correctly.
+9) Make sure you make the migrations directory.
+10) Test to see that you can run the server initially without issue (npm start open).
+11) Start production services: pm2 start my-production-apps.json
+12) Monitor which services are up: pm2 list
 
