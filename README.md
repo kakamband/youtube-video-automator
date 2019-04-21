@@ -69,7 +69,7 @@ Node Dependencies Needed:
 
 1) Download & Install [PostgreSQL](https://www.postgresql.org/download/).
 2) Download & Install [FFMPEG](https://www.ffmpeg.org/download.html).
-3) Download & Install [SteamLink TODO](www.google.com).
+3) Download & Install [SteamLink](https://streamlink.github.io/install.html#macos).
 4) Run `npm install`
 5) Change the config/basic_config.js file to how you see fit (or leave it, as the defaults are fine).
 6) Fill out the config/local_attributes_template.js file and save it as config/local_attributes.js.
@@ -82,14 +82,40 @@ Node Dependencies Needed:
 1) Scale out to an [EC2 AWS Machine](https://aws.amazon.com/ec2/pricing/on-demand/) ([storage sizes](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html))
 2) [Example](https://www.quora.com/Is-there-a-way-to-allow-someone-else-to-upload-videos-to-my-channel-without-giving-them-my-login-credentials) of how users will need to allow our account to post for them.
 
+### OS Version
+``` bash
+# The following OS has been previously installed with, try to use this one or will have some issues.
+Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
+```
+
+### Testing connection to RDS Instance
+``` bash
+# Run the following command to see if you can connect to the DB instance from your current EC2 box.
+psql --host=autotuberdb.c5jtpe3kuhkc.us-east-2.rds.amazonaws.com --port=5432 --username=javin --password --dbname=autotuberMain
+
+# If you timeout, error, or anything accept actually get inside there is almost definitely an issue ahead.
+# Possible solutions: Update the RDS Security Group Inbound Rules to accept requests from the new server private IP address. (Should be something like: 172.31.16.17)
+```
+
+### RabbitMQ Notes
+``` bash
+# List all the queues, with the number of messages
+sudo rabbitmqctl list_queues
+
+# For some reason the following command does not work: sudo rabbitmqctl purge_queue QUEUE_NAME
+# Update the file and and add 'return ch.ack(msg);'
+```
 
 ### Installing onto AWS EC2 Box
 1) [Node, NPM, Git, PM2](https://hackernoon.com/deploying-a-node-app-on-amazon-ec2-d2fb9a6757eb)
 2) [PostgreSQL](https://gist.github.com/dstroot/2920991)
 3) [RabbitMQ](https://gist.github.com/ihor/5705626)
 4) [NGINX](https://gist.github.com/nrollr/56e933e6040820aae84f82621be16670)
-5) [ElastiCache - AKA Redis](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/nodes-connecting.html)
+5) [ElastiCache - AKA Redis - Not currently in use.](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/nodes-connecting.html)
 6) [S3 Access](http://codeomitted.com/transfer-files-from-ec2-to-s3/)
+7) [Redis Local Server](https://medium.com/@andrewcbass/install-redis-v3-2-on-aws-ec2-instance-93259d40a3ce)
+8) [HomeBrew](https://docs.brew.sh/Homebrew-on-Linux)
+9) [StreamLink](https://streamlink.github.io/install.html#macos)
 
 ### PM2 Cheatsheat
 http://pm2.keymetrics.io/docs/usage/quick-start/
@@ -100,11 +126,12 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 3) Make sure you have the SSL certificates in the correct place. (Look at nginx_default.conf for location)
 4) Make sure you have set the /etc/nginx/nginx.conf to be the nginx_default.conf file.
 5) Make sure you have streamlink downloaded, and runnable.
-6) Make sure you have the NGinx server running (sudo service nginx start)
-7) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
-8) Make sure the above files are filled out correctly.
-9) Make sure you make the migrations directory.
-10) Test to see that you can run the server initially without issue (npm start open).
-11) Start production services: pm2 start my-production-apps.json
-12) Monitor which services are up: pm2 list
+6) Make sure you update the RDS inbound rules to accept connections from the new EC2 server.
+7) Make sure you have the NGinx server running (sudo service nginx start)
+8) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
+9) Make sure the above files are filled out correctly.
+10) Make sure you make the migrations directory.
+11) Test to see that you can run the server initially without issue (npm start open).
+12) Start production services: pm2 start my-production-apps.json
+13) Monitor which services are up: pm2 list
 

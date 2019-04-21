@@ -35,6 +35,7 @@ module.exports = {
 	MAX_VIDEO_LENGTH: 650, // WHAT IS THE MAX VIDEO LENGTH IN SECONDS
 	MIN_VIDEO_LENGTH: 420, // WHAT IS THE MIN VIDEO LENGTH IN SECONDS
 	FINISHED_FILE_NAME: "ENTER THE FILE NAME FOR FINISHED COMBINATION VIDEOS. DO NOT INCLUDE A FILE TYPE! (EXAMPLE: 'finished')",
+	STREAMLINK_LOCATION: "streamlink", // The location of where the streamlink executable is
 
 	// SPECIFIES HOW FAST TO ENCCODE THE VIDEO. 'medium' is pretty high quality.
 	// The possible values are: 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'veryslow'

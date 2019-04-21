@@ -85,7 +85,7 @@ module.exports.endHijacking = function(userID, twitchStream, downloadID) {
 // HLS Reference: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23
 function startStreamDownload(twitchStream, fileName) {
 	return new Promise(function(resolve, reject) {
-		var downloadCMD = "streamlink -o " + fileName + ".ts " + twitchStream + " best --twitch-disable-ads";
+		var downloadCMD = Attr.STREAMLINK_EXECUTABLE_LOC + " -o " + fileName + ".ts " + twitchStream + " best --twitch-disable-ads";
 		var cProcess = shell.exec(downloadCMD, {async: true});
 		return resolve(cProcess);
 	});
