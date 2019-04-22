@@ -55,8 +55,8 @@ module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 
 // decrementMsgCount
 // Decrements the msg count in redis
-module.exports.decrementMsgCount = function(key) {
-	return decrKey(key);
+module.exports.decrementMsgCount = function(workerName) {
+	return decrKeyV2(workerName);
 }
 
 // setupWorkerChannels
@@ -69,6 +69,35 @@ module.exports.setupWorkerChannels = function() {
 // Wrapper for CronHandler.permDeleteClips()
 module.exports.permDeleteWrapper = function() {
 	return CronHandler.permDeleteClips();
+}
+
+// handleGracefulShutdown
+// Handles gracefully shutting down this worker, updates the DB accordingly to specify that the worker is no longer able to accept messages
+module.exports.handleGracefulInitAndShutdown = function(workerType) {
+	return dbController.workerStartingUp(workerType)
+	.then(function() {
+		// Handle PM2 shutdowns gracefully
+		process.on('SIGINT', function() {
+			console.log("Shutting down " + workerType + " worker.");
+			return dbController.workerShuttingDown(workerType)
+			.then(function() {
+				process.exit(0);
+			})
+			.catch(function(err) {
+				ErrorHelper.scopeConfigure("worker_helpers.handleGracefulInitAndShutdown", {
+					"message": "We are not tracking worker terminations! This is very dangerous!!"
+				});
+				ErrorHelper.emitSimpleError(err);
+				process.exit(1);
+			});
+		});
+	})
+	.catch(function(err) {
+		ErrorHelper.scopeConfigure("worker_helpers.handleGracefulInitAndShutdown", {
+			"message": "We are not tracking worker initializations! This is very dangerous!!"
+		});
+		ErrorHelper.emitSimpleError(err);
+	});
 }
 
 // --------------------------------------------
@@ -146,6 +175,18 @@ function addClipVideoCacheItem(cdnFile, downloadID) {
     		return resolve();
     	});
     });
+}
+
+function decrKeyV2(workerName) {
+	return new Promise(function(resolve, reject) {
+		return dbController.workerNoLongerUtilized(workerType)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
 }
 
 function decrKey(key) {

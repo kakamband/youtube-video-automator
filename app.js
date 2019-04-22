@@ -403,4 +403,10 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+// Handle PM2 shutdowns gracefully
+process.on('SIGINT', function() {
+	console.log("Shutting down main server.");
+	process.exit(0);
+});
+
 module.exports = app;

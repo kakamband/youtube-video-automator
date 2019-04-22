@@ -20,6 +20,14 @@ function setup500Err(errorValue) {
     return setupErr(500, errorValue);
 }
 
+function setup501Err(errorValue) {
+    return setupErr(501, errorValue);
+}
+
+module.exports.invalidWorkerType = function(workerName) {
+    return setup501Err("Invalid worker type specified (" + workerName + ").");
+}
+
 module.exports.internalServerError = function() {
     return setup500Err("Internal Server Error.");
 }

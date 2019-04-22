@@ -5,6 +5,8 @@ var Secrets = require('../config/secrets');
 var Attr = require('../config/attributes');
 var dbController = require('../controller/db');
 var shell = require('shelljs');
+var ErrorHelper = require('../errors/errors');
+var DefinedErrors = require('../errors/defined_errors');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -262,6 +264,39 @@ function getQueueMessages(key) {
 	});
 }
 
+function _addWorkerCurrentlyWorking(workerType) {
+	return new Promise(function(resolve, reject) {
+		return dbController.workerBeingUtilized(workerType)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function workerStartingWork(workerType) {
+	return new Promise(function(resolve, reject) {
+		switch (workerType) {
+			case "downloader":
+			case "encoder":
+			case "uploader":
+			case "fallback":
+				return _addWorkerCurrentlyWorking(workerType)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default:
+				ErrorHelper.emitSimpleError(DefinedErrors.invalidWorkerType(workerType));
+				return resolve();
+		}
+	});
+}
+
 function transactionIncMsgCount(key) {
 	return new Promise(function(resolve, reject) {
 		var multi = redis.multi();
@@ -274,88 +309,101 @@ function transactionIncMsgCount(key) {
 	});
 }
 
+// Returns [currently_running_worker_count, currently_active_workers]
+function getQueueMessagesV2(workerType) {
+	return new Promise(function(resolve, reject) {
+		switch (workerType) {
+			case "downloader":
+			case "encoder":
+			case "uploader":
+			case "fallback":
+				return dbController.getWorkerInformation(workerType)
+				.then(function(workerInfo) {
+					return resolve(workerInfo);
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default:
+				ErrorHelper.emitSimpleError(DefinedErrors.invalidWorkerType(workerType));
+				return resolve([0, 0]); // Cant use this worker obviously
+		}
+	});
+}
 
 function getQueueMeta(){
-
 	return new Promise(function(resolve, reject) {
-		return getMessagesAndConsumers(Attr.ENCODING_AMQP_CHANNEL_NAME)
-		.then(function(encodinginfo) {
-			return getQueueMessages(redisEncodingKey)
-			.then(function(messageCount) {
-				let consumerCount = encodinginfo[1];
+		return getQueueMessagesV2("encoder")
+		.then(function(queueInfo) {
+			let runningWorkers = queueInfo[0];
+			let activeWorkers = queueInfo[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisEncodingKey)
-					.then(function() {
-						return resolve(Attr.ENCODING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.UPLOADING_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("encoder")
+				.then(function() {
+					return resolve(Attr.ENCODING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("uploader")
+			}
 		})
-		.then(function(uploadingInfo) {
-			return getQueueMessages(redisUploadingKey)
-			.then(function(messageCount) {
-				let consumerCount = uploadingInfo[1];
+		.then(function(queueInfo1) {
+			let runningWorkers = queueInfo1[0];
+			let activeWorkers = queueInfo1[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisUploadingKey)
-					.then(function() {
-						return resolve(Attr.UPLOADING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("uploader")
+				.then(function() {
+					return resolve(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("downloader")
+			}
 		})
-		.then(function(downloadingInfo) {
-			return getQueueMessages(redisDownloadingKey)
-			.then(function(messageCount) {
-				let consumerCount = downloadingInfo[1];
+		.then(function(queueInfo2) {
+			let runningWorkers = queueInfo2[0];
+			let activeWorkers = queueInfo2[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisDownloadingKey)
-					.then(function() {
-						return resolve(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("downloader")
+				.then(function() {
+					return resolve(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("fallback")
+			}
 		})
-		.then(function(fallbackInfo) {
-			return getQueueMessages(redisFallbackKey)
-			.then(function(messageCount) {
-				let consumerCount = fallbackInfo[1];
+		.then(function(queueInfo3) {
+			let runningWorkers = queueInfo3[0];
+			let activeWorkers = queueInfo3[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisFallbackKey)
-					.then(function() {
-						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-					});
-				} else {				
-					// This is extremely dangerous
-					// Log to Sentry
-					// Send an email to admin
-					// Send an SMS to admin
-					cLogger.info("No consumers were available!! This is very dangerous, trying to manually start up a new worker.");
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("fallback")
+				.then(function() {
+					return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				// This is extremely dangerous
+				// Log to Sentry
+				// Send an email to admin
+				// Send an SMS to admin
+				cLogger.info("No consumers were available!! This is very dangerous, trying to manually start up a new worker.");
+				ErrorHelper.emitSimpleError(new Error("Safe Error: Created a new fallback consumer to handle the user load."));
 
-					var newConsumer = shell.exec(Attr.FINAL_FALLBACK_NO_CONSUMERS_FOR_DWNLOAD, {async: true});
-					return transactionIncMsgCount(redisFallbackKey)
-					.then(function() {
-						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-					});
-				}
-			});
+				var newConsumer = shell.exec(Attr.FINAL_FALLBACK_NO_CONSUMERS_FOR_DWNLOAD, {async: true});
+				return workerStartingWork("fallback")
+				.then(function() {
+					return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+				});
+			}
 		})
 		.catch(function(err) {
 			return reject(err);
