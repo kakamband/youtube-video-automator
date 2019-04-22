@@ -88,6 +88,31 @@ function handleMessage(message, msg, ch, knex) {
         });
       });
     break;
+    case "transfer_video_task":
+      var userID = msg.properties.correlationId;
+      var twitchStream = msg.properties.contentEncoding;
+      var downloadID = parseInt(msg.properties.messageId);
+      cLogger.info("Starting a transfer to S3 task.");
+
+      return Helpers.transferToS3(userID, twitchStream, downloadID)
+      .then(function() {
+        successMsg(message);
+        return Helpers.decrementMsgCount("downloader");
+      })
+      .then(function() {
+        ch.ack(msg);
+      }).catch(function(err) {
+        errMsg(message, msg, message, err);
+        return Helpers.decrementMsgCount("downloader")
+        .then(function() {
+          ch.ack(msg);
+        })
+        .catch(function(err) {
+          Sentry.captureException(err);
+          ch.ack(msg);
+        });
+      });
+    break;
   }
 }
 

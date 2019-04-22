@@ -37,54 +37,6 @@ module.exports.initProducers = function() {
 	});
 }
 
-// addEncodingTask
-// Adds an encoding task to the back of the encoding queue.
-module.exports.addEncodingTask = function(userID, quality) {
-	var validQualities = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"];
-
-	return new Promise(function(resolve, reject) {
-		// Make sure the encoding quality is a valid one, and if it isn't just set the quality to the default medium.
-		if (validQualities.indexOf(quality) == -1) {
-			quality = "medium";
-		}
-
-		var published = encodingChannel.publish('', Attr.ENCODING_AMQP_CHANNEL_NAME, new Buffer("encoding_task"), {
-			persistent: true,
-			priority: 1,
-			mandatory: true,
-			timestamp: (new Date).getTime(),
-			type: quality,
-			correlationId: userID
-		});
-		if (published) {
-			cLogger.info("Published encoding task.");
-			return resolve();
-		} else {
-			return reject(new Error("Not enough room in encoding queue."));
-		}
-	});
-}
-
-// addUploadingTask
-// Adds an uploading task to the back of the uploading queue.
-module.exports.addUploadingTask = function(userID) {
-	return new Promise(function(resolve, reject) {
-		var published = ch.publish('', Attr.UPLOADING_AMQP_CHANNEL_NAME, new Buffer("uploading_task"), {
-			persistent: true,
-			priority: 1,
-			mandatory: true,
-			timestamp: (new Date).getTime(),
-			correlationId: userID
-		});
-		if (published) {
-			cLogger.info("Published uploading task.");
-			return resolve();
-		} else {
-			return reject(new Error("Not enough room in encoding queue."));
-		}
-	});
-}
-
 // addTransferFileToS3Task
 // Transfers a video file to the S3 bucket, then deletes the file, and updates the db.
 module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID) {
@@ -99,9 +51,11 @@ module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID
 			messageId: (downloadID + "")
 		};
 
-		return transactionIncMsgCount(redisUploadingKey)
-		.then(function() {
-			return makeTransferToS3Post(msgOptions)
+		// Returns an unactive queue that can be consumed right away
+		// Also sets the queue to now be working
+		return getQueueMeta()
+		.then(function(queueChoice) {
+			return makeTransferToS3Post(queueChoice, msgOptions)
 		})
 		.then(function() {
 			return resolve();
@@ -178,6 +132,63 @@ module.exports.startPermDeleteCycle = function() {
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
+
+
+// --------------------------------------------
+// Depracated functions below.
+// --------------------------------------------
+
+// DEPRECATED
+// addEncodingTask
+// Adds an encoding task to the back of the encoding queue.
+module.exports.addEncodingTask = function(userID, quality) {
+	var validQualities = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"];
+
+	return new Promise(function(resolve, reject) {
+		// Make sure the encoding quality is a valid one, and if it isn't just set the quality to the default medium.
+		if (validQualities.indexOf(quality) == -1) {
+			quality = "medium";
+		}
+
+		var published = encodingChannel.publish('', Attr.ENCODING_AMQP_CHANNEL_NAME, new Buffer("encoding_task"), {
+			persistent: true,
+			priority: 1,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			type: quality,
+			correlationId: userID
+		});
+		if (published) {
+			cLogger.info("Published encoding task.");
+			return resolve();
+		} else {
+			return reject(new Error("Not enough room in encoding queue."));
+		}
+	});
+}
+
+// DEPRECATED
+// addUploadingTask
+// Adds an uploading task to the back of the uploading queue.
+module.exports.addUploadingTask = function(userID) {
+	return new Promise(function(resolve, reject) {
+		var published = ch.publish('', Attr.UPLOADING_AMQP_CHANNEL_NAME, new Buffer("uploading_task"), {
+			persistent: true,
+			priority: 1,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID
+		});
+		if (published) {
+			cLogger.info("Published uploading task.");
+			return resolve();
+		} else {
+			return reject(new Error("Not enough room in encoding queue."));
+		}
+	});
+}
+
+// --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
 
@@ -214,8 +225,8 @@ function makePost(queueName, msgOptions, taskName) {
 	});
 }
 
-function makeTransferToS3Post(msgOptions) {
-	return makePost(Attr.UPLOADING_AMQP_CHANNEL_NAME, msgOptions, "transfer_video_task");
+function makeTransferToS3Post(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "transfer_video_task");
 }
 
 function makeDownloadPost(queueName, msgOptions) {
