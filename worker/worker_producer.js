@@ -5,6 +5,8 @@ var Secrets = require('../config/secrets');
 var Attr = require('../config/attributes');
 var dbController = require('../controller/db');
 var shell = require('shelljs');
+var ErrorHelper = require('../errors/errors');
+var DefinedErrors = require('../errors/defined_errors');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -35,54 +37,6 @@ module.exports.initProducers = function() {
 	});
 }
 
-// addEncodingTask
-// Adds an encoding task to the back of the encoding queue.
-module.exports.addEncodingTask = function(userID, quality) {
-	var validQualities = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"];
-
-	return new Promise(function(resolve, reject) {
-		// Make sure the encoding quality is a valid one, and if it isn't just set the quality to the default medium.
-		if (validQualities.indexOf(quality) == -1) {
-			quality = "medium";
-		}
-
-		var published = encodingChannel.publish('', Attr.ENCODING_AMQP_CHANNEL_NAME, new Buffer("encoding_task"), {
-			persistent: true,
-			priority: 1,
-			mandatory: true,
-			timestamp: (new Date).getTime(),
-			type: quality,
-			correlationId: userID
-		});
-		if (published) {
-			cLogger.info("Published encoding task.");
-			return resolve();
-		} else {
-			return reject(new Error("Not enough room in encoding queue."));
-		}
-	});
-}
-
-// addUploadingTask
-// Adds an uploading task to the back of the uploading queue.
-module.exports.addUploadingTask = function(userID) {
-	return new Promise(function(resolve, reject) {
-		var published = ch.publish('', Attr.UPLOADING_AMQP_CHANNEL_NAME, new Buffer("uploading_task"), {
-			persistent: true,
-			priority: 1,
-			mandatory: true,
-			timestamp: (new Date).getTime(),
-			correlationId: userID
-		});
-		if (published) {
-			cLogger.info("Published uploading task.");
-			return resolve();
-		} else {
-			return reject(new Error("Not enough room in encoding queue."));
-		}
-	});
-}
-
 // addTransferFileToS3Task
 // Transfers a video file to the S3 bucket, then deletes the file, and updates the db.
 module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID) {
@@ -97,9 +51,11 @@ module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID
 			messageId: (downloadID + "")
 		};
 
-		return transactionIncMsgCount(redisUploadingKey)
-		.then(function() {
-			return makeTransferToS3Post(msgOptions)
+		// Returns an unactive queue that can be consumed right away
+		// Also sets the queue to now be working
+		return getQueueMeta()
+		.then(function(queueChoice) {
+			return makeTransferToS3Post(queueChoice, msgOptions)
 		})
 		.then(function() {
 			return resolve();
@@ -176,6 +132,63 @@ module.exports.startPermDeleteCycle = function() {
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
+
+
+// --------------------------------------------
+// Depracated functions below.
+// --------------------------------------------
+
+// DEPRECATED
+// addEncodingTask
+// Adds an encoding task to the back of the encoding queue.
+module.exports.addEncodingTask = function(userID, quality) {
+	var validQualities = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"];
+
+	return new Promise(function(resolve, reject) {
+		// Make sure the encoding quality is a valid one, and if it isn't just set the quality to the default medium.
+		if (validQualities.indexOf(quality) == -1) {
+			quality = "medium";
+		}
+
+		var published = encodingChannel.publish('', Attr.ENCODING_AMQP_CHANNEL_NAME, new Buffer("encoding_task"), {
+			persistent: true,
+			priority: 1,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			type: quality,
+			correlationId: userID
+		});
+		if (published) {
+			cLogger.info("Published encoding task.");
+			return resolve();
+		} else {
+			return reject(new Error("Not enough room in encoding queue."));
+		}
+	});
+}
+
+// DEPRECATED
+// addUploadingTask
+// Adds an uploading task to the back of the uploading queue.
+module.exports.addUploadingTask = function(userID) {
+	return new Promise(function(resolve, reject) {
+		var published = ch.publish('', Attr.UPLOADING_AMQP_CHANNEL_NAME, new Buffer("uploading_task"), {
+			persistent: true,
+			priority: 1,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID
+		});
+		if (published) {
+			cLogger.info("Published uploading task.");
+			return resolve();
+		} else {
+			return reject(new Error("Not enough room in encoding queue."));
+		}
+	});
+}
+
+// --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
 
@@ -212,8 +225,8 @@ function makePost(queueName, msgOptions, taskName) {
 	});
 }
 
-function makeTransferToS3Post(msgOptions) {
-	return makePost(Attr.UPLOADING_AMQP_CHANNEL_NAME, msgOptions, "transfer_video_task");
+function makeTransferToS3Post(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "transfer_video_task");
 }
 
 function makeDownloadPost(queueName, msgOptions) {
@@ -262,6 +275,39 @@ function getQueueMessages(key) {
 	});
 }
 
+function _addWorkerCurrentlyWorking(workerType) {
+	return new Promise(function(resolve, reject) {
+		return dbController.workerBeingUtilized(workerType)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function workerStartingWork(workerType) {
+	return new Promise(function(resolve, reject) {
+		switch (workerType) {
+			case "downloader":
+			case "encoder":
+			case "uploader":
+			case "fallback":
+				return _addWorkerCurrentlyWorking(workerType)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default:
+				ErrorHelper.emitSimpleError(DefinedErrors.invalidWorkerType(workerType));
+				return resolve();
+		}
+	});
+}
+
 function transactionIncMsgCount(key) {
 	return new Promise(function(resolve, reject) {
 		var multi = redis.multi();
@@ -274,88 +320,101 @@ function transactionIncMsgCount(key) {
 	});
 }
 
+// Returns [currently_running_worker_count, currently_active_workers]
+function getQueueMessagesV2(workerType) {
+	return new Promise(function(resolve, reject) {
+		switch (workerType) {
+			case "downloader":
+			case "encoder":
+			case "uploader":
+			case "fallback":
+				return dbController.getWorkerInformation(workerType)
+				.then(function(workerInfo) {
+					return resolve(workerInfo);
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default:
+				ErrorHelper.emitSimpleError(DefinedErrors.invalidWorkerType(workerType));
+				return resolve([0, 0]); // Cant use this worker obviously
+		}
+	});
+}
 
 function getQueueMeta(){
-
 	return new Promise(function(resolve, reject) {
-		return getMessagesAndConsumers(Attr.ENCODING_AMQP_CHANNEL_NAME)
-		.then(function(encodinginfo) {
-			return getQueueMessages(redisEncodingKey)
-			.then(function(messageCount) {
-				let consumerCount = encodinginfo[1];
+		return getQueueMessagesV2("encoder")
+		.then(function(queueInfo) {
+			let runningWorkers = queueInfo[0];
+			let activeWorkers = queueInfo[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisEncodingKey)
-					.then(function() {
-						return resolve(Attr.ENCODING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.UPLOADING_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("encoder")
+				.then(function() {
+					return resolve(Attr.ENCODING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("uploader")
+			}
 		})
-		.then(function(uploadingInfo) {
-			return getQueueMessages(redisUploadingKey)
-			.then(function(messageCount) {
-				let consumerCount = uploadingInfo[1];
+		.then(function(queueInfo1) {
+			let runningWorkers = queueInfo1[0];
+			let activeWorkers = queueInfo1[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisUploadingKey)
-					.then(function() {
-						return resolve(Attr.UPLOADING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("uploader")
+				.then(function() {
+					return resolve(Attr.UPLOADING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("downloader")
+			}
 		})
-		.then(function(downloadingInfo) {
-			return getQueueMessages(redisDownloadingKey)
-			.then(function(messageCount) {
-				let consumerCount = downloadingInfo[1];
+		.then(function(queueInfo2) {
+			let runningWorkers = queueInfo2[0];
+			let activeWorkers = queueInfo2[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisDownloadingKey)
-					.then(function() {
-						return resolve(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
-					});
-				} else {
-					return getMessagesAndConsumers(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-				}
-			});
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("downloader")
+				.then(function() {
+					return resolve(Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				return getQueueMessagesV2("fallback")
+			}
 		})
-		.then(function(fallbackInfo) {
-			return getQueueMessages(redisFallbackKey)
-			.then(function(messageCount) {
-				let consumerCount = fallbackInfo[1];
+		.then(function(queueInfo3) {
+			let runningWorkers = queueInfo3[0];
+			let activeWorkers = queueInfo3[1];
 
-				// Check if there are any empty workers
-				var hasEmptyConsumer = (consumerCount - messageCount > 0);
-				if (hasEmptyConsumer) {
-					return transactionIncMsgCount(redisFallbackKey)
-					.then(function() {
-						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-					});
-				} else {				
-					// This is extremely dangerous
-					// Log to Sentry
-					// Send an email to admin
-					// Send an SMS to admin
-					cLogger.info("No consumers were available!! This is very dangerous, trying to manually start up a new worker.");
+			// Check if there are any empty workers
+			var hasEmptyConsumer = (runningWorkers - activeWorkers > 0);
+			if (hasEmptyConsumer) {
+				return workerStartingWork("fallback")
+				.then(function() {
+					return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+				});
+			} else {
+				// This is extremely dangerous
+				// Log to Sentry
+				// Send an email to admin
+				// Send an SMS to admin
+				cLogger.info("No consumers were available!! This is very dangerous, trying to manually start up a new worker.");
+				ErrorHelper.emitSimpleError(new Error("Safe Error: Created a new fallback consumer to handle the user load."));
 
-					var newConsumer = shell.exec(Attr.FINAL_FALLBACK_NO_CONSUMERS_FOR_DWNLOAD, {async: true});
-					return transactionIncMsgCount(redisFallbackKey)
-					.then(function() {
-						return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
-					});
-				}
-			});
+				var newConsumer = shell.exec(Attr.FINAL_FALLBACK_NO_CONSUMERS_FOR_DWNLOAD, {async: true});
+				return workerStartingWork("fallback")
+				.then(function() {
+					return resolve(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME);
+				});
+			}
 		})
 		.catch(function(err) {
 			return reject(err);

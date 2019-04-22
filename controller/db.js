@@ -2117,3 +2117,120 @@ module.exports.setDownloadActive = function(downloadID, fileLocation, processSta
 		});
 	});
 }
+
+module.exports.workerStartingUp = function(workerName) {
+	return new Promise(function(resolve, reject) {
+		return knex.transaction(function(t) {
+			return knex('worker_capacity')
+			.transacting(t)
+			.where("name", "=", workerName)
+			.then(function(results) {
+				if (results.length == 0) { // First time
+					return knex('worker_capacity')
+					.transacting(t)
+					.insert({
+						name: workerName,
+						currently_running: 1,
+						created_at: new Date(),
+						updated_at: new Date()
+					})
+					.then(t.commit)
+					.catch(t.rollback);
+				} else {
+					return knex('worker_capacity')
+					.transacting(t)
+					.where("name", "=", workerName)
+					.increment('currently_running', 1)
+					.update({
+						updated_at: new Date()
+					})
+					.then(t.commit)
+					.catch(t.rollback);
+				}
+			})
+			.catch(t.rollback);
+		}).then(function() {
+			return resolve();
+		}).catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.workerShuttingDown = function(workerName) {
+	return new Promise(function(resolve, reject) {
+		return knex.transaction(function(t) {
+			return knex('worker_capacity')
+			.transacting(t)
+			.where("name", "=", workerName)
+			.decrement("currently_running", 1)
+			.update({
+				updated_at: new Date()
+			})
+			.then(t.commit)
+			.catch(t.rollback);
+		}).then(function() {
+			return resolve();
+		}).catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.workerNoLongerUtilized = function(workerName) {
+	return new Promise(function(resolve, reject) {
+		return knex.transaction(function(t) {
+			return knex('worker_capacity')
+			.transacting(t)
+			.where("name", "=", workerName)
+			.decrement("currently_working", 1)
+			.update({
+				updated_at: new Date()
+			})
+			.then(t.commit)
+			.catch(t.rollback);
+		}).then(function() {
+			return resolve();
+		}).catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.workerBeingUtilized = function(workerName) {
+	return new Promise(function(resolve, reject) {
+		return knex.transaction(function(t) {
+			return knex('worker_capacity')
+			.transacting(t)
+			.where("name", "=", workerName)
+			.increment("currently_working", 1)
+			.update({
+				updated_at: new Date()
+			})
+			.then(t.commit)
+			.catch(t.rollback);
+		}).then(function() {
+			return resolve();
+		}).catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getWorkerInformation = function(workerName) {
+	return new Promise(function(resolve, reject) {
+		return knex('worker_capacity')
+		.where("name", "=", workerName)
+		.then(function(results) {
+			if (results.length == 0) { // This should theoretically never happen
+				ErrorHelper.emitSimpleError(new Error("Can't find a worker associated with name=" + workerName));
+				return resolve([0, 0]);
+			} else {
+				return resolve([results[0].currently_running, results[0].currently_working]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

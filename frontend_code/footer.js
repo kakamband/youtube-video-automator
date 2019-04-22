@@ -2115,6 +2115,19 @@ function handleCustomThumbnailUpload($, username, ID, email, pass, downloadID, c
   });
 }
 
+// Handles clicking the explain Youtube settings buttons
+function handleExplainYoutubeSettings($) {
+  $(".explain-video-settings-button").click(function() {
+    if ($(".explain-video-settings-container").is(":visible")) {
+      $(".explain-video-settings-container").hide();
+    } else {
+      $(".explain-video-settings-container").show();
+      $('html, body').animate({ scrollTop: $(".explain-video-settings-container").offset().top - 100 }, 'slow');
+    }
+  });
+  stretchAWB($);
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $("#current-clip-video").hide();
@@ -2137,6 +2150,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
       if (result && result.clip_info) {
         let clipInfo = result.clip_info;
         var clipSeconds = 0;
+
+        handleExplainYoutubeSettings($);
 
         // Set the clip game
         $("#clip-game").text(clipInfo.game);

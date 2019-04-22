@@ -28,40 +28,6 @@ function successMsg(message) {
   cLogger.mark("[x] Done (" + message + ")");
 }
 
-function safeRetry(workerActivity, ch, msg, message) {
-  if (retriesMap[message] != null && retriesMap[message] > 10) {
-    console.log("[Failure] The message (" + message + ") has failed too many times.");
-
-    Sentry.withScope(scope => {
-      scope.setTag("scope", "server-worker-downloader");
-      scope.setTag("environment", Attr.ENV);
-      scope.setTag("activity", workerActivity);
-      scope.setExtra("AckMsg", msg);
-      scope.setExtra("QueueMsg", message);
-
-      Sentry.captureMessage("Losing a message in the queue! Very Dangerous!");
-    });
-
-    retriesMap[message] = null;
-    return Helpers.decrementMsgCount(redisDownloadingKey)
-    .then(function() {
-      return ch.ack(msg);
-    });
-  } else {
-    if (retriesMap[message] == null) {
-      retriesMap[message] = 0;
-    }
-
-    console.log("Retrying this message (" + message + ")");
-    return Helpers.decrementMsgCount(redisDownloadingKey)
-    .then(function() {
-      ch.ack(msg);
-      ch.sendToQueue(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, new Buffer(message), msg.properties);
-      retriesMap[message] = retriesMap[message] + 1;
-    });
-  }
-}
-
 function knexConnection() {
   var dbConnection = {
     host: Attr.PG_CONNECTION_HOST,
@@ -107,12 +73,44 @@ function handleMessage(message, msg, ch, knex) {
       return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
       .then(function() {
         successMsg(message);
-        return Helpers.decrementMsgCount(redisDownloadingKey);
+        return Helpers.decrementMsgCount("downloader");
       }).then(function() {
         ch.ack(msg);
       }).catch(function(err) {
         errMsg(message, msg, message, err);
-        safeRetry(message, ch, msg, message);
+        return Helpers.decrementMsgCount("downloader")
+        .then(function() {
+          ch.ack(msg);
+        })
+        .catch(function(err) {
+          Sentry.captureException(err);
+          ch.ack(msg);
+        });
+      });
+    break;
+    case "transfer_video_task":
+      var userID = msg.properties.correlationId;
+      var twitchStream = msg.properties.contentEncoding;
+      var downloadID = parseInt(msg.properties.messageId);
+      cLogger.info("Starting a transfer to S3 task.");
+
+      return Helpers.transferToS3(userID, twitchStream, downloadID)
+      .then(function() {
+        successMsg(message);
+        return Helpers.decrementMsgCount("downloader");
+      })
+      .then(function() {
+        ch.ack(msg);
+      }).catch(function(err) {
+        errMsg(message, msg, message, err);
+        return Helpers.decrementMsgCount("downloader")
+        .then(function() {
+          ch.ack(msg);
+        })
+        .catch(function(err) {
+          Sentry.captureException(err);
+          ch.ack(msg);
+        });
       });
     break;
   }
@@ -154,6 +152,10 @@ Helpers.setupWorkerChannels()
       console.log("[*] Waiting for messages in %s. To exit press CTRL+C", Attr.DOWNLOADING_AMQP_CHANNEL_NAME);
       var knex = knexConnection();
       global.knex = knex;
+
+      // Handle shutdowns and launches gracefully
+      Helpers.handleGracefulInitAndShutdown("downloader");
+
       ch.consume(Attr.DOWNLOADING_AMQP_CHANNEL_NAME, function(msg) {
         var secs = msg.content.toString().split('.').length - 1;
 
