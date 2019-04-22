@@ -179,7 +179,7 @@ function addClipVideoCacheItem(cdnFile, downloadID) {
 
 function decrKeyV2(workerName) {
 	return new Promise(function(resolve, reject) {
-		return dbController.workerNoLongerUtilized(workerType)
+		return dbController.workerNoLongerUtilized(workerName)
 		.then(function() {
 			return resolve();
 		})
