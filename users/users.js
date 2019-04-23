@@ -957,7 +957,6 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             // Remove some info we don't want to share
             for (var i = 0; i < toCombineVids.length; i++) {
                 delete toCombineVids[i].user_id;
-                delete toCombineVids[i].id;
 
                 // Only include the downloaded file link if its already stored in S3
                 if (toCombineVids[i].downloaded_file == null || !toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
