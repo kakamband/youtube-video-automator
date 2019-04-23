@@ -94,6 +94,9 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 		.then(function(downloadID) {
 			downloadObjID = downloadID;
 			msgOptions.messageId = downloadObjID + "";
+			return dbController.setDownloadInitialOrder(userID, downloadObjID, gameName);
+		})
+		.then(function() {
 			return getQueueMeta();
 		})
 		.then(function(queueChoice) {

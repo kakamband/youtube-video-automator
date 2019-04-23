@@ -1210,7 +1210,8 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 		.where("user_id", "=", userID)
 		.where("used", "=", false)
 		.where("game", "=", gameName)
-		.where("state", "=", "done")
+		.whereIn("state", ["done", "done-need-info"])
+		.where("exclusive", "=", false)
 		.where("deleted", "=", false)
 		.orderBy("updated_at", "DESC")
 		.then(function(results) {
@@ -2230,6 +2231,75 @@ module.exports.getWorkerInformation = function(workerName) {
 			}
 		})
 		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setDownloadInitialOrder = function(userID, downloadID, gameName) {
+	return new Promise(function(resolve, reject) {
+		return knex.transaction(function(t) {
+			return knex('downloads')
+			.transacting(t)
+			.where("id", "!=", downloadID)
+			.where("user_id", "=", userID)
+			.where("used", "=", false)
+			.where("game", "=", gameName)
+			.whereIn("state", ["done", "done-need-info"])
+			.where("exclusive", "=", false)
+			.where("deleted", "=", false)
+			.orderBy("order_number", "DESC")
+			.limit(1)
+			.then(function(result) {
+				var defaultOrderNum = 1;
+				if (result.length != 0) {
+
+					// This should never really happen, but for safety update this.
+					if (parseInt(result[0].order_number) <= 0) {
+						return knex('downloads')
+						.transacting(t)
+						.where("id", "=", result[0].id)
+						.update({
+							order_number: 1
+						})
+						.then(function(result2) {
+							defaultOrderNum = 2;
+							return knex('downloads')
+							.transacting(t)
+							.where("id", "=", downloadID)
+							.update({
+								order_number: defaultOrderNum
+							})
+							.then(t.commit)
+							.catch(t.rollback);
+						})
+						.catch(t.rollback);
+					} else {
+						defaultOrderNum = parseInt(result[0].order_number) + 1;
+						return knex('downloads')
+						.transacting(t)
+						.where("id", "=", downloadID)
+						.update({
+							order_number: defaultOrderNum
+						})
+						.then(t.commit)
+						.catch(t.rollback);
+					}
+				} else {
+					return knex('downloads')
+					.transacting(t)
+					.where("id", "=", downloadID)
+					.update({
+						order_number: defaultOrderNum
+					})
+					.then(t.commit)
+					.catch(t.rollback);
+				}
+			})
+			.catch(t.rollback);
+		}).then(function() {
+			return resolve();
+		}).catch(function(err) {
 			return reject(err);
 		});
 	});

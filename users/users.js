@@ -965,6 +965,11 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 }
             }
 
+            // Sort these clips by the order number
+            toCombineVids.sort(function(a, b) {
+                return a.order_number - b.order_number;
+            });
+
             info.videos_to_combine = toCombineVids;
             return getClipYoutubeSettings(userID, pmsID, downloadID, gameName);
         })
