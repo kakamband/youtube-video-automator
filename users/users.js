@@ -1120,6 +1120,15 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
                 .catch(function(err) {
                     return reject(err);
                 });
+            case "remove_combined_clip":
+                // No validation needed, if the user does something wrong its on them.
+                return dbController.insertCustomOption(userID, downloadID, "custom_clip_deletion", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return reject(Errors.invalidCustomOption());
         }
