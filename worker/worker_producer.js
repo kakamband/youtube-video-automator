@@ -122,7 +122,10 @@ module.exports.startPermDeleteCycle = function() {
 			timestamp: (new Date).getTime()
 		};
 
-		return makePermDeletePost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions)
+		return workerStartingWork("fallback")
+		.then(function() {
+			return makePermDeletePost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions);
+		})
 		.then(function() {
 			return resolve();
 		})
