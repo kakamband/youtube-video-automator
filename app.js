@@ -70,6 +70,9 @@ var knex = require('knex')(dbConfig);
 // Global knex init
 global.knex = knex;
 
+// For testing this can be enabled to show all the queries before they are reun
+// knex.on('query', console.log)
+
 var redisClient = redis.createClient({
 	host: Attr.REDIS_HOST,
 	port: Attr.REDIS_PORT

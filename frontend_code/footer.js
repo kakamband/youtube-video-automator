@@ -1573,7 +1573,22 @@ function updateCombinedClipViewOnDeletion(deletedClipID, deletedClipSec) {
 
 // Removes a clip from the youtube video, doesn't actually delete the clip.
 function removeClipFromVideo(downloadID, clipID, clipSeconds) {
-  console.log("Remove this clip from the video. DownloadID: " + downloadID + " and clipID: " + clipID);
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
+  if (globalJQuery == null) return;
+  if (!canAuth) return;
+
+  console.log("Removing this clip from the video. DownloadID: " + downloadID + " and clipID: " + clipID);
+  var dataOBJ = {
+    "username": theUser.username,
+    "user_id": theUser.id,
+    "email": theUser.email,
+    "password": theUser.unique_identifier,
+
+    "download_id": downloadID,
+    "option_name": "remove_combined_clip",
+    "option_value": clipID
+  };
+  _setCustomOption(globalJQuery, dataOBJ);
   updateCombinedClipViewOnDeletion(clipID, clipSeconds);
 }
 
