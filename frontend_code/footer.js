@@ -1383,27 +1383,32 @@ function getTokenLink($, username, ID, email, pass) {
     });
 }
 
+// Sanitizes string
+function _padHelper(val) {
+  var valString = val + "";
+  if (valString.length < 2) {
+    return "0" + valString;
+  } else {
+    return valString;
+  }
+}
+
+// Helper for updating the total video time
+function _updateTotalVideoTime($, totalVidSeconds) {
+  var secondsSanitized2 = _padHelper(Math.round(totalVidSeconds % 60));
+  var minutesSanitized2 = _padHelper(parseInt(totalVidSeconds / 60));
+  $("#total-vid-minutes").text(minutesSanitized2);
+  $("#total-vid-seconds").text(secondsSanitized2);
+}
+
 // Update timer
 function updateTimer($, sec, totalVidSeconds) {
-  var secondsSanitized = pad(Math.round(sec % 60));
-  var minutesSanitized = pad(parseInt(sec / 60));
+  var secondsSanitized = _padHelper(Math.round(sec % 60));
+  var minutesSanitized = _padHelper(parseInt(sec / 60));
   $("#clip-minutes").text(minutesSanitized);
   $("#clip-seconds").text(secondsSanitized);
 
-
-  var secondsSanitized2 = pad(Math.round(totalVidSeconds % 60));
-  var minutesSanitized2 = pad(parseInt(totalVidSeconds / 60));
-  $("#total-vid-minutes").text(minutesSanitized2);
-  $("#total-vid-seconds").text(secondsSanitized2);
-
-  function pad(val) {
-    var valString = val + "";
-    if (valString.length < 2) {
-      return "0" + valString;
-    } else {
-      return valString;
-    }
-  }
+  _updateTotalVideoTime($, totalVidSeconds);
 }
 
 // Sets the clip status to the done state
@@ -1536,8 +1541,44 @@ function endClipping($, username, ID, email, pass, downloadID, twitchLink, timer
   });
 }
 
+// Removes the current clip item from the page, and updates all of the other clip ID numbers
+function updateCombinedClipViewOnDeletion(deletedClipID, deletedClipSec) {
+  if (!globalJQuery) return; // Can't do this if this hasn't been set.
+
+  var currentClipNumber = parseInt(globalJQuery("#custom-clip-ordered-number-" + deletedClipID).text());
+
+  // Hide the current clip from the page
+  globalJQuery("#combined-clip-tr-container-" + deletedClipID).hide();
+
+  // Update the total number of clips
+  globalJQuery("#total-clips-number").text(parseInt(globalJQuery("#total-clips-number").text()) - 1);
+  var totalVideoSecondsParsed = (parseInt(globalJQuery("#total-vid-minutes").text()) * 60) + parseInt(globalJQuery("#total-vid-seconds").text());
+  _updateTotalVideoTime(globalJQuery, (totalVideoSecondsParsed - deletedClipSec));
+
+  // Loop through all of the still visible combined clips and subtract 1 from all the numbers higher then the currentClipNumber
+  globalJQuery(".custom-clip-ordered-number-container").each(function () {
+    var tmpID = this.id;
+    var tmpClipNumber = globalJQuery("#" + tmpID).text();
+    if (globalJQuery("#" + tmpID).is(":visible") && parseInt(tmpClipNumber) > currentClipNumber) {
+      globalJQuery("#" + tmpID).text(tmpClipNumber - 1);
+    }
+  });
+
+  // Subtract 1 from the current clip number if its higher then the currentClipNumber
+  var tmpCurrentClipNum = parseInt(globalJQuery(".original-clip-added-container").text());
+  if (tmpCurrentClipNum > currentClipNumber) {
+    globalJQuery(".original-clip-added-container").text(tmpCurrentClipNum - 1);
+  }
+}
+
+// Removes a clip from the youtube video, doesn't actually delete the clip.
+function removeClipFromVideo(downloadID, clipID, clipSeconds) {
+  console.log("Remove this clip from the video. DownloadID: " + downloadID + " and clipID: " + clipID);
+  updateCombinedClipViewOnDeletion(clipID, clipSeconds);
+}
+
 // Returns a row for a done clip
-function createClipItem(clipNumber, clipDate, clipStreamer, clipLink) {
+function createClipItem(downloadID, clipNumber, clipDate, clipStreamer, clipLink, clipID, extraSeconds) {
   // Sanitize the date
   var monthStr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var clipDay = clipDate.getDate();
@@ -1557,7 +1598,7 @@ function createClipItem(clipNumber, clipDate, clipStreamer, clipLink) {
   }
   var clipLinkHtml = "<span class=\"view-video-link\" style=\"font-size: 20px;\"><a href=\"" + clipLinkActual + "\" class=\"vp-a\">View</a></span>";
 
-  return "<tr class=\"extra-clips-added-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip " + clipNumber + ":&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-date\" style=\"color:#2c2c2c; font-size: 16px; ;display: inline-block; margin-top: 10px;\">" + clipDateStr + "</span></br><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipStreamerLink + "</span></br><span id=\"combined-clip-view\" style=\"color:#6441A5; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipLinkHtml + "</span></br><span id=\"combined-clip-view\" style=\"color:red; font-size: 20px; font-weight: bold;display: inline-block;\">Delete</span></h4></td></tr>"
+  return "<tr id=\"combined-clip-tr-container-" + clipID + "\" class=\"extra-clips-added-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\"><a class=\"combined-clip-clickable-name\" href=\"https://twitchautomator.com/dashboard/?clipping=true&download_id=" + clipID + "\" target=\"_blank\">Clip <span id=\"custom-clip-ordered-number-" + clipID + "\" class=\"custom-clip-ordered-number-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </a></td><td style=\"width: 50%;\"><span id=\"combined-clip-date\" style=\"color:#2c2c2c; font-size: 16px; ;display: inline-block; margin-top: 10px;\">" + clipDateStr + "</span></br><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipStreamerLink + "</span></br><span id=\"combined-clip-view\" style=\"color:#6441A5; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipLinkHtml + "</span></br><a onclick=\"removeClipFromVideo(" + downloadID + ", " + clipID + ", " + extraSeconds + ")\" class=\"remove-clip-from-video-btn\">Remove</a></h4></td></tr>"
 }
 
 // Returns a row for the clip already running
@@ -2195,7 +2236,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             extraVidTime += extraSeconds;
 
             // Display this clip
-            $(createClipItem(numberOfClips, tmpCreated, clipInfo.videos_to_combine[i].twitch_link, clipInfo.videos_to_combine[i].downloaded_file)).insertAfter("#number-of-clips-head");
+            $(createClipItem(downloadID, numberOfClips, tmpCreated, clipInfo.videos_to_combine[i].twitch_link, clipInfo.videos_to_combine[i].downloaded_file, clipInfo.videos_to_combine[i].id, extraSeconds)).insertAfter("#number-of-clips-head");
             numberOfClips--;
           }
         }

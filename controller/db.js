@@ -1213,6 +1213,13 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 		.whereIn("state", ["done", "done-need-info"])
 		.where("exclusive", "=", false)
 		.where("deleted", "=", false)
+		.whereNotExists(
+			knex.select('*')
+			.from('custom_options')
+			.whereRaw('custom_options.user_id = \'' + userID + '\'')
+			.whereRaw('downloads.id = custom_options.option_value')
+			.whereRaw('custom_options.option_name = \'custom_clip_deletion\'')
+		)
 		.orderBy("updated_at", "DESC")
 		.then(function(results) {
 			if (results.length == 0) {
