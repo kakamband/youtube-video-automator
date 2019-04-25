@@ -553,6 +553,25 @@ module.exports.uploadThumbnailImage = function(username, pmsID, email, password,
     });
 }
 
+// swapClipOrder
+// Swaps the order number of two clips
+module.exports.swapClipOrder = function(userName, pmsID, email, password, downloadID1, downloadID2) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return dbController.swapClipOrderNumber(userID, downloadID1, downloadID2);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------

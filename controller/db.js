@@ -2305,3 +2305,56 @@ module.exports.setDownloadInitialOrder = function(userID, downloadID, gameName) 
 		});
 	});
 }
+
+function _swapClipOrderHelper(userID, ID, newOrderNumber) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.where("id", "=", ID)
+		.update({
+			order_number: newOrderNumber
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.swapClipOrderNumber = function(userID, downloadID1, downloadID2) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereIn("id", [parseInt(downloadID1), parseInt(downloadID2)])
+		.whereIn("state", ["done", "done-need-info", "started", "preparing"])
+		.where("exclusive", "=", false)
+		.where("deleted", "=", false)
+		.then(function(results) {
+			if (results.length != 2) {
+				return reject(Errors.clipsCannotBeSwapper());
+			} else {
+				// We know the length is == 2 here
+				var swap1ID = results[0].id;
+				var swap1NewOrderNumber = results[1].order_number;
+				var swap2ID = results[1].id;
+				var swap2NewOrderNumber = results[0].order_number;
+
+				return _swapClipOrderHelper(userID, swap1ID, swap1NewOrderNumber)
+				.then(function() {
+					return _swapClipOrderHelper(userID, swap2ID, swap2NewOrderNumber);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

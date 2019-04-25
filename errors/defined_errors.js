@@ -24,6 +24,10 @@ function setup501Err(errorValue) {
     return setupErr(501, errorValue);
 }
 
+module.exports.clipsCannotBeSwapper = function() {
+    return setup400Err("The clips cannot be swapped. This can result from any of the following reasons: Not belonging to user, being deleted, being exclusive, clips not being done or active.");
+}
+
 module.exports.invalidWorkerType = function(workerName) {
     return setup501Err("Invalid worker type specified (" + workerName + ").");
 }
