@@ -2203,6 +2203,32 @@ function handleCustomThumbnailUpload($, username, ID, email, pass, downloadID, c
   });
 }
 
+// Draws the clips that will be combined together, in the correct order
+function drawClipsToCombine($, clipsData) {
+  clipsData.sort(function(a, b) {
+      return a.orderNumber - b.orderNumber;
+  });
+
+  // Draw it from the back to the front (since order will be lowest -> highest we need to draw highest first)
+  for (var i = clipsData.length - 1; i >= 0; i--) {
+    var clipDisplayData = "";
+    if (clipsData[i].current_clip == true) {
+      clipDisplayData = createClipItemCurrentOne(i);
+    } else if (clipsData[i].current_clip == false && clipsData[i].previous_clip_data) {
+      clipDisplayData = createClipItem(
+        clipsData[i].previous_clip_data.download_id, 
+        i, 
+        clipsData[i].previous_clip_data.created_at,
+        clipsData[i].previous_clip_data.twitch_link, 
+        clipsData[i].previous_clip_data.downloaded_file, 
+        clipsData[i].previous_clip_data.ID, 
+        clipsData[i].previous_clip_data.extra_time);
+    }
+
+    $(clipDisplayData).insertAfter("#number-of-clips-head");
+  }
+}
+
 // Handles clicking the explain Youtube settings buttons
 function handleExplainYoutubeSettings($) {
   $(".explain-video-settings-button").click(function() {
@@ -2264,7 +2290,11 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         $("#total-clips-number").text(numberOfClips + "");
 
         // Add the first currently clipping clip.
-        $(createClipItemCurrentOne(numberOfClips)).insertAfter("#number-of-clips-head");
+        var toCombineClipsList = [];
+        toCombineClipsList.push({
+          current_clip: true,
+          orderNumber: clipInfo.order_number
+        });
         numberOfClips--;
 
         var currentDate = new Date();
@@ -2283,10 +2313,24 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
             extraVidTime += extraSeconds;
 
             // Display this clip
-            $(createClipItem(downloadID, numberOfClips, tmpCreated, clipInfo.videos_to_combine[i].twitch_link, clipInfo.videos_to_combine[i].downloaded_file, clipInfo.videos_to_combine[i].id, extraSeconds)).insertAfter("#number-of-clips-head");
+            toCombineClipsList.push({
+              current_clip: false,
+              previous_clip_data: {
+                download_id: downloadID,
+                created_at: tmpCreated,
+                twitch_link: clipInfo.videos_to_combine[i].twitch_link,
+                downloaded_file: clipInfo.videos_to_combine[i].downloaded_file,
+                ID: clipInfo.videos_to_combine[i].id,
+                extra_time: extraSeconds
+              },
+              orderNumber: clipInfo.videos_to_combine[i].order_number
+            });
             numberOfClips--;
           }
         }
+
+        // Draw all the clips that are going to be combined
+        drawClipsToCombine($, toCombineClipsList);
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;
