@@ -555,7 +555,7 @@ module.exports.uploadThumbnailImage = function(username, pmsID, email, password,
 
 // swapClipOrder
 // Swaps the order number of two clips
-module.exports.swapClipOrder = function(userName, pmsID, email, password, downloadID1, downloadID2) {
+module.exports.swapClipOrder = function(username, pmsID, email, password, downloadID1, downloadID2) {
     var userID = pmsID;
     return new Promise(function(resolve, reject) {
         return validateUserAndGetID(username, pmsID, email, password)
