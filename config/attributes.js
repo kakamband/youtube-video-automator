@@ -1,7 +1,7 @@
 var LocalAttr = require('./local_attributes.js'); // Fill out this file with your local attributes
 
 module.exports = {
-	RELEASE_VERSION: "0.0.12",
+	RELEASE_VERSION: "0.0.13",
 	ENCODING_AMQP_CHANNEL_NAME: "ENCODING_CHANNEL_NO_EXP",
 	UPLOADING_AMQP_CHANNEL_NAME: "UPLOADING_CHANNEL_NO_EXP",
 	DOWNLOADING_AMQP_CHANNEL_NAME: "DOWNLOADING_CHANNEL_NO_EXP",
