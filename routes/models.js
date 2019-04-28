@@ -72,6 +72,9 @@ module.exports.POLL_AD_PHASE = "/user/clip/ad/free";
 
 // Uploads an thumbnail image from the frontend
 module.exports.UPLOAD_THUMBNAIL_IMG = "/user/thumbnail/upload";
+
+// Swaps a clips order
+module.exports.SWAP_CLIP_ORDER = "/user/clip/swap-order";
 // -------------------
 
 // Route definitions
@@ -383,6 +386,22 @@ module.exports.routes = new Map([
 
 			nameAndType("image_b64", "string"),
 			nameAndType("scope", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.SWAP_CLIP_ORDER, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id_1", "string"),
+			nameAndType("download_id_2", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

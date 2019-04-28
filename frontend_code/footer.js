@@ -1592,6 +1592,35 @@ function removeClipFromVideo(downloadID, clipID, clipSeconds) {
   updateCombinedClipViewOnDeletion(clipID, clipSeconds);
 }
 
+// Reorders a clip in the video
+function reorderCombinedClip(clipTRID, direction) {
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
+  if (globalJQuery == null) return;
+  if (!canAuth) return;
+
+  var currentItem = globalJQuery("#" + clipTRID);
+  var placeholder = globalJQuery("<tr><td></td></tr>");
+  if (direction == "up") {
+    var swapWith = globalJQuery("#" + clipTRID).prev();
+    if (swapWith == undefined || swapWith.attr('id') == undefined) return;
+
+    // Make sure we allow this swap
+    if (swapWith.attr('id').indexOf("combined-clip-tr-container-") >= 0 || swapWith.attr('id').indexOf("current-clip-tr-container") >= 0) {
+      swapWith.before(placeholder);
+      placeholder.replaceWith(currentItem);
+    }
+  } else if (direction == "down") {
+    var swapWith = globalJQuery("#" + clipTRID).next();
+    if (swapWith == undefined || swapWith.attr('id') == undefined) return;
+
+    // Make sure we allow this swap
+    if (swapWith.attr('id').indexOf("combined-clip-tr-container-") >= 0 || swapWith.attr('id').indexOf("current-clip-tr-container") >= 0) {
+      swapWith.after(placeholder);
+      placeholder.replaceWith(currentItem);
+    }
+  }
+}
+
 // Returns a row for a done clip
 function createClipItem(downloadID, clipNumber, clipDate, clipStreamer, clipLink, clipID, extraSeconds) {
   // Sanitize the date
@@ -1613,12 +1642,15 @@ function createClipItem(downloadID, clipNumber, clipDate, clipStreamer, clipLink
   }
   var clipLinkHtml = "<span class=\"view-video-link\" style=\"font-size: 20px;\"><a href=\"" + clipLinkActual + "\" class=\"vp-a\">View</a></span>";
 
-  return "<tr id=\"combined-clip-tr-container-" + clipID + "\" class=\"extra-clips-added-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\"><a class=\"combined-clip-clickable-name\" href=\"https://twitchautomator.com/dashboard/?clipping=true&download_id=" + clipID + "\" target=\"_blank\">Clip <span id=\"custom-clip-ordered-number-" + clipID + "\" class=\"custom-clip-ordered-number-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </a></td><td style=\"width: 50%;\"><span id=\"combined-clip-date\" style=\"color:#2c2c2c; font-size: 16px; ;display: inline-block; margin-top: 10px;\">" + clipDateStr + "</span></br><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipStreamerLink + "</span></br><span id=\"combined-clip-view\" style=\"color:#6441A5; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipLinkHtml + "</span></br><a onclick=\"removeClipFromVideo(" + downloadID + ", " + clipID + ", " + extraSeconds + ")\" class=\"remove-clip-from-video-btn\">Remove</a></h4></td></tr>"
+  var clipReorderButtons = "<div><a class=\"reorder-combined-clip-btns\" onclick=\"reorderCombinedClip('combined-clip-tr-container-" + clipID + "', 'up')\">&#8593;</a><a class=\"reorder-combined-clip-btns\" onclick=\"reorderCombinedClip('combined-clip-tr-container-" + clipID + "', 'down')\">&#8595;</a></div>";
+
+  return "<tr id=\"combined-clip-tr-container-" + clipID + "\" class=\"extra-clips-added-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\"><a class=\"combined-clip-clickable-name\" href=\"https://twitchautomator.com/dashboard/?clipping=true&download_id=" + clipID + "\" target=\"_blank\">Clip <span id=\"custom-clip-ordered-number-" + clipID + "\" class=\"custom-clip-ordered-number-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </a></td><td style=\"width: 50%;\"><span id=\"combined-clip-date\" style=\"color:#2c2c2c; font-size: 16px; ;display: inline-block; margin-top: 10px;\">" + clipDateStr + "</span></br><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipStreamerLink + "</span></br><span id=\"combined-clip-view\" style=\"color:#6441A5; font-size: 20px; font-weight: bold;display: inline-block;\">" + clipLinkHtml + "</span></br><a onclick=\"removeClipFromVideo(" + downloadID + ", " + clipID + ", " + extraSeconds + ")\" class=\"remove-clip-from-video-btn\">Remove</a></h4>" + clipReorderButtons + "</td></tr>"
 }
 
 // Returns a row for the clip already running
 function createClipItemCurrentOne(clipNumber) {
-  return "<tr><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Current Clip!</span></h4></td></tr>"
+  var clipReorderButtons = "<div><a class=\"reorder-combined-clip-btns\" onclick=\"reorderCombinedClip('current-clip-tr-container', 'up')\">&#8593;</a><a class=\"reorder-combined-clip-btns\" onclick=\"reorderCombinedClip('current-clip-tr-container', 'down')\">&#8595;</a></div>";
+  return "<tr id=\"current-clip-tr-container\"><td style=\"width: 50%;\"><h4 class=\"clip-info-headers\">Clip <span class=\"original-clip-added-container\">" + clipNumber + "</span>:&nbsp;&nbsp;&nbsp; </td><td style=\"width: 50%;\"><span id=\"combined-clip-streamer\" style=\"color:#6441A5 !important; font-size: 20px; font-weight: bold;display: inline-block;\">Current Clip!</span></h4>" + clipReorderButtons + "</td></tr>"
 }
 
 // Updates the exclusivity of a clip in the backend

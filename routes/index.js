@@ -435,4 +435,19 @@ router.post(Models.UPLOAD_THUMBNAIL_IMG, function(req, res, next) {
 	});
 });
 
+router.post(Models.SWAP_CLIP_ORDER, function(req, res, next) {
+	validFirst(Models.SWAP_CLIP_ORDER, req, res, next, function() {
+		return Users.swapClipOrder(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id_1, req.body.download_id_2)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.SWAP_CLIP_ORDER, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
