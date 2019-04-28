@@ -135,3 +135,6 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 12) Start production services: pm2 start my-production-apps.json
 13) Monitor which services are up: pm2 list
 
+### Previous Problems and Solutions
+1) Updating the Security group inbound rules, and deleting the TCP Port 80 - 0.0.0.0/0, ::/0 rule.
+	- This rule is needed to allow outside connections, without this the server won't be able to be contacted.

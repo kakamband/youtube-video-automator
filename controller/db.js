@@ -19,7 +19,7 @@ module.exports.alreadyUsed = function(game, id, trackingID) {
 			return resolve(false);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		})
 	});
 }
@@ -40,7 +40,7 @@ module.exports.finishedDownloading = function(userID, gameName, twitchStream, do
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -68,12 +68,12 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -94,7 +94,7 @@ module.exports.doesUserExist = function(username, pmsID, email, password) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		})
 	});
 }
@@ -111,7 +111,7 @@ module.exports.hasUserToken = function(ID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -129,7 +129,7 @@ module.exports.hasNewUserToken = function(ID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -147,7 +147,7 @@ function _setNotificationsSeen(pmsID, notificationNames) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -169,7 +169,7 @@ function seenNotificationHelper(pmsID, notificationName) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -199,7 +199,7 @@ function getNotifications(pmsID, notificationNames) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -241,7 +241,7 @@ module.exports.settingsOverview = function(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -260,7 +260,7 @@ module.exports.getThumbnails = function(pmsID) {
 			return resolve(results);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -277,7 +277,7 @@ module.exports.getPlaylists = function(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -294,7 +294,7 @@ module.exports.getComments = function(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -311,7 +311,7 @@ module.exports.getSignatures = function(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -328,7 +328,7 @@ module.exports.getTags = function(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -346,7 +346,7 @@ module.exports.updateSimpleSetting = function(pmsID, settingName, setting) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -365,7 +365,7 @@ module.exports.addTag = function(pmsID, gameName, tag) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -381,7 +381,7 @@ module.exports.removeTag = function(pmsID, gameName, tag) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -397,7 +397,7 @@ module.exports.deleteThumbnail = function(pmsID, gameName, image) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -418,7 +418,7 @@ module.exports.addThumbnail = function(pmsID, gameName, image, hijacked, hijacke
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -437,7 +437,7 @@ module.exports.addSignature = function(pmsID, gameName, signature) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -453,7 +453,7 @@ module.exports.removeSignature = function(pmsID, gameName, signature) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -472,7 +472,7 @@ module.exports.addComment = function(pmsID, gameName, comment) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -488,7 +488,7 @@ module.exports.removeComment = function(pmsID, gameName, comment) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -507,7 +507,7 @@ module.exports.addPlaylist = function(pmsID, gameName, playlistID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -523,7 +523,7 @@ module.exports.deletePlaylist = function(pmsID, gameName, playlistID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -572,7 +572,7 @@ function createNewUserDefaults(pmsID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -610,7 +610,7 @@ function createNewUserNotifications(pmsID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -630,7 +630,7 @@ module.exports.createDownloadNotification = function(pmsID, contentStr) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -650,7 +650,7 @@ function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -667,7 +667,7 @@ function userInPlaceboDB(pmsID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -689,7 +689,7 @@ function isUserInPlaceboState(pmsID) {
                 	return resolve(inDB);
                 })
                 .catch(function(err) {
-                	return Errors.dbError(err);
+                	return ErrorHelper.dbError(err);
                 });
             }
         });
@@ -733,7 +733,7 @@ function setUserNotInPlaceboState(pmsID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -753,7 +753,7 @@ function addUserToPlaceboState(pmsID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -783,7 +783,7 @@ module.exports.registerUser = function(username, ID, email) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -803,7 +803,7 @@ module.exports.updateUser = function(username, ID, email, password) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -828,7 +828,7 @@ function handleInPlaceboState(inPlaceboState, username, ID, email, password) {
 				}
 			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		} else {
 			return knex('users')
@@ -846,7 +846,7 @@ function handleInPlaceboState(inPlaceboState, username, ID, email, password) {
 				return resolve();
 			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		}
 	});
@@ -873,7 +873,7 @@ module.exports.createOrUpdateUserSubscriptions = function(username, ID, email, p
 			return resolve(activeSubscription);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -907,7 +907,7 @@ function getCurrentActiveSubscription(pmsID) {
 			return resolve(results[0].subscription_id);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -942,7 +942,7 @@ function addNewPayments(ID, paymentsRAW) {
 							}
 						})
 						.catch(function(err) {
-							return Errors.dbError(err);
+							return ErrorHelper.dbError(err);
 						});
 					})
 					.catch(function(err) {
@@ -974,7 +974,7 @@ function addNewPayments(ID, paymentsRAW) {
 							}
 						})
 						.catch(function(err) {
-							return Errors.dbError(err);
+							return ErrorHelper.dbError(err);
 						});
 					} else {
 						cLogger.info("Payment already exists. Not updating since status is the same, Continuing.");
@@ -988,7 +988,7 @@ function addNewPayments(ID, paymentsRAW) {
 				}
  			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		}
 
@@ -1016,7 +1016,7 @@ function insertPayment(ID, payment) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1121,7 +1121,7 @@ function addNewSubscriptions(pmsID, subs) {
 						}
 					})
 					.catch(function(err) {
-						return Errors.dbError(err);
+						return ErrorHelper.dbError(err);
 					});
 				} else {
 					if (result[0].status != subs[count].status) {
@@ -1144,7 +1144,7 @@ function addNewSubscriptions(pmsID, subs) {
 							}
 						})
 						.catch(function(err) {
-							return Errors.dbError(err);
+							return ErrorHelper.dbError(err);
 						});
 					} else {
 						count++;
@@ -1157,7 +1157,7 @@ function addNewSubscriptions(pmsID, subs) {
 				}
 			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		}
 
@@ -1198,7 +1198,7 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1223,7 +1223,7 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1240,7 +1240,7 @@ module.exports.setDownloadExclusive = function(userID, downloadID, exclusive) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1261,7 +1261,7 @@ function titleOrDescExists(type, userID, downloadID) {
 					}
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			default: 
 				return reject(new Error("db.titleOrDescExists: Passed in something except for titles or descriptions."));
@@ -1299,12 +1299,12 @@ function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1332,7 +1332,7 @@ function setTitleDescHelper(type, userID, pmsID, downloadID, value) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			} else {
 				return knex(type)
@@ -1350,12 +1350,12 @@ function setTitleDescHelper(type, userID, pmsID, downloadID, value) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1415,12 +1415,12 @@ module.exports.setClipAsUnDeleted = function(userID, pmsID, downloadID) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1447,12 +1447,12 @@ module.exports.setClipAsDeleted = function(userID, pmsID, downloadID) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1469,7 +1469,7 @@ module.exports.updateDownloadedFileLocation = function(userID, downloadID, cdnFi
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1489,7 +1489,7 @@ function _getDownload(userID, downloadID) {
 			return resolve(results[0]);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1507,7 +1507,7 @@ module.exports.addDownload = function(downloadObj) {
 			return resolve(id[0]);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1520,7 +1520,7 @@ module.exports.setUsed = function(clipObject) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1534,7 +1534,7 @@ module.exports.episodeCount = function(gameName) {
 			return resolve(total[0].CNT);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1563,12 +1563,12 @@ module.exports.getLatestClips = function(gameName) {
 					return resolve(results2);
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			});
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1587,7 +1587,7 @@ module.exports.getPlaylist = function(gameName, userID) {
 			return resolve(null);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1615,14 +1615,14 @@ module.exports.getThumbnail = function(userID, gameName, hijacked, hijackedName)
 						return resolve(result2);
 					})
 					.catch(function(err) {
-						return Errors.dbError(err);
+						return ErrorHelper.dbError(err);
 					});
 				} else {
 					return resolve(result[0].image_name)
 				}
 			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		} else {
 			return findGameThumbnail(gameName, userID)
@@ -1630,7 +1630,7 @@ module.exports.getThumbnail = function(userID, gameName, hijacked, hijackedName)
 				return resolve(result);
 			})
 			.catch(function(err) {
-				return Errors.dbError(err);
+				return ErrorHelper.dbError(err);
 			});
 		}
 	});
@@ -1653,7 +1653,7 @@ function findGameHijackedThumbnail(gameName, userID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1673,7 +1673,7 @@ function findGameThumbnail(gameName, userID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1686,7 +1686,7 @@ module.exports.addYoutubeVideo = function(youtubeObj) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1706,7 +1706,7 @@ module.exports.addRefreshToken = function(clientID, refreshTkn, accessTkn, userI
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1720,7 +1720,7 @@ module.exports.deleteRefreshToken = function(clientID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1737,7 +1737,7 @@ module.exports.getRefreshToken = function(clientID) {
 			return resolve(null);
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1757,7 +1757,7 @@ module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1778,7 +1778,7 @@ function checkTitleDescHelper(userID, pmsID, downloadID) {
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			} else {
 				// Found a valid title, look for a description now
@@ -1796,7 +1796,7 @@ function checkTitleDescHelper(userID, pmsID, downloadID) {
 							return resolve();
 						})
 						.catch(function(err) {
-							return Errors.dbError(err);
+							return ErrorHelper.dbError(err);
 						});
 					} else {
 						// Found both a valid title, and a valid description
@@ -1804,12 +1804,12 @@ function checkTitleDescHelper(userID, pmsID, downloadID) {
 					}
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1832,7 +1832,7 @@ function setDownloadToDoneNeedInfo(userID, pmsID, downloadID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1852,7 +1852,7 @@ module.exports.getAllDeleted = function() {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1870,7 +1870,7 @@ module.exports.setAsPermanentlyDeleted = function(downloadID) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1896,7 +1896,7 @@ module.exports.getYoutubeVideoSettings = function(userID, pmsID, downloadID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1915,7 +1915,7 @@ module.exports.getAllTags = function(pmsID, userID, downloadID, gameName) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1936,7 +1936,7 @@ module.exports.getCustomClipThumbnail = function(userID, downloadID) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -1957,7 +1957,7 @@ module.exports.getGameThumbnail = function(pmsID, gameName) {
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		})
 	});
 }
@@ -1977,7 +1977,7 @@ module.exports.insertCustomOption = function(userID, downloadID, optionName, opt
 			return resolve();
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2003,7 +2003,7 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			} else {
 				return knex('custom_options')
@@ -2018,12 +2018,12 @@ module.exports.addCustomOption = function(userID, downloadID, optionName, option
 					return resolve();
 				})
 				.catch(function(err) {
-					return Errors.dbError(err);
+					return ErrorHelper.dbError(err);
 				});
 			}
 		})
 		.catch(function(err) {
-			return Errors.dbError(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2040,7 +2040,7 @@ module.exports.deleteCustomOption = function(userID, downloadID, optionName, opt
 			return resolve();
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2060,7 +2060,7 @@ module.exports.customTagExists = function(userID, downloadID, optionValue) {
 			}
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2079,7 +2079,7 @@ module.exports.getCustomTags = function(userID, downloadID) {
 			}
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2097,7 +2097,7 @@ module.exports.getAllCustomThumbnails = function(downloadID) {
 			}
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2115,7 +2115,7 @@ module.exports.setDownloadActive = function(downloadID, fileLocation, processSta
 			return resolve();
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2154,7 +2154,7 @@ module.exports.workerStartingUp = function(workerName) {
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2174,7 +2174,7 @@ module.exports.workerShuttingDown = function(workerName) {
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2194,7 +2194,7 @@ module.exports.workerNoLongerUtilized = function(workerName) {
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2214,7 +2214,7 @@ module.exports.workerBeingUtilized = function(workerName) {
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2232,7 +2232,7 @@ module.exports.getWorkerInformation = function(workerName) {
 			}
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2301,7 +2301,7 @@ module.exports.setDownloadInitialOrder = function(userID, downloadID, gameName) 
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2319,7 +2319,7 @@ function _swapClipOrderHelper(userID, ID, newOrderNumber, trans) {
 			return resolve();
 		})
 		.catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
@@ -2356,7 +2356,7 @@ module.exports.swapClipOrderNumber = function(userID, downloadID1, downloadID2) 
 		}).then(function() {
 			return resolve();
 		}).catch(function(err) {
-			return reject(err);
+			return ErrorHelper.dbError(err);
 		});
 	});
 }
