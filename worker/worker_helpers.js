@@ -285,7 +285,6 @@ function deleteOldFile(file) {
 function checkFileDurations(file) {
 	return new Promise(function(resolve, reject) {
 		return getVideoDurationInSeconds(file).then((duration) => {
-			cLogger.info("File " + file + " has video length of: " + duration + " seconds.");
 			return resolve(duration);
 		});
 	});
