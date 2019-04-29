@@ -7,6 +7,7 @@ var Attr = require('../config/attributes');
 var shell = require('shelljs');
 var WorkerProducer = require('./worker_producer');
 var CronHandler = require('../cron/cron_handler');
+const { getVideoDurationInSeconds } = require('get-video-duration');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -152,6 +153,9 @@ function transferToS3Helper(userID, twitchStream, downloadID) {
 			return dbController.updateDownloadedFileLocation(userID, downloadID, cdnFile);
 		})
 		.then(function() {
+			return updateClipSeconds(oldFileLocation, downloadObj);
+		})
+		.then(function() {
 			return deleteOldFile(oldFileLocation);
 		})
 		.then(function() {
@@ -241,6 +245,29 @@ function uploadFileToS3(file) {
 	});
 }
 
+function updateClipSeconds(fileLocation, downloadObj) {
+	return new Promise(function(resolve, reject) {
+		return checkFileDurations(fileLocation)
+		.then(function(durationSeconds) {
+			var newDownloadUpdatedAt = new Date(downloadObj.created_at);
+			newDownloadUpdatedAt.setSeconds(newDownloadUpdatedAt.getSeconds() + durationSeconds);
+			return dbController.updateDownloadDuration(downloadObj.id, durationSeconds, newDownloadUpdatedAt);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+
+			// Don't error out, just log to Sentry and continue.
+			ErrorHelper.scopeConfigureWarning("worker_helpers.updateClipSeconds", {
+				"message": "We could not update the clip seconds for whatever reason, not too big of a deal."
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+}
+
 function deleteOldFile(file) {
 	return new Promise(function(resolve, reject) {
 		var cmd = "rm " + file;
@@ -251,6 +278,15 @@ function deleteOldFile(file) {
 			}
 
 			return resolve();
+		});
+	});
+}
+
+function checkFileDurations(file) {
+	return new Promise(function(resolve, reject) {
+		return getVideoDurationInSeconds(file).then((duration) => {
+			cLogger.info("File " + file + " has video length of: " + duration + " seconds.");
+			return resolve(duration);
 		});
 	});
 }

@@ -2360,3 +2360,20 @@ module.exports.swapClipOrderNumber = function(userID, downloadID1, downloadID2) 
 		});
 	});
 }
+
+module.exports.updateDownloadDuration = function(downloadID, clipSeconds, newUpdatedAt) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.update({
+			clip_seconds: clipSeconds,
+			updated_at: newUpdatedAt // We are purposely updating this here. This is to make the frontend video length accuracy better.
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

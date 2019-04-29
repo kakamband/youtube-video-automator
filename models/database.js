@@ -99,6 +99,8 @@ module.exports.initialize = function(knex) {
 			table.string("downloaded_file");
 			table.boolean("deleted").default(false).notNullable();
 			table.date("deleted_at");
+			table.integer("order_number").default(-1).notNullable();
+			table.integer("clip_seconds");
 			table.timestamps();
 		});
 	}).then(function() {
@@ -189,6 +191,14 @@ module.exports.initialize = function(knex) {
 			table.string("option_name").notNullable();
 			table.string("option_value").notNullable();
 			table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('worker_capacity', function(table) {
+	        table.increments();
+	        table.string("name").notNullable();
+	        table.integer("currently_working").unsigned().notNullable().default(0);
+	        table.integer("currently_running").unsigned().notNullable();
+	        table.timestamps();
 		});
 	}).then(function() {
 		return knex.migrate.latest()
