@@ -2103,14 +2103,13 @@ module.exports.getAllCustomThumbnails = function(downloadID) {
 	});
 }
 
-module.exports.setDownloadActive = function(downloadID, fileLocation, processStart) {
+module.exports.setDownloadActive = function(downloadID, fileLocation) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.update({
 			state: "started",
-			downloaded_file: fileLocation,
-			created_at: processStart
+			downloaded_file: fileLocation
 		})
 		.then(function(results) {
 			return resolve();

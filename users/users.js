@@ -951,7 +951,6 @@ function _legacyClipSecondsCalculator(createdAt, updatedAt) {
     var tmpCreatedAt = new Date(createdAt);
     var tmpUpdatedAt = new Date(updatedAt);
     var legacyLength = Math.round(Math.abs(((tmpUpdatedAt.getTime() - tmpCreatedAt.getTime()) / 1000)));
-    cLogger.mark("Couldn't find a clip_seconds attribute. Using the legacy calculation, obtained: " + legacyLength + " seconds.");
     return legacyLength;
 }
 
@@ -997,8 +996,8 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
 
                 // Add this clip length to the sum of all clips length
                 if (info.clip_seconds != null && info.clip_seconds > 0) { // Already done, and seconds added to DB.
-                    totalVideoLength += tinfo.clip_seconds;
-                } else if (info.created_at != null && info.updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                    totalVideoLength += info.clip_seconds;
+                } else if (info.created_at != null && info.updated_at != null && info.state != "preparing" && info.state != "started") { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
                     totalVideoLength += _legacyClipSecondsCalculator(info.created_at, info.updated_at);
                 } else if (info.created_at != null && info.updated_at == null) { // Make a best guess since the clip is still running.
                     var currentDateTime = new Date();
@@ -1039,7 +1038,8 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             info.youtube_settings = ytSettings;
 
             // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
-            if (totalVideoLength >= parseInt(info.youtube_settings.minimum_video_length)) {
+            var minimumVideoLengthSeconds = (parseInt(info.youtube_settings.minimum_video_length) * 60);
+            if (totalVideoLength >= minimumVideoLengthSeconds) {
                 info.processing_start_estimate = (predictProcessingStartTime(currentClipCreatedAt)).toString();
             } else {
                 info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length

@@ -80,13 +80,14 @@ module.exports.addDownloadingTask = function(userID, twitchLink, gameName) {
 			contentEncoding: twitchLink
 		};
 
+		var createdAtDateTime = new Date();
 		var downloadObj = {
 			game: gameName,
 			user_id: userID,
 			state: "preparing",
 			twitch_link: twitchLink,
-			created_at: new Date(),
-			updated_at: new Date()
+			created_at: createdAtDateTime,
+			updated_at: createdAtDateTime
 		};
 		var downloadObjID = null;
 
