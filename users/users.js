@@ -947,9 +947,18 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
     });
 }
 
+function _legacyClipSecondsCalculator(createdAt, updatedAt) {
+    var tmpCreatedAt = new Date(createdAt);
+    var tmpUpdatedAt = new Date(updatedAt);
+    var legacyLength = Math.round(Math.abs(((tmpUpdatedAt.getTime() - tmpCreatedAt.getTime()) / 1000)));
+    cLogger.mark("Couldn't find a clip_seconds attribute. Using the legacy calculation, obtained: " + legacyLength + " seconds.");
+    return legacyLength;
+}
+
 function getClipInfoHelper(userID, pmsID, downloadID) {
     var info = {};
     var gameName = null;
+    var totalVideoLength = 0;
     return new Promise(function(resolve, reject) {
         return dbController.getDownload(userID, downloadID)
         .then(function(results) {
@@ -968,6 +977,16 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                     delete info.downloaded_file;
                 }
 
+                // Add this clip length to the sum of all clips length
+                if (info.clip_seconds != null && info.clip_seconds > 0) {
+                    totalVideoLength += tinfo.clip_seconds;
+                } else if (info.created_at != null && info.updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, info.updated_at);
+                } else if (info.created_at != null && info.updated_at == null) { // Make a best guess
+                    var currentDateTime = new Date();
+                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, currentDateTime.toString());
+                }
+
                 return dbController.getVideosToBeCombined(userID, downloadID, gameName);
             }
         })
@@ -976,6 +995,13 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             // Remove some info we don't want to share
             for (var i = 0; i < toCombineVids.length; i++) {
                 delete toCombineVids[i].user_id;
+
+                // Extract the clip seconds from all of the clips
+                if (toCombineVids[i].clip_seconds != null && toCombineVids[i].clip_seconds > 0) {
+                    totalVideoLength += toCombineVids[i].clip_seconds;
+                } else { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                    totalVideoLength += _legacyClipSecondsCalculator(toCombineVids[i].created_at, toCombineVids[i].updated_at);
+                }
 
                 // Only include the downloaded file link if its already stored in S3
                 if (toCombineVids[i].downloaded_file == null || !toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
