@@ -1886,6 +1886,7 @@ module.exports.getYoutubeVideoSettings = function(userID, pmsID, downloadID) {
 		.select(knex.raw('(SELECT signature FROM signatures WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game ORDER BY created_at DESC LIMIT 1) as signature'))
 		.select(knex.raw('(SELECT option_value FROM custom_options WHERE user_id=\'' + userID + '\' AND option_name=\'custom_playlist\' AND download_id=\'' + downloadID + '\' ORDER BY created_at DESC LIMIT 1) as custom_playlist'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-like\') as liked'))
+		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'minimum-length\') as minimum_video_length'))
 		.select(knex.raw('(SELECT count(*) FROM comments WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game) as comments_count'))
 		.where("id", "=", downloadID)
 		.then(function(results) {
@@ -2102,14 +2103,13 @@ module.exports.getAllCustomThumbnails = function(downloadID) {
 	});
 }
 
-module.exports.setDownloadActive = function(downloadID, fileLocation, processStart) {
+module.exports.setDownloadActive = function(downloadID, fileLocation) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.update({
 			state: "started",
-			downloaded_file: fileLocation,
-			created_at: processStart
+			downloaded_file: fileLocation
 		})
 		.then(function(results) {
 			return resolve();

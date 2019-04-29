@@ -947,9 +947,34 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
     });
 }
 
+function _legacyClipSecondsCalculator(createdAt, updatedAt) {
+    var tmpCreatedAt = new Date(createdAt);
+    var tmpUpdatedAt = new Date(updatedAt);
+    var legacyLength = Math.round(Math.abs(((tmpUpdatedAt.getTime() - tmpCreatedAt.getTime()) / 1000)));
+    return legacyLength;
+}
+
+function predictProcessingStartTime(startedDateTime) {
+    startedDateTime.setSeconds(0); // Seconds are irrelevant here
+
+    // Step 1 add the minimum delay time to the date
+    startedDateTime.setMinutes(startedDateTime.getMinutes() + Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES);
+
+    // Step 2 get minutes to subtract to be divisible by the minimum video processing delay 
+    // This is done since a cron will be running on MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES
+    var subtractMinutes = startedDateTime.getMinutes() % Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES;
+
+    // Step 3 update the minutes once again to be the Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES interval above the current one
+    startedDateTime.setMinutes((startedDateTime.getMinutes() - subtractMinutes) + Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES);
+
+    return startedDateTime;
+}
+
 function getClipInfoHelper(userID, pmsID, downloadID) {
     var info = {};
     var gameName = null;
+    var totalVideoLength = 0;
+    var currentClipCreatedAt = null;
     return new Promise(function(resolve, reject) {
         return dbController.getDownload(userID, downloadID)
         .then(function(results) {
@@ -958,6 +983,7 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             } else {
                 info = results;
                 gameName = info.game;
+                currentClipCreatedAt = new Date(info.created_at);
 
                 // Delete some info we don't want to share with the frontend
                 delete info.user_id;
@@ -966,6 +992,16 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 // Only include the downloaded file link if its already stored in S3
                 if (info.downloaded_file == null || !info.downloaded_file.startsWith(cdnURL)) {
                     delete info.downloaded_file;
+                }
+
+                // Add this clip length to the sum of all clips length
+                if (info.clip_seconds != null && info.clip_seconds > 0) { // Already done, and seconds added to DB.
+                    totalVideoLength += info.clip_seconds;
+                } else if (info.created_at != null && info.updated_at != null && info.state != "preparing" && info.state != "started") { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, info.updated_at);
+                } else if (info.created_at != null && info.updated_at == null) { // Make a best guess since the clip is still running.
+                    var currentDateTime = new Date();
+                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, currentDateTime.toString());
                 }
 
                 return dbController.getVideosToBeCombined(userID, downloadID, gameName);
@@ -977,6 +1013,13 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             for (var i = 0; i < toCombineVids.length; i++) {
                 delete toCombineVids[i].user_id;
 
+                // Extract the clip seconds from all of the clips
+                if (toCombineVids[i].clip_seconds != null && toCombineVids[i].clip_seconds > 0) {
+                    totalVideoLength += toCombineVids[i].clip_seconds;
+                } else if (toCombineVids[i].created_at != null && toCombineVids[i].updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                    totalVideoLength += _legacyClipSecondsCalculator(toCombineVids[i].created_at, toCombineVids[i].updated_at);
+                }
+
                 // Only include the downloaded file link if its already stored in S3
                 if (toCombineVids[i].downloaded_file == null || !toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
                     delete toCombineVids[i].downloaded_file;
@@ -987,12 +1030,21 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             toCombineVids.sort(function(a, b) {
                 return a.order_number - b.order_number;
             });
-
             info.videos_to_combine = toCombineVids;
+
             return getClipYoutubeSettings(userID, pmsID, downloadID, gameName);
         })
         .then(function(ytSettings) {
             info.youtube_settings = ytSettings;
+
+            // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
+            var minimumVideoLengthSeconds = (parseInt(info.youtube_settings.minimum_video_length) * 60);
+            if (totalVideoLength >= minimumVideoLengthSeconds) {
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipCreatedAt)).toString();
+            } else {
+                info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length
+            }
+
             return resolve(info);
         })
         .catch(function(err) {

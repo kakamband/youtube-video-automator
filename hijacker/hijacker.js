@@ -139,7 +139,7 @@ module.exports.startHijack = function(userID, gameName, twitchStream, downloadID
 			  		return startStreamDownload(twitchStream, newFileLocation)
 			  		.then(function(downloadProcess) {
 			  			cProcess = downloadProcess;
-			  			return dbController.setDownloadActive(downloadID, (newFileLocation + ".ts"), currentDateTime)
+			  			return dbController.setDownloadActive(downloadID, (newFileLocation + ".ts"))
 			  		})
 			  		.then(function() {
 				  		return setTimeout(function() {
