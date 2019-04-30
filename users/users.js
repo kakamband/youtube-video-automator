@@ -1294,8 +1294,8 @@ function updateDefaultSetting(pmsID, settingName, settingJSON) {
             case "minimum-length":
                 var setting = JSON.parse(settingJSON);
                 
-                if (parseInt(setting) < 2) {
-                    setting = 2;
+                if (parseInt(setting) < 0) {
+                    setting = 0;
                 }
                 if (parseInt(setting) > 24) {
                     setting = 24;

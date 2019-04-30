@@ -638,9 +638,9 @@ function minVideoSettings($, username, ID, email, pass) {
     if (stepVal != "") {
       $(".invalid-min-vid-prompt").hide();
       var stepParsed = parseInt(stepVal);
-      if (stepParsed < 2) {
-        $("#min-vid-input").val("2");
-        stepParsed = 2;
+      if (stepParsed < 0) {
+        $("#min-vid-input").val("0");
+        stepParsed = 0;
       } else if (stepParsed > 24) {
         $("#min-vid-input").val("24");
         stepParsed = 24;
@@ -2390,6 +2390,9 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Draw all the clips that are going to be combined
         drawClipsToCombine($, toCombineClipsList, downloadID);
+
+        // Update the progress if there is any.
+        
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;
