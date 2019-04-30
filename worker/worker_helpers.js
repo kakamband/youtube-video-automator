@@ -249,9 +249,11 @@ function updateClipSeconds(fileLocation, downloadObj) {
 	return new Promise(function(resolve, reject) {
 		return checkFileDurations(fileLocation)
 		.then(function(durationSeconds) {
+			var secondsParsed = parseInt(durationSeconds);
+
 			var newDownloadUpdatedAt = new Date(downloadObj.created_at);
-			newDownloadUpdatedAt.setSeconds(newDownloadUpdatedAt.getSeconds() + durationSeconds);
-			return dbController.updateDownloadDuration(downloadObj.id, durationSeconds, newDownloadUpdatedAt);
+			newDownloadUpdatedAt.setSeconds(newDownloadUpdatedAt.getSeconds() + secondsParsed);
+			return dbController.updateDownloadDuration(downloadObj.id, secondsParsed, newDownloadUpdatedAt);
 		})
 		.then(function() {
 			return resolve();
