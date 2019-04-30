@@ -1037,17 +1037,13 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
         .then(function(ytSettings) {
             info.youtube_settings = ytSettings;
 
-            // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
             var minimumVideoLengthSeconds = (parseInt(info.youtube_settings.minimum_video_length) * 60);
-            if (totalVideoLength >= minimumVideoLengthSeconds) {
-
-                if (info.state == "preparing" || info.state == "started") {
-                    info.processing_start_estimate = "still_currently_clipping";
-                } else if (info.state == "processing") {
-                    info.processing_start_estimate = "currently_processing";
-                } else {
-                    info.processing_start_estimate = (predictProcessingStartTime(currentClipCreatedAt)).toString();
-                }
+            if (info.state == "preparing" || info.state == "started") {
+                info.processing_start_estimate = "still_currently_clipping";
+            } else if (info.state == "processing") {
+                info.processing_start_estimate = "currently_processing";
+            } else if (totalVideoLength >= minimumVideoLengthSeconds) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipCreatedAt)).toString();
             } else {
                 info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length
             }

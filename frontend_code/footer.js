@@ -2394,6 +2394,14 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         // Update the progress if there is any.
         if (clipInfo.processing_start_estimate == null) { // Not going to process it.
           $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
+        } else if (clipInfo.processing_start_estimate == "still_currently_clipping") {
+          $("#video-wont-process-yet-info").hide();
+          $("#not-processing-avoid-this-next-time").hide();
+          $("#video-cant-process-till-done-clip").show();
+        } else if (clipInfo.processing_start_estimate == "currently_processing") {
+          $("#video-wont-process-yet-info").hide();
+          $("#not-processing-avoid-this-next-time").hide();
+          $("#force-video-processing-container").hide();
         } else {
           $("#video-wont-process-yet-info").hide();
           $("#not-processing-avoid-this-next-time").hide();
