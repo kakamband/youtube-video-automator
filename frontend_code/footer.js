@@ -2392,7 +2392,18 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         drawClipsToCombine($, toCombineClipsList, downloadID);
 
         // Update the progress if there is any.
-        
+        if (clipInfo.processing_start_estimate == null) { // Not going to process it.
+          $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
+        } else {
+          $("#video-wont-process-yet-info").hide();
+          $("#not-processing-avoid-this-next-time").hide();
+          $("#force-video-processing-container").hide();
+          var startProcDate = new Date(clipInfo.processing_start_estimate);
+          var startProcSplit = clipInfo.processing_start_estimate.split(" ");
+          var startProcNice = startProcSplit[0] + " " + startProcSplit[1] + " " + startProcSplit[2] + ", " + startProcDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+          $("#expected-start-processing-datetime").text(startProcNice);
+          $("#video-processing-soon-info").show();
+        }
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;
