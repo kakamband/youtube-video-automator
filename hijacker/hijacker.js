@@ -101,10 +101,18 @@ function convertTSFileToMP4(fileName) {
 			cLogger.info("Converting TS file to Mp4 file.");
 			return shell.exec(cmd, function(code, stdout, stderr) {
 				if (code != 0) {
-					return reject(err);
+					return reject(stderr);
 				}
 
-				return resolve();
+				var cmd2 = "rm " + fileName + ".ts";
+				cLogger.info("Deleting old TS file.");
+				return shell.exec(cmd2, function(code1, stdout1, stderr1) {
+					if (code1 != 0) {
+						return reject(stderr1);
+					}
+					
+					return resolve();
+				});
 			});
 		}, 1000);
 	});

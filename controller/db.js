@@ -2336,7 +2336,7 @@ module.exports.swapClipOrderNumber = function(userID, downloadID1, downloadID2) 
 			.where("deleted", "=", false)
 			.then(function(results) {
 				if (results.length != 2) {
-					return reject(Errors.clipsCannotBeSwapper());
+					return reject(Errors.clipsCannotBeSwapped());
 				} else {
 					// We know the length is == 2 here
 					var swap1ID = results[0].id;
