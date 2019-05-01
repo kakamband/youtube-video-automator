@@ -1996,6 +1996,7 @@ function watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID
   $(".stop-clipping-button").click(function() {
     handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
     endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
+    handleExpectedProgressEndClip($);
   });
 }
 
@@ -2300,6 +2301,41 @@ function handleExplainYoutubeSettings($) {
   stretchAWB($);
 }
 
+// Handles updating the progress visible to the user
+function handleExpectedProgressDisplaying($, clipInfo) {
+  if (clipInfo.processing_start_estimate == null) { // Not going to process it.
+    $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
+  } else if (clipInfo.processing_start_estimate == "still_currently_clipping") {
+    $("#video-wont-process-yet-info").hide();
+    $("#not-processing-avoid-this-next-time").hide();
+    $("#video-cant-process-till-done-clip").show();
+  } else if (clipInfo.processing_start_estimate == "currently_processing") {
+    $("#video-wont-process-yet-info").hide();
+    $("#not-processing-avoid-this-next-time").hide();
+    $("#force-video-processing-container").hide();
+    $("#video-is-already-processing-info").show();
+  } else {
+    $("#video-wont-process-yet-info").hide();
+    $("#not-processing-avoid-this-next-time").hide();
+    $("#force-video-processing-container").hide();
+    var startProcDate = new Date(clipInfo.processing_start_estimate);
+    var startProcSplit = clipInfo.processing_start_estimate.split(" ");
+    var startProcNice = startProcSplit[0] + " " + startProcSplit[1] + " " + startProcSplit[2] + ", " + startProcDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+    $("#expected-start-processing-datetime").text(startProcNice);
+    $("#video-processing-soon-info").show();
+  }
+}
+
+// Handles the stop clipping button being pressed, and progress indicator starts polling
+function handleExpectedProgressEndClip($) {
+  $("#video-wont-process-yet-info").hide();
+  $("#not-processing-avoid-this-next-time").hide();
+  $("#force-video-processing-container").hide();
+  $("#video-cant-process-till-done-clip").hide();
+  $("#video-is-already-processing-info").hide();
+  $("#checking-if-video-will-begin-processing").show();
+}
+
 // Gets some information about the current clip
 function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
   $("#current-clip-video").hide();
@@ -2392,26 +2428,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         drawClipsToCombine($, toCombineClipsList, downloadID);
 
         // Update the progress if there is any.
-        if (clipInfo.processing_start_estimate == null) { // Not going to process it.
-          $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
-        } else if (clipInfo.processing_start_estimate == "still_currently_clipping") {
-          $("#video-wont-process-yet-info").hide();
-          $("#not-processing-avoid-this-next-time").hide();
-          $("#video-cant-process-till-done-clip").show();
-        } else if (clipInfo.processing_start_estimate == "currently_processing") {
-          $("#video-wont-process-yet-info").hide();
-          $("#not-processing-avoid-this-next-time").hide();
-          $("#force-video-processing-container").hide();
-        } else {
-          $("#video-wont-process-yet-info").hide();
-          $("#not-processing-avoid-this-next-time").hide();
-          $("#force-video-processing-container").hide();
-          var startProcDate = new Date(clipInfo.processing_start_estimate);
-          var startProcSplit = clipInfo.processing_start_estimate.split(" ");
-          var startProcNice = startProcSplit[0] + " " + startProcSplit[1] + " " + startProcSplit[2] + ", " + startProcDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-          $("#expected-start-processing-datetime").text(startProcNice);
-          $("#video-processing-soon-info").show();
-        }
+        handleExpectedProgressDisplaying($, clipInfo);
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;

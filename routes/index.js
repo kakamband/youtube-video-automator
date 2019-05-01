@@ -450,4 +450,19 @@ router.post(Models.SWAP_CLIP_ORDER, function(req, res, next) {
 	});
 });
 
+router.post(Models.POLL_PROCESSING_TIME, function(req, res, next) {
+	validFirst(Models.POLL_PROCESSING_TIME, req, res, next, function() {
+		return Users.pollProcessingTime(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.download_id)
+		.then(function(results) {
+			return res.json({
+				processing_estimate: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.POLL_PROCESSING_TIME, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;
