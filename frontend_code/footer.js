@@ -1996,7 +1996,7 @@ function watchStopClippingBtn($, username, ID, email, pass, clipInfo, downloadID
   $(".stop-clipping-button").click(function() {
     handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
     endClipping($, username, ID, email, pass, downloadID, clipInfo.twitch_link, updateTimerInterval);
-    handleExpectedProgressEndClip($);
+    handleExpectedProgressEndClip($, username, ID, email, pass, downloadID, clipInfo);
   });
 }
 
@@ -2303,7 +2303,10 @@ function handleExplainYoutubeSettings($) {
 
 // Handles updating the progress visible to the user
 function handleExpectedProgressDisplaying($, clipInfo) {
-  if (clipInfo.processing_start_estimate == null) { // Not going to process it.
+  if (clipInfo.processing_start_estimate == null || clipInfo.processing_start_estimate == "wont_be_processed") { // Not going to process it.
+    $("#video-wont-process-yet-info").show();
+    $("#not-processing-avoid-this-next-time").show();
+    $("#force-video-processing-container").show();
     $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
   } else if (clipInfo.processing_start_estimate == "still_currently_clipping") {
     $("#video-wont-process-yet-info").hide();
@@ -2326,14 +2329,72 @@ function handleExpectedProgressDisplaying($, clipInfo) {
   }
 }
 
+// Gets an updated expected progress. Try for a max of two times (with a 5 second delay)
+function _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, exitCB) {
+  function makePollReq(cb) {
+    $.ajax({
+      type: "POST",
+      url: autoTuberURL + "/user/video/processing/estimate",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+
+        "download_id": downloadID,
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+        $(".dashboard-internal-server-error").show();
+      },
+      success: function(result,status,xhr) {
+        if (result.processing_estimate != undefined) {
+          return cb(true, result.processing_estimate);
+        } else {
+          return cb(false, null);
+        }
+      },
+      dataType: "json"
+    });
+  }
+
+  function next() {
+    return makePollReq(function(success, newEstimate) {
+      if (success) {
+        return exitCB(newEstimate);
+      } else {
+        // Usually this won't be needed, but doesn't hurt to try again in 3 seconds.
+        return setTimeout(function() {
+          return makePollReq(function(success, newEstimate) {
+            if (success) {
+              return exitCB(newEstimate);
+            } else {
+              console.log("Error updating the expected progress.");
+              return exitCB(null);
+            }
+          });
+        }, 3000); // 3 seconds
+      }
+    });
+  }
+
+  return next();
+}
+
 // Handles the stop clipping button being pressed, and progress indicator starts polling
-function handleExpectedProgressEndClip($) {
+function handleExpectedProgressEndClip($, username, ID, email, pass, downloadID, clipInfo) {
   $("#video-wont-process-yet-info").hide();
   $("#not-processing-avoid-this-next-time").hide();
   $("#force-video-processing-container").hide();
   $("#video-cant-process-till-done-clip").hide();
   $("#video-is-already-processing-info").hide();
   $("#checking-if-video-will-begin-processing").show();
+
+  return _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, function(newProcessingEstimate) {
+    clipInfo.processing_start_estimate = newProcessingEstimate;
+    $("#checking-if-video-will-begin-processing").hide();
+    handleExpectedProgressDisplaying($, clipInfo);
+  });
 }
 
 // Gets some information about the current clip
