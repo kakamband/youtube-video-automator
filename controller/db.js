@@ -63,7 +63,8 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 				.where("twitch_link", "=", twitchLink)
 				.update({
 					state: "init-stop",
-					clip_stopped_downloading: (new Date()).toString()
+					clip_stopped_downloading: (new Date()).toString(),
+					updated_at: new Date() // We can update this here since it will be updated anyways after ~5 seconds. Updating here helps with processing time estimates.
 				})
 				.then(function(results) {
 					return resolve();
