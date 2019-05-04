@@ -101,8 +101,8 @@ module.exports.initialize = function(knex) {
 			table.date("deleted_at");
 			table.integer("order_number").default(-1).notNullable();
 			table.integer("clip_seconds");
-			table.date("clip_stopped_downloading");
-			table.date("expected_processing_time");
+			table.string("clip_stopped_downloading");
+			table.string("expected_processing_time");
 			table.timestamps();
 		});
 	}).then(function() {

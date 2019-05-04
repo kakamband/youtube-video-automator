@@ -592,7 +592,7 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
             } else if (clipInfo.processing_start_estimate != null && clipInfo.processing_start_estimate != "") {
                 // This is an actual expected processing time stamp
                 // Update it in the DB so that we don't have to do extra work in the next call to get clip info
-                return dbController.setDownloadProcessingEstimate(downloadID, new Date(clipInfo.processing_start_estimate))
+                return dbController.setDownloadProcessingEstimate(downloadID, new Date(clipInfo.processing_start_estimate).toString())
                 .then(function() {
                     return resolve(clipInfo.processing_start_estimate);
                 })
