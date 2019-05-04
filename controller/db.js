@@ -63,6 +63,7 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 				.where("twitch_link", "=", twitchLink)
 				.update({
 					state: "init-stop",
+					clip_stopped_downloading: new Date()
 				})
 				.then(function(results) {
 					return resolve();
@@ -2368,6 +2369,22 @@ module.exports.updateDownloadDuration = function(downloadID, clipSeconds, newUpd
 		.update({
 			clip_seconds: clipSeconds,
 			updated_at: newUpdatedAt // We are purposely updating this here. This is to make the frontend video length accuracy better.
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setDownloadProcessingEstimate = function(downloadID, processingEstimate) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", downloadID)
+		.update({
+			expected_processing_time: processingEstimate
 		})
 		.then(function(results) {
 			return resolve();

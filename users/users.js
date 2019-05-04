@@ -572,6 +572,44 @@ module.exports.swapClipOrder = function(username, pmsID, email, password, downlo
     });
 }
 
+// pollProcessingTime
+// Endpoint that will get polled for an updated processing time for the video.
+// This is essentially just a wrapper over the getClipInfo helper, that removes unneccessary data + updates the db if a processing time is set.
+// This has no real latency constraints so no harm in calling getClipInfoHelper.
+module.exports.pollProcessingTime = function(username, pmsID, email, password, downloadID) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return getClipInfoHelper(userID, pmsID, downloadID);
+        })
+        .then(function(clipInfo) {
+            if (clipInfo.processing_start_estimate == null) {
+                return resolve("wont_be_processed");
+            } else if (clipInfo.processing_start_estimate == "currently_processing" || clipInfo.processing_start_estimate == "still_currently_clipping") {
+                return resolve(clipInfo.processing_start_estimate);
+            } else if (clipInfo.processing_start_estimate != null && clipInfo.processing_start_estimate != "") {
+                // This is an actual expected processing time stamp
+                // Update it in the DB so that we don't have to do extra work in the next call to get clip info
+                return dbController.setDownloadProcessingEstimate(downloadID, new Date(clipInfo.processing_start_estimate))
+                .then(function() {
+                    return resolve(clipInfo.processing_start_estimate);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            } else {
+                // Shouldn't really happen but say it won't be processed in this case
+                return resolve("wont_be_processed");
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -974,7 +1012,8 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
     var info = {};
     var gameName = null;
     var totalVideoLength = 0;
-    var currentClipCreatedAt = null;
+    var currentClipStoppedClipping = null;
+    var processingEstimateDone = null;
     return new Promise(function(resolve, reject) {
         return dbController.getDownload(userID, downloadID)
         .then(function(results) {
@@ -983,7 +1022,18 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             } else {
                 info = results;
                 gameName = info.game;
-                currentClipCreatedAt = new Date(info.created_at);
+
+                if (info.clip_stopped_downloading != null) {
+                    currentClipStoppedClipping = new Date(info.clip_stopped_downloading);
+                } else {
+                    // Legacy should not be used if possible...
+                    cLogger.info("The clips stopped downloading date isn't set yet, or this is a legacy clip. Using created at for now.");
+                    currentClipStoppedClipping = new Date(info.created_at);
+                }
+
+                if (info.expected_processing_time != null) {
+                    processingEstimateDone = info.expected_processing_time;
+                }
 
                 // Delete some info we don't want to share with the frontend
                 delete info.user_id;
@@ -994,14 +1044,16 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                     delete info.downloaded_file;
                 }
 
-                // Add this clip length to the sum of all clips length
-                if (info.clip_seconds != null && info.clip_seconds > 0) { // Already done, and seconds added to DB.
-                    totalVideoLength += info.clip_seconds;
-                } else if (info.created_at != null && info.updated_at != null && info.state != "preparing" && info.state != "started") { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
-                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, info.updated_at);
-                } else if (info.created_at != null && info.updated_at == null) { // Make a best guess since the clip is still running.
-                    var currentDateTime = new Date();
-                    totalVideoLength += _legacyClipSecondsCalculator(info.created_at, currentDateTime.toString());
+                // Add this clip length to the sum of all clips length. Only if this hasn't been calculated already.
+                if (processingEstimateDone == null) {
+                    if (info.clip_seconds != null && info.clip_seconds > 0) { // Already done, and seconds added to DB.
+                        totalVideoLength += info.clip_seconds;
+                    } else if (info.created_at != null && info.updated_at != null && info.state != "preparing" && info.state != "started") { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                        totalVideoLength += _legacyClipSecondsCalculator(info.created_at, info.updated_at);
+                    } else if (info.created_at != null && info.updated_at == null) { // Make a best guess since the clip is still running.
+                        var currentDateTime = new Date();
+                        totalVideoLength += _legacyClipSecondsCalculator(info.created_at, currentDateTime.toString());
+                    }
                 }
 
                 return dbController.getVideosToBeCombined(userID, downloadID, gameName);
@@ -1014,10 +1066,12 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 delete toCombineVids[i].user_id;
 
                 // Extract the clip seconds from all of the clips
-                if (toCombineVids[i].clip_seconds != null && toCombineVids[i].clip_seconds > 0) {
-                    totalVideoLength += toCombineVids[i].clip_seconds;
-                } else if (toCombineVids[i].created_at != null && toCombineVids[i].updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
-                    totalVideoLength += _legacyClipSecondsCalculator(toCombineVids[i].created_at, toCombineVids[i].updated_at);
+                if (processingEstimateDone == null) {
+                    if (toCombineVids[i].clip_seconds != null && toCombineVids[i].clip_seconds > 0) {
+                        totalVideoLength += toCombineVids[i].clip_seconds;
+                    } else if (toCombineVids[i].created_at != null && toCombineVids[i].updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
+                        totalVideoLength += _legacyClipSecondsCalculator(toCombineVids[i].created_at, toCombineVids[i].updated_at);
+                    }
                 }
 
                 // Only include the downloaded file link if its already stored in S3
@@ -1042,8 +1096,10 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 info.processing_start_estimate = "still_currently_clipping";
             } else if (info.state == "processing") {
                 info.processing_start_estimate = "currently_processing";
-            } else if (totalVideoLength >= minimumVideoLengthSeconds) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipCreatedAt)).toString();
+            } else if (processingEstimateDone != null) {
+                info.processing_start_estimate = processingEstimateDone;
+            } else if (totalVideoLength >= minimumVideoLengthSeconds && processingEstimateDone == null) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
             } else {
                 info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length
             }

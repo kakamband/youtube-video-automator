@@ -75,6 +75,9 @@ module.exports.UPLOAD_THUMBNAIL_IMG = "/user/thumbnail/upload";
 
 // Swaps a clips order
 module.exports.SWAP_CLIP_ORDER = "/user/clip/swap-order";
+
+// Returns the processing time of a video, or if it won't be processed
+module.exports.POLL_PROCESSING_TIME = "/user/video/processing/estimate";
 // -------------------
 
 // Route definitions
@@ -402,6 +405,21 @@ module.exports.routes = new Map([
 
 			nameAndType("download_id_1", "string"),
 			nameAndType("download_id_2", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.POLL_PROCESSING_TIME, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("download_id", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
