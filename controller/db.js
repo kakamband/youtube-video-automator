@@ -2384,7 +2384,7 @@ module.exports.setDownloadProcessingEstimate = function(downloadID, processingEs
 		return knex('downloads')
 		.where("id", "=", downloadID)
 		.update({
-			expected_processing_time: new Date(processingEstimate)
+			expected_processing_time: processingEstimate
 		})
 		.then(function(results) {
 			return resolve();
