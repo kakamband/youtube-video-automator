@@ -1289,6 +1289,7 @@ function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 				return knex('downloads')
 				.where("user_id", "=", userID)
 				.where("id", "=", downloadID)
+				.whereNotIn('state', ["started", "preparing"])
 				.update({
 					state: "done", // DO NOT UPDATE updated_at here since this is used to show video length.
 				})
