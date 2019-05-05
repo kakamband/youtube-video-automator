@@ -1197,6 +1197,12 @@ function deleteVideoTag(userID, downloadID, optionValue) {
     });
 }
 
+function forceVideoProcessing(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        
+    });
+}
+
 function customOptionHandler(userID, downloadID, optionName, optionValue) {
     return new Promise(function(resolve, reject) {
         switch (optionName) {
@@ -1253,6 +1259,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
             case "remove_combined_clip":
                 // No validation needed, if the user does something wrong its on them.
                 return dbController.insertCustomOption(userID, downloadID, "custom_clip_deletion", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "force_video_processing":
+                return forceVideoProcessing(userID, downloadID, optionValue)
                 .then(function() {
                     return resolve();
                 })
