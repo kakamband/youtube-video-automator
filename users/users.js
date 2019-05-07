@@ -1098,6 +1098,8 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 info.processing_start_estimate = "currently_processing";
             } else if (processingEstimateDone != null) {
                 info.processing_start_estimate = processingEstimateDone;
+            } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
             } else if (totalVideoLength >= minimumVideoLengthSeconds && processingEstimateDone == null) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
                 info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
             } else {
