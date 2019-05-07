@@ -125,7 +125,7 @@ function transferToS3Helper(userID, twitchStream, downloadID) {
 				ErrorHelper.emitSimpleError(new Error("Could not find download associated with file. Failed to transfer to S3."));
 				return resolve();
 			} else {
-				if (result.state != "done" && result.state != "done-need-info") {
+				if (result.state != "done" && result.state != "done-need-info" && state != "deleted-soon") {
 					// This shouldn't ever happen, log to sentry if it does.
 					ErrorHelper.scopeConfigureWID("worker_helpers.transferToS3", {
 						download_obj: result

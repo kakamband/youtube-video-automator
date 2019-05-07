@@ -2302,7 +2302,7 @@ function handleExplainYoutubeSettings($) {
 }
 
 // Handles updating the progress visible to the user
-function handleExpectedProgressDisplaying($, clipInfo) {
+function handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo) {
   if (clipInfo.processing_start_estimate == null || clipInfo.processing_start_estimate == "wont_be_processed") { // Not going to process it.
     $("#video-wont-process-yet-info").show();
     $("#not-processing-avoid-this-next-time").show();
@@ -2327,6 +2327,35 @@ function handleExpectedProgressDisplaying($, clipInfo) {
     $("#expected-start-processing-datetime").text(startProcNice);
     $("#video-processing-soon-info").show();
   }
+
+  // Just watch for clicks of this button
+  var forcedProcessing = false;
+  console.log("The setting is: " + clipInfo.youtube_settings.force_video_processing);
+  if (clipInfo.youtube_settings.force_video_processing == "true" || clipInfo.youtube_settings.force_video_processing == true) {
+    forcedProcessing = true;
+    console.log("Making it checked.");
+  }
+
+  $("#force-video-processing-input").val(forcedProcessing);
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "option_name": "force_video_processing",
+    "option_value": "false"
+  };
+  $("#force-video-processing-input").change(function() {
+    if (this.checked) {
+      dataOBJ.option_value = "true";
+    } else {
+      dataOBJ.option_value = "false";
+    }
+
+    _setCustomOption($, dataOBJ);
+  });
 }
 
 // Gets an updated expected progress. Try for a max of two times (with a 5 second delay)
@@ -2394,7 +2423,7 @@ function handleExpectedProgressEndClip($, username, ID, email, pass, downloadID,
     return _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, function(newProcessingEstimate) {
       clipInfo.processing_start_estimate = newProcessingEstimate;
       $("#checking-if-video-will-begin-processing").hide();
-      handleExpectedProgressDisplaying($, clipInfo);
+      handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo);
       return cb();
     });
   }
@@ -2499,7 +2528,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         drawClipsToCombine($, toCombineClipsList, downloadID);
 
         // Update the progress if there is any.
-        handleExpectedProgressDisplaying($, clipInfo);
+        handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo);
 
         // Handles the logic related to showing, and now showing items if the clip is exclusive.
         var backupExtraTime = extraVidTime;
