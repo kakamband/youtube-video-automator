@@ -1879,7 +1879,7 @@ function uploadCustomThumbnailToBackendServer($, username, ID, email, pass, file
 }
 
 // Tells the server that this clip is now deleted
-function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal) {
+function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal, cb) {
   var dataOBJ = {
     "username": username,
     "user_id": ID,
@@ -1901,6 +1901,7 @@ function deleteClipCall($, username, ID, email, pass, downloadID, deleteVal) {
     success: function(result,status,xhr) {
       if (result.success) {
         console.log("Succesfully set clip deleted to: " + deleteVal);
+        cb();
       }
     },
     dataType: "json"
@@ -1932,14 +1933,18 @@ function handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID)
 
   $(".delete-clip-button").click(function() {
     if (clipDeleted) {
-      deleteClipCall($, username, ID, email, pass, downloadID, false);
+      deleteClipCall($, username, ID, email, pass, downloadID, false, function() {
+        _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
+      });
       console.log("UnDeleting.");
       clipDeleted = false;
       $("#clip-status").html(originalStatus);
       $('html, body').animate({ scrollTop:$('#top-of-clip-info-table').position().top }, 'slow');
       $(".delete-clip-button").text("Delete Clip");
     } else {
-      deleteClipCall($, username, ID, email, pass, downloadID, true);
+      deleteClipCall($, username, ID, email, pass, downloadID, true, function() {
+        _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
+      });
       console.log("Deleting.");
       clipDeleted = true;
       $("#clip-status").html("Deleted Soon (48hr)");
@@ -2337,6 +2342,11 @@ function _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID,
     var startProcNice = startProcSplit[0] + " " + startProcSplit[1] + " " + startProcSplit[2] + ", " + startProcDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
     $("#expected-start-processing-datetime").text(startProcNice);
     $("#video-processing-soon-info").show();
+
+    // If this has been done because of a forced video processing display the toggle to deactivate it
+    if (clipInfo.youtube_settings.force_video_processing == "true" || clipInfo.youtube_settings.force_video_processing == true) {
+      $("#force-video-processing-container").show();
+    }
   }
 
   // Just watch for clicks of this button

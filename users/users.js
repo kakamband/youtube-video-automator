@@ -582,29 +582,38 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return getClipInfoHelper(userID, pmsID, downloadID);
+            return _getClipInfoHelper(userID, pmsID, downloadID, true);
         })
         .then(function(clipInfo) {
             var allowedStates = ["currently_processing", "still_currently_clipping", "clip_deleted"];
 
+            var savedVal = null;
+            var returnedVal = "wont_be_processed";
             if (clipInfo.processing_start_estimate == null) {
-                return resolve("wont_be_processed");
+                savedVal = null;
+                returnedVal = "wont_be_processed";
             } else if (allowedStates.indexOf(clipInfo.processing_start_estimate) >= 0) {
-                return resolve(clipInfo.processing_start_estimate);
+                savedVal = null;
+                returnedVal = clipInfo.processing_start_estimate;
             } else if (clipInfo.processing_start_estimate != null && clipInfo.processing_start_estimate != "") {
                 // This is an actual expected processing time stamp
                 // Update it in the DB so that we don't have to do extra work in the next call to get clip info
-                return dbController.setDownloadProcessingEstimate(downloadID, new Date(clipInfo.processing_start_estimate).toString())
-                .then(function() {
-                    return resolve(clipInfo.processing_start_estimate);
-                })
-                .catch(function(err) {
-                    return reject(err);
-                });
+
+                savedVal = new Date(clipInfo.processing_start_estimate).toString();
+                returnedVal = clipInfo.processing_start_estimate;
             } else {
                 // Shouldn't really happen but say it won't be processed in this case
-                return resolve("wont_be_processed");
+                savedVal = null;
+                returnedVal = clipInfo.processing_start_estimate;
             }
+
+            return dbController.setDownloadProcessingEstimate(downloadID, savedVal)
+            .then(function() {
+                return resolve(returnedVal);
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
         })
         .catch(function(err) {
             return reject(err);
@@ -1017,7 +1026,7 @@ function predictProcessingStartTime(startedDateTime) {
     }
 }
 
-function getClipInfoHelper(userID, pmsID, downloadID) {
+function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
     var info = {};
     var gameName = null;
     var totalVideoLength = 0;
@@ -1054,7 +1063,7 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 }
 
                 // Add this clip length to the sum of all clips length. Only if this hasn't been calculated already.
-                if (processingEstimateDone == null) {
+                if (processingEstimateDone == null || fullCycle == true) {
                     if (info.clip_seconds != null && info.clip_seconds > 0) { // Already done, and seconds added to DB.
                         totalVideoLength += info.clip_seconds;
                     } else if (info.created_at != null && info.updated_at != null && info.state != "preparing" && info.state != "started") { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
@@ -1075,7 +1084,7 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 delete toCombineVids[i].user_id;
 
                 // Extract the clip seconds from all of the clips
-                if (processingEstimateDone == null) {
+                if (processingEstimateDone == null || fullCycle == true) {
                     if (toCombineVids[i].clip_seconds != null && toCombineVids[i].clip_seconds > 0) {
                         totalVideoLength += toCombineVids[i].clip_seconds;
                     } else if (toCombineVids[i].created_at != null && toCombineVids[i].updated_at != null) { // Legacy. Slower process + not as accurate, should be avoided if possible. However not too big of a deal.
@@ -1107,7 +1116,7 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 info.processing_start_estimate = "currently_processing";
             } else if (info.state == "deleted-soon" || info.state == "deleted") {
                 info.processing_start_estimate = "clip_deleted";
-            } else if (processingEstimateDone != null) {
+            } else if (processingEstimateDone != null && fullCycle == false) {
                 info.processing_start_estimate = processingEstimateDone;
             } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {
                 info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
@@ -1123,6 +1132,10 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
             return reject(err);
         });
     });
+}
+
+function getClipInfoHelper(userID, pmsID, downloadID) {
+    _getClipInfoHelper(userID, pmsID, downloadID, false);
 }
 
 function customCategory(userID, downloadID, optionValue) {
