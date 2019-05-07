@@ -138,3 +138,5 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 ### Previous Problems and Solutions
 1) Updating the Security group inbound rules, and deleting the TCP Port 80 - 0.0.0.0/0, ::/0 rule.
 	- This rule is needed to allow outside connections, without this the server won't be able to be contacted.
+2) The PORT for the local PostgreSQL server is already in use. 
+	- Run `brew services stop postgresql`
