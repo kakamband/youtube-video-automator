@@ -1098,6 +1098,8 @@ function getClipInfoHelper(userID, pmsID, downloadID) {
                 info.processing_start_estimate = "currently_processing";
             } else if (processingEstimateDone != null) {
                 info.processing_start_estimate = processingEstimateDone;
+            } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
             } else if (totalVideoLength >= minimumVideoLengthSeconds && processingEstimateDone == null) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
                 info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
             } else {
@@ -1197,6 +1199,29 @@ function deleteVideoTag(userID, downloadID, optionValue) {
     });
 }
 
+function forceVideoProcessing(userID, downloadID, optionValue) {
+    return new Promise(function(resolve, reject) {
+        var sanitizedVal = null;
+        if (optionValue == "true" || optionValue == true) {
+            sanitizedVal = true;
+        } else if (optionValue == "false" || optionValue == false) {
+            sanitizedVal = false;
+        }
+
+        if (sanitizedVal == true || sanitizedVal == false) {
+            return dbController.addCustomOption(userID, downloadID, "force_processing", sanitizedVal + "")
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        } else {
+            return reject(Errors.invalidCustomValue());
+        }
+    });
+}
+
 function customOptionHandler(userID, downloadID, optionName, optionValue) {
     return new Promise(function(resolve, reject) {
         switch (optionName) {
@@ -1253,6 +1278,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
             case "remove_combined_clip":
                 // No validation needed, if the user does something wrong its on them.
                 return dbController.insertCustomOption(userID, downloadID, "custom_clip_deletion", optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "force_video_processing":
+                return forceVideoProcessing(userID, downloadID, optionValue)
                 .then(function() {
                     return resolve();
                 })

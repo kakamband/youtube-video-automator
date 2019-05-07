@@ -2390,10 +2390,20 @@ function handleExpectedProgressEndClip($, username, ID, email, pass, downloadID,
   $("#video-is-already-processing-info").hide();
   $("#checking-if-video-will-begin-processing").show();
 
-  return _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, function(newProcessingEstimate) {
-    clipInfo.processing_start_estimate = newProcessingEstimate;
-    $("#checking-if-video-will-begin-processing").hide();
-    handleExpectedProgressDisplaying($, clipInfo);
+  function next(cb) {
+    return _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, function(newProcessingEstimate) {
+      clipInfo.processing_start_estimate = newProcessingEstimate;
+      $("#checking-if-video-will-begin-processing").hide();
+      handleExpectedProgressDisplaying($, clipInfo);
+      return cb();
+    });
+  }
+
+  return next(function() {
+    // Just retry in 7 seconds since it may be more accurate. Not really needed but doesn't hurt.
+    return setTimeout(function() {
+      return next(function() {});
+    }, 7000);
   });
 }
 

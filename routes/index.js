@@ -16,7 +16,7 @@ function validFirst(route, req, res, next, continuation) {
 	// Validate that the paramters passed are correct and all present
 	var invalidParamsErr = routeObj.validateParams(req.body, req.params);
 	if (invalidParamsErr != undefined) {
-		ErrorHelper.scopeConfigure(route, req.body);
+		ErrorHelper.scopeConfigureInfo(route, req.body);
 		return ErrorHelper.errorHelper(next, invalidParamsErr);
 	}
 

@@ -32,6 +32,10 @@ module.exports.scopeConfigureWarning = function(routeName, body) {
 	_scopeConfigureWLevel(routeName, body, "warning");
 }
 
+module.exports.scopeConfigureInfo = function(routeName, body) {
+	_scopeConfigureWLevel(routeName, body, "info");
+}
+
 module.exports.errorHelper = function(next, err) {
 	Sentry.captureException(err);
 	cLogger.error(err);
