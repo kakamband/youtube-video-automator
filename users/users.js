@@ -1135,7 +1135,7 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
 }
 
 function getClipInfoHelper(userID, pmsID, downloadID) {
-    _getClipInfoHelper(userID, pmsID, downloadID, false);
+    return _getClipInfoHelper(userID, pmsID, downloadID, false);
 }
 
 function customCategory(userID, downloadID, optionValue) {
