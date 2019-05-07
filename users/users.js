@@ -585,7 +585,7 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
             return _getClipInfoHelper(userID, pmsID, downloadID, true);
         })
         .then(function(clipInfo) {
-            var allowedStates = ["currently_processing", "still_currently_clipping", "clip_deleted"];
+            var allowedStates = ["currently_processing", "still_currently_clipping", "clip_deleted", "need_title_description_first"];
 
             var savedVal = null;
             var returnedVal = "wont_be_processed";
@@ -1116,6 +1116,8 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
                 info.processing_start_estimate = "currently_processing";
             } else if (info.state == "deleted-soon" || info.state == "deleted") {
                 info.processing_start_estimate = "clip_deleted";
+            } else if (info.state == "done-need-info") {
+                info.processing_start_estimate = "need_title_description_first";
             } else if (processingEstimateDone != null && fullCycle == false) {
                 info.processing_start_estimate = processingEstimateDone;
             } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {

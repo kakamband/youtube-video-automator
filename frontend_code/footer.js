@@ -2323,6 +2323,7 @@ function _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID,
   $("#video-is-already-processing-info").hide();
   $("#force-video-processing-container").hide();
   $("#video-is-deleted-no-processing").hide();
+  $("#waiting-on-title-desc-for-proc").hide();
 
   if (clipInfo.processing_start_estimate == null || clipInfo.processing_start_estimate == "wont_be_processed") { // Not going to process it.
     $("#video-wont-process-yet-info").show();
@@ -2336,6 +2337,8 @@ function _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID,
     $("#video-is-already-processing-info").show();
   } else if (clipInfo.processing_start_estimate == "clip_deleted") {
     $("#video-is-deleted-no-processing").show();
+  } else if (clipInfo.processing_start_estimate == "need_title_description_first") {
+    $("#waiting-on-title-desc-for-proc").show();
   } else {
     var startProcDate = new Date(clipInfo.processing_start_estimate);
     var startProcSplit = clipInfo.processing_start_estimate.split(" ");
