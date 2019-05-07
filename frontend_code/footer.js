@@ -2023,8 +2023,8 @@ function smartThumbnails($, clipInfo) {
   }
 }
 
-// Makes request to custom option endpoint
-function _setCustomOption($, dataOBJ) {
+// Set custom option with a cb on sucess
+function _setCustomOptionCB($, dataOBJ, cb) {
   $.ajax({
     type: "POST",
     url: autoTuberURL + "/user/clip/custom/option",
@@ -2036,10 +2036,16 @@ function _setCustomOption($, dataOBJ) {
     success: function(result,status,xhr) {
       if (result.success) {
         console.log("Succesfully set custom option.");
+        return cb();
       }
     },
     dataType: "json"
   });
+}
+
+// Makes request to custom option endpoint
+function _setCustomOption($, dataOBJ) {
+  _setCustomOptionCB($, dataOBJ, function() {});
 }
 
 // Handles a custom language
@@ -2301,26 +2307,31 @@ function handleExplainYoutubeSettings($) {
   stretchAWB($);
 }
 
-// Handles updating the progress visible to the user
-function handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo) {
+// Helper
+function _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID, clipInfo, watchTheInput) {
+  // Hide everything.
+  $("#checking-if-video-will-begin-processing").hide();
+  $("#video-wont-process-yet-info").hide();
+  $("#video-processing-soon-info").hide();
+  $("#not-processing-avoid-this-next-time").hide();
+  $("#video-cant-process-till-done-clip").hide();
+  $("#video-is-already-processing-info").hide();
+  $("#force-video-processing-container").hide();
+  $("#video-is-deleted-no-processing").hide();
+
   if (clipInfo.processing_start_estimate == null || clipInfo.processing_start_estimate == "wont_be_processed") { // Not going to process it.
     $("#video-wont-process-yet-info").show();
     $("#not-processing-avoid-this-next-time").show();
     $("#force-video-processing-container").show();
     $("#minimum-video-length-number").text(clipInfo.youtube_settings.minimum_video_length);
   } else if (clipInfo.processing_start_estimate == "still_currently_clipping") {
-    $("#video-wont-process-yet-info").hide();
-    $("#not-processing-avoid-this-next-time").hide();
     $("#video-cant-process-till-done-clip").show();
+    $("#force-video-processing-container").show();
   } else if (clipInfo.processing_start_estimate == "currently_processing") {
-    $("#video-wont-process-yet-info").hide();
-    $("#not-processing-avoid-this-next-time").hide();
-    $("#force-video-processing-container").hide();
     $("#video-is-already-processing-info").show();
+  } else if (clipInfo.processing_start_estimate == "clip_deleted") {
+    $("#video-is-deleted-no-processing").show();
   } else {
-    $("#video-wont-process-yet-info").hide();
-    $("#not-processing-avoid-this-next-time").hide();
-    $("#force-video-processing-container").hide();
     var startProcDate = new Date(clipInfo.processing_start_estimate);
     var startProcSplit = clipInfo.processing_start_estimate.split(" ");
     var startProcNice = startProcSplit[0] + " " + startProcSplit[1] + " " + startProcSplit[2] + ", " + startProcDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
@@ -2330,32 +2341,42 @@ function handleExpectedProgressDisplaying($, username, ID, email, pass, download
 
   // Just watch for clicks of this button
   var forcedProcessing = false;
-  console.log("The setting is: " + clipInfo.youtube_settings.force_video_processing);
   if (clipInfo.youtube_settings.force_video_processing == "true" || clipInfo.youtube_settings.force_video_processing == true) {
     forcedProcessing = true;
-    console.log("Making it checked.");
   }
 
-  $("#force-video-processing-input").val(forcedProcessing);
-  var dataOBJ = {
-    "username": username,
-    "user_id": ID,
-    "email": email,
-    "password": pass,
+  $("#force-video-processing-input").prop('checked', forcedProcessing);
 
-    "download_id": downloadID,
-    "option_name": "force_video_processing",
-    "option_value": "false"
-  };
-  $("#force-video-processing-input").change(function() {
-    if (this.checked) {
-      dataOBJ.option_value = "true";
-    } else {
-      dataOBJ.option_value = "false";
-    }
+  if (watchTheInput) {
+    var dataOBJ = {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
 
-    _setCustomOption($, dataOBJ);
-  });
+      "download_id": downloadID,
+      "option_name": "force_video_processing",
+      "option_value": "false"
+    };
+    $("#force-video-processing-input").change(function() {
+      if (this.checked) {
+        dataOBJ.option_value = "true";
+        clipInfo.youtube_settings.force_video_processing = "true";
+      } else {
+        dataOBJ.option_value = "false";
+        clipInfo.youtube_settings.force_video_processing = "false";
+      }
+
+      _setCustomOptionCB($, dataOBJ, function() {
+        _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
+      });
+    });
+  }
+} 
+
+// Handles updating the progress visible to the user
+function handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo) {
+  _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID, clipInfo, true);
 }
 
 // Gets an updated expected progress. Try for a max of two times (with a 5 second delay)
@@ -2410,30 +2431,38 @@ function _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, e
   return next();
 }
 
-// Handles the stop clipping button being pressed, and progress indicator starts polling
-function handleExpectedProgressEndClip($, username, ID, email, pass, downloadID, clipInfo) {
+// Helper
+function _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, delayedCall) {
+  $("#checking-if-video-will-begin-processing").show();
   $("#video-wont-process-yet-info").hide();
+  $("#video-processing-soon-info").hide();
   $("#not-processing-avoid-this-next-time").hide();
-  $("#force-video-processing-container").hide();
   $("#video-cant-process-till-done-clip").hide();
   $("#video-is-already-processing-info").hide();
-  $("#checking-if-video-will-begin-processing").show();
+  $("#force-video-processing-container").hide();
 
   function next(cb) {
     return _getUpdatedExpectedProgress($, username, ID, email, pass, downloadID, function(newProcessingEstimate) {
       clipInfo.processing_start_estimate = newProcessingEstimate;
       $("#checking-if-video-will-begin-processing").hide();
-      handleExpectedProgressDisplaying($, username, ID, email, pass, downloadID, clipInfo);
+      _handleExpProgressWithWatcher($, username, ID, email, pass, downloadID, clipInfo, false);
       return cb();
     });
   }
 
   return next(function() {
-    // Just retry in 7 seconds since it may be more accurate. Not really needed but doesn't hurt.
-    return setTimeout(function() {
-      return next(function() {});
-    }, 7000);
+    if (delayedCall) {
+      // Just retry in 7 seconds since it may be more accurate. Not really needed but doesn't hurt.
+      return setTimeout(function() {
+        return next(function() {});
+      }, 7000);
+    }
   });
+}
+
+// Handles the stop clipping button being pressed, and progress indicator starts polling
+function handleExpectedProgressEndClip($, username, ID, email, pass, downloadID, clipInfo) {
+  _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, true);
 }
 
 // Gets some information about the current clip
