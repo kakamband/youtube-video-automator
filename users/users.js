@@ -1199,7 +1199,24 @@ function deleteVideoTag(userID, downloadID, optionValue) {
 
 function forceVideoProcessing(userID, downloadID, optionValue) {
     return new Promise(function(resolve, reject) {
-        
+        var sanitizedVal = null;
+        if (optionValue == "true" || optionValue == true) {
+            sanitizedVal = true;
+        } else if (optionValue == "false" || optionValue == false) {
+            sanitizedVal = false;
+        }
+
+        if (sanitizedVal == true || sanitizedVal == false) {
+            return dbController.addCustomOption(userID, downloadID, "force_processing", sanitizedVal + "")
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        } else {
+            return reject(Errors.invalidCustomValue());
+        }
     });
 }
 

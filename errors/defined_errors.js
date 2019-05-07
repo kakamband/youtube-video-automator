@@ -64,6 +64,10 @@ module.exports.invalidCustomOption = function() {
     return setup400Err("Invalid custom option passed.");
 }
 
+module.exports.invalidCustomValue = function() {
+    return setup400Err("Invalid custom value passed.");
+}
+
 module.exports.invalidScope = function() {
     return setup400Err("Invalid Scope.");
 }
