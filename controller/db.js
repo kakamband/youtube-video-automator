@@ -1950,7 +1950,9 @@ module.exports.getGameThumbnail = function(pmsID, gameName) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
 		.where("pms_user_id", "=", pmsID)
-		.whereRaw("LOWER(game) = '%'", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("hijacked", "=", false)
 		.orderBy("created_at", "DESC")
 		.limit(1)
