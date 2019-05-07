@@ -1007,10 +1007,9 @@ function predictProcessingStartTime(startedDateTime) {
     // Step 3 update the minutes once again to be the Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES interval above the current one
     startedDateTime.setMinutes((startedDateTime.getMinutes() - subtractMinutes) + Attr.MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES);
 
-    // Step 4 Make sure that this is in the future. And if it isn't increase it by 5 minutes until it is.
-    var currentDateTime = new Date();
-
+    // Step 4 Make sure that this is in the future.
     // If the expected start time is already passed, something weird has occured so change it to be in the future.
+    var currentDateTime = new Date();
     if (startedDateTime < currentDateTime) {
         return predictProcessingStartTime(currentDateTime);
     } else {
