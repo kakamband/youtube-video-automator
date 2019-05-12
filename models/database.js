@@ -113,6 +113,7 @@ module.exports.initialize = function(knex) {
 			table.string("email").notNullable();
 			table.string("password").notNullable();
 			table.timestamps();
+			table.boolean("currently_processing").default(false).notNullable();
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('defined_subscriptions', function(table) {
