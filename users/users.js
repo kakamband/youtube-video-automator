@@ -582,7 +582,7 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return _getClipInfoHelper(userID, pmsID, downloadID, true);
+            return _getClipInfoHelper(userID, pmsID, downloadID, true, true);
         })
         .then(function(clipInfo) {
             var allowedStates = ["currently_processing", "still_currently_clipping", "clip_deleted", "need_title_description_first"];
@@ -1003,7 +1003,7 @@ function _legacyClipSecondsCalculator(createdAt, updatedAt) {
     return legacyLength;
 }
 
-function predictProcessingStartTime(startedDateTime) {
+function predictProcessingStartTime(startedDateTime, getEstimateInFuture) {
     startedDateTime.setSeconds(0); // Seconds are irrelevant here
 
     // Step 1 add the minimum delay time to the date
@@ -1019,14 +1019,14 @@ function predictProcessingStartTime(startedDateTime) {
     // Step 4 Make sure that this is in the future.
     // If the expected start time is already passed, something weird has occured so change it to be in the future.
     var currentDateTime = new Date();
-    if (startedDateTime < currentDateTime) {
+    if (startedDateTime < currentDateTime && getEstimateInFuture == true) {
         return predictProcessingStartTime(currentDateTime);
     } else {
         return startedDateTime;
     }
 }
 
-function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
+function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInFuture) {
     var info = {};
     var gameName = null;
     var totalVideoLength = 0;
@@ -1121,11 +1121,11 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
             } else if (processingEstimateDone != null && fullCycle == false) {
                 info.processing_start_estimate = processingEstimateDone;
             } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else if (totalVideoLength >= minimumVideoLengthSeconds && processingEstimateDone == null) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else if (info.exclusive == "true" || info.exclusive == true) {
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else {
                 info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length
             }
@@ -1138,8 +1138,12 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
     });
 }
 
+module.exports.getClipInfoWrapper = function(userID, pmsID, downloadID) {
+    return _getClipInfoHelper(userID, pmsID, downloadID, true, false);
+}
+
 function getClipInfoHelper(userID, pmsID, downloadID) {
-    return _getClipInfoHelper(userID, pmsID, downloadID, false);
+    return _getClipInfoHelper(userID, pmsID, downloadID, false, true);
 }
 
 function customCategory(userID, downloadID, optionValue) {

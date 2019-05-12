@@ -135,6 +135,31 @@ function handleMessage(message, msg, ch, knex) {
         });
       });
     break;
+    case "processing_start":
+      var userID = msg.properties.correlationId;
+      var pmsID = msg.properties.contentType;
+      var downloadID = parseInt(msg.properties.messageId);
+      cLogger.info("Starting to process a video (DownloadID: " + downloadID + ").");
+
+      return Helpers.startVideoProcessing(userID, pmsID, downloadID)
+      .then(function() {
+        successMsg(message);
+        return Helpers.decrementMsgCount("encoder");
+      })
+      .then(function() {
+        ch.ack(msg);
+      }).catch(function(err) {
+        errMsg(message, msg, message, err);
+        return Helpers.decrementMsgCount("encoder")
+        .then(function() {
+          ch.ack(msg);
+        })
+        .catch(function(err) {
+          Sentry.captureException(err);
+          ch.ack(msg);
+        });
+      });
+    break;
   }
 }
 

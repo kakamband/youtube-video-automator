@@ -2403,6 +2403,58 @@ module.exports.setDownloadProcessingEstimate = function(downloadID, processingEs
 
 module.exports.getAllProcessingReadyVideos = function() {
 	return new Promise(function(resolve, reject) {
-		
+		return knex.raw(
+			"SELECT " +
+				"id, user_id, expected_processing_time, (SELECT pms_user_id FROM users u2 WHERE u2.id = NULLIF(d1.user_id, '')::int) " +
+			"FROM " +
+				"downloads d1 " +
+			"WHERE " +
+				"clip_stopped_downloading = ( " +
+					"SELECT MAX(clip_stopped_downloading) FROM downloads d2 WHERE d1.user_id = d2.user_id " +
+				") AND " +
+				"state='done' AND " +
+				"NOT EXISTS (SELECT * FROM users u1 WHERE u1.id = NULLIF(d1.user_id, '')::int AND u1.currently_processing = true)"
+		)
+		.then(function(results) {
+			return resolve(results.rows);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setUserVidProcessing = function(userID, pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", parseInt(userID))
+		.where("pms_user_id", "=", pmsID)
+		.update({
+			currently_processing: true,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setDownloadProcessing = function(downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", parseInt(downloadID))
+		.update({
+			state: "processing",
+			used: true
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }

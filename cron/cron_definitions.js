@@ -39,7 +39,7 @@ function getPermDeleteCron() {
 // This cron job initiates videos that need to start to be processed.
 // This runs every 5 minutes.
 function kickOffProcessing() {
-	const every5MinCron = "3 */5 * * * *";
+	const every5MinCron = "3 */1 * * * *";
 
 	var kickOffProcessingCron = new CronJob(every5MinCron, function() {
 		WorkerProducer.startProcessingCycle()

@@ -8,6 +8,7 @@ var shell = require('shelljs');
 var WorkerProducer = require('./worker_producer');
 var CronHandler = require('../cron/cron_handler');
 const { getVideoDurationInSeconds } = require('get-video-duration');
+var Users = require('../users/users');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -105,6 +106,24 @@ module.exports.handleGracefulInitAndShutdown = function(workerType) {
 // Checks to see if any videos are prepared for processing, and kicks them off if there is any.
 module.exports.checkForVideosToProcess = function() {
 	return new Promise(function(resolve, reject) {
+		return dbController.getAllProcessingReadyVideos()
+		.then(function(possibleVideos) {
+			return queueVideosToProcess(possibleVideos);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// startVideoProcessing
+// Starts processing a video, and then kicks off the upload of the video.
+module.exports.startVideoProcessing = function(userID, pmsID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		console.log("Now inside here.");
 		return resolve();
 	});
 }
@@ -114,6 +133,113 @@ module.exports.checkForVideosToProcess = function() {
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function queueVideosToProcess(possibleVideos) {
+	return new Promise(function(resolve, reject) {
+		var count = 0;
+		if (possibleVideos.length <= 0) return resolve();
+
+		function nextPossibleHelper() {
+			count++;
+			if (count <= possibleVideos.length - 1) {
+				return next();
+			} else {
+				return resolve();
+			}
+		}
+
+		function next() {
+			var currentVid = possibleVideos[count];
+
+			cLogger.info("Checking if the following video (" + currentVid.id + ") can be processed.");
+			return Users.getClipInfoWrapper(currentVid.user_id, currentVid.pms_user_id, currentVid.id)
+			.then(function(info) {
+
+				// If the processing estimate has already been set in the DB.
+				var processingStartEstimate = info.processing_start_estimate;
+				if (currentVid.expected_processing_time != null) {
+					processingStartEstimate = currentVid.expected_processing_time;
+				}
+
+				var cantProcessValues = ["still_currently_clipping", "currently_processing", "clip_deleted", "need_title_description_first", null];
+
+				if (cantProcessValues.indexOf(processingStartEstimate) >= 0) {
+					// This video is in a state which we can't process so either continue, or end.
+					cLogger.mark("The following video has a process starting estimate (" + processingStartEstimate + ") that we can't process.");
+					return nextPossibleHelper();
+				} else {
+					var currentDate = new Date();
+					var expectedStartDate = new Date(processingStartEstimate);
+
+					// This video is in a state where we can continue. Now make sure that the current time has surpassed the expected processing time
+					if (expectedStartDate > currentDate) {
+						// This video is expected to start processing, however not yet. So either continue, or end.
+						cLogger.mark("The following video has a start processing estimate that is in the future (" + expectedStartDate + ").");
+						return nextPossibleHelper();
+					} else {
+						// This video is in a state where we CAN start processing it. So just add it to the end of the encoder queue.
+						// So first make sure that the user is marked as currently processing. Then change the download state to be processing.
+						return preliminaryProcessingStep(currentVid.user_id, currentVid.pms_user_id, currentVid.id, info.videos_to_combine)
+						.then(function() {
+							// Queue this video up for processing.
+							cLogger.mark("The video can, and will being processing.");
+							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id);
+						})
+						.then(function() {
+							return nextPossibleHelper();
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					}
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function preliminaryProcessingStep(userID, pmsID, downloadID, combinedVideos) {
+	return new Promise(function(resolve, reject) {
+		return dbController.setUserVidProcessing(userID, pmsID)
+		.then(function() {
+			// Set the latest clipped video to be processing, and used.
+			return dbController.setDownloadProcessing(downloadID);
+		})
+		.then(function() {
+			var count = 0;
+			if (combinedVideos == null || combinedVideos.length <= 0) return Promise.resolve();
+
+			// Set all the other combined videos to be processing, and used.
+			function next() {
+				return dbController.setDownloadProcessing(combinedVideos[count].id)
+				.then(function() {
+					count++;
+					if (count <= combinedVideos.length - 1) {
+						return next();
+					} else {
+						return Promise.resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
 
 function transferToS3Helper(userID, twitchStream, downloadID) {
 	var downloadObj = null;

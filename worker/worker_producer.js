@@ -142,7 +142,7 @@ module.exports.startProcessingCycle = function() {
 	return new Promise(function(resolve, reject) {
 		var msgOptions = {
 			persistent: true,
-			priority: 1,
+			priority: 5,
 			mandatory: true,
 			timestamp: (new Date).getTime()
 		};
@@ -150,6 +150,33 @@ module.exports.startProcessingCycle = function() {
 		return workerStartingWork("encoder")
 		.then(function() {
 			return makeProcessingCyclePost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// queueVideoToProcess
+// Queues a video to being being processed.
+module.exports.queueVideoToProcess = function(userID, pmsID, downloadID) {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 4,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentType: pmsID,
+			messageId: downloadID + ""
+		};
+
+		return workerStartingWork("encoder")
+		.then(function() {
+			return makeProcessingPost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
 		})
 		.then(function() {
 			return resolve();
@@ -270,6 +297,10 @@ function makePermDeletePost(queueName, msgOptions) {
 
 function makeProcessingCyclePost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "processing_cycle_start");
+}
+
+function makeProcessingPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "processing_start");
 }
 
 function getMessagesAndConsumers(queueName) {
