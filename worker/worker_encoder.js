@@ -113,6 +113,28 @@ function handleMessage(message, msg, ch, knex) {
         });
       });
     break;
+    case "processing_cycle_start":
+      cLogger.info("Starting cycle to check for videos to process.");
+
+      return Helpers.checkForVideosToProcess()
+      .then(function() {
+        successMsg(message);
+        return Helpers.decrementMsgCount("encoder");
+      })
+      .then(function() {
+        ch.ack(msg);
+      }).catch(function(err) {
+        errMsg(message, msg, message, err);
+        return Helpers.decrementMsgCount("encoder")
+        .then(function() {
+          ch.ack(msg);
+        })
+        .catch(function(err) {
+          Sentry.captureException(err);
+          ch.ack(msg);
+        });
+      });
+    break;
   }
 }
 

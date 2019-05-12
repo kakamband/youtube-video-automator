@@ -1747,7 +1747,7 @@ function textareaAutoScaling($, ID) {
 }
 
 // Saves a title or description
-function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueName, value) {
+function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueName, value, clipInfo) {
   var dataOBJ = {
     "username": username,
     "user_id": ID,
@@ -1770,6 +1770,7 @@ function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueN
       if (result.success) {
         console.log("Updated title or description of clip.");
         _scrollToTitleAndDescIfEmpty($, false, "Done");
+        _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
       }
     },
     dataType: "json"
@@ -1777,7 +1778,7 @@ function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueN
 }
 
 // Handles a saving for a textarea
-function handleTextAreaSaving($, username, ID, email, pass, downloadID, textareaID) {
+function handleTextAreaSaving($, username, ID, email, pass, downloadID, textareaID, clipInfo) {
   var textareaTimeoutID;
   $("#" + textareaID).bind('input propertychange', function() {
 
@@ -1785,9 +1786,9 @@ function handleTextAreaSaving($, username, ID, email, pass, downloadID, textarea
     textareaTimeoutID = setTimeout(function() {
 
       if (textareaID == "clip-title-input") {
-        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val());
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val(), clipInfo);
       } else if (textareaID == "clip-description-input") {
-        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val());
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val(), clipInfo);
       } else if (textareaID == "clip-playlist-input") {
 
         var dataOBJ = {
@@ -2182,7 +2183,7 @@ function handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo
     $("#clip-playlist-input").val(clipInfo.youtube_settings.playlist);
   }
 
-  handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input");
+  handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input", clipInfo);
   $(".playlist-item-set-change").click(function() {
     $(".playlist-item-set").hide();
     $(".playlist-item-set-change").hide();
@@ -2603,8 +2604,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         textareaAutoScaling($, "clip-playlist-input");
 
         // Handles the title and description saving
-        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input");
-        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-title-input");
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input", clipInfo);
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-title-input", clipInfo);
 
         // If the title or description are already set
         if (clipInfo.title) {

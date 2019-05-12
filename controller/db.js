@@ -2400,3 +2400,9 @@ module.exports.setDownloadProcessingEstimate = function(downloadID, processingEs
 		});
 	});
 }
+
+module.exports.getAllProcessingReadyVideos = function() {
+	return new Promise(function(resolve, reject) {
+		
+	});
+}

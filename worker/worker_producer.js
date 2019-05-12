@@ -136,6 +136,30 @@ module.exports.startPermDeleteCycle = function() {
 	});
 }
 
+// startProcessingCycle
+// Checks to see if any videos can be processed, and if they can it queues them up.
+module.exports.startProcessingCycle = function() {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 1,
+			mandatory: true,
+			timestamp: (new Date).getTime()
+		};
+
+		return workerStartingWork("encoder")
+		.then(function() {
+			return makeProcessingCyclePost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -242,6 +266,10 @@ function makeDownloadPost(queueName, msgOptions) {
 
 function makePermDeletePost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "permanent_delete_task");
+}
+
+function makeProcessingCyclePost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "processing_cycle_start");
 }
 
 function getMessagesAndConsumers(queueName) {

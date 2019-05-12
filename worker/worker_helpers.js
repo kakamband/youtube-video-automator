@@ -101,6 +101,15 @@ module.exports.handleGracefulInitAndShutdown = function(workerType) {
 	});
 }
 
+// checkForVideosToProcess
+// Checks to see if any videos are prepared for processing, and kicks them off if there is any.
+module.exports.checkForVideosToProcess = function() {
+	return new Promise(function(resolve, reject) {
+		console.log("Doneso");
+		return resolve();
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
