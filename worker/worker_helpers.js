@@ -9,13 +9,15 @@ var WorkerProducer = require('./worker_producer');
 var CronHandler = require('../cron/cron_handler');
 const { getVideoDurationInSeconds } = require('get-video-duration');
 var Users = require('../users/users');
+var Downloader = require('../downloader/downloader');
+var Combiner = require('../combiner/combiner');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
 // The CDN URL
-const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
+const cdnURL = Attr.CDN_URL;
 
 // downloadContent
 // Initiates a download of content for a user
@@ -121,10 +123,37 @@ module.exports.checkForVideosToProcess = function() {
 
 // startVideoProcessing
 // Starts processing a video, and then kicks off the upload of the video.
-module.exports.startVideoProcessing = function(userID, pmsID, downloadID) {
+module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs) {
 	return new Promise(function(resolve, reject) {
-		console.log("Now inside here.");
-		return resolve();
+		var combinedVideos = [];
+
+		return dbController.getAllDownloadsIn(allClipIDs)
+		.then(function(allDownloads) {
+			combinedVideos = allDownloads;
+			
+			combinedVideos.sort(function(a, b) {
+		    	return a.order_number - b.order_number;
+			});
+
+			return Downloader.downloadEachAWSClip(userID, combinedVideos);
+		})
+		.then(function(downloadLocation) {
+			return Combiner.combineAllUsersClips(downloadLocation, combinedVideos);
+		})
+		.then(function() {
+			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
+		})
+		.then(function() {
+			return resolve();
+			// TODO: Create this function
+			//return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
@@ -161,7 +190,7 @@ function queueVideosToProcess(possibleVideos) {
 					processingStartEstimate = currentVid.expected_processing_time;
 				}
 
-				var cantProcessValues = ["still_currently_clipping", "currently_processing", "clip_deleted", "need_title_description_first", null];
+				var cantProcessValues = ["still_currently_clipping", "currently_processing", "currently_uploading", "clip_deleted", "need_title_description_first", null];
 
 				if (cantProcessValues.indexOf(processingStartEstimate) >= 0) {
 					// This video is in a state which we can't process so either continue, or end.
@@ -181,9 +210,15 @@ function queueVideosToProcess(possibleVideos) {
 						// So first make sure that the user is marked as currently processing. Then change the download state to be processing.
 						return preliminaryProcessingStep(currentVid.user_id, currentVid.pms_user_id, currentVid.id, info.videos_to_combine)
 						.then(function() {
+							// Get all of the videos that will be combined into a an array
+							var toCombineIDs = [currentVid.id];
+							for (var i = 0; i < info.videos_to_combine.length; i++) {
+								toCombineIDs.push(info.videos_to_combine[i].id);
+							}
+
 							// Queue this video up for processing.
 							cLogger.mark("The video can, and will being processing.");
-							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id);
+							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs);
 						})
 						.then(function() {
 							return nextPossibleHelper();
@@ -200,6 +235,44 @@ function queueVideosToProcess(possibleVideos) {
 		}
 
 		return next();
+	});
+}
+
+function preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos) {
+	return new Promise(function(resolve, reject) {
+		return dbController.setUserVidProcessing(userID, pmsID)
+		.then(function() {
+			// Set the latest clipped video to be processing, and used.
+			return dbController.setDownloadUploading(downloadID);
+		})
+		.then(function() {
+			var count = 0;
+			if (combinedVideos == null || combinedVideos.length <= 0) return Promise.resolve();
+
+			// Set all the other combined videos to be processing, and used.
+			function next() {
+				return dbController.setDownloadUploading(combinedVideos[count].id)
+				.then(function() {
+					count++;
+					if (count <= combinedVideos.length - 1) {
+						return next();
+					} else {
+						return Promise.resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 

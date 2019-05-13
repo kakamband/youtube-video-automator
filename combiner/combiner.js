@@ -5,6 +5,41 @@ var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
+module.exports.combineAllUsersClips = function(folderLocation, toCombine) {
+	return new Promise(function(resolve, reject) {
+
+		if (toCombine.length == 0) return reject(new Error("There are no clips to combine."));
+		
+		if (toCombine.length == 1) {
+			// There is nothing to combine, so just rename it and continue
+			var cmd = "mv " + folderLocation + "clip-0.mp4 " + folderLocation + Attr.FINISHED_FNAME + ".mp4";
+			cLogger.info("Running CMD: " + cmd);
+			return shell.exec(cmd, function(code, stdout, stderr) {
+				if (code != 0) {
+					cLogger.error("Error downloading content: ", stderr);
+					return reject(stderr);
+				}
+
+				return resolve();
+			});
+		} else {
+			return getDimensionSizeWithPath(folderLocation, toCombine.length)
+			.then(function(dimensions) {
+				let maxWidth = dimensions[0];
+				let maxHeight = dimensions[1];
+
+				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation);
+			})
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+	});
+}
+
 module.exports.combineHijackedContent = function(content) {
 	return _combineContent(content, "video_data_hijacks/");
 }
@@ -60,6 +95,21 @@ function _combineContent(content, dir) {
 	});
 }
 
+function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath) {
+	return new Promise(function(resolve, reject) {
+		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath), function(code, stdout, stderr) {
+			if (code != 0) {
+				cLogger.error("Error downloading content: ", stderr);
+				return reject(stderr);
+			}
+
+			return shell.exec("rm " + actualPath + "clip-*.mp4", function(code, stdout, stderr) {
+				return resolve();
+			});
+		});
+	});
+}
+
 function executeCombining(count, maxWidth, maxHeight) {
 	return new Promise(function(resolve, reject) {
 		return shell.exec(ffmpegPath + createCommand(count, maxWidth, maxHeight), function(code, stdout, stderr) {
@@ -76,13 +126,13 @@ function executeCombining(count, maxWidth, maxHeight) {
 	});
 }
 
-function getDimensionSize(count) {
+function getDimensionSizeWithPath(actualPath, count) {
 	return new Promise(function(resolve, reject) {
 		var maxWidth = 0;
 		var maxHeight = 0;
 		return new Promise.mapSeries(new Array(count), function(item, index, len) {
 			return new Promise(function(res, rej) {
-				getDimensions('clip-' + index + '.mp4').then(function(dimensions) {
+				getDimensions(actualPath + 'clip-' + index + '.mp4').then(function(dimensions) {
 					if (parseInt(dimensions.width) >= maxWidth) {
 						maxWidth = parseInt(dimensions.width);
 						maxHeight = parseInt(dimensions.height);
@@ -101,10 +151,14 @@ function getDimensionSize(count) {
 	});
 }
 
-function createCommand(count, maxWidth, maxHeight) {
+function getDimensionSize(count) {
+	return getDimensionSizeWithPath("", count);
+}
+
+function createCommandWithPath(count, maxWidth, maxHeight, actualPath) {
 	var str = " ";
 	for (var i = 0; i < parseInt(count); i++) {
-		str += "-i clip-" + i + ".mp4 ";
+		str += "-i " + actualPath + "clip-" + i + ".mp4 ";
 	}
 	str += "-filter_complex \""
 	for (var i = 0; i < parseInt(count); i++) {
@@ -113,6 +167,10 @@ function createCommand(count, maxWidth, maxHeight) {
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[v" + i + "][" + i + ":a]";
 	}
-	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" -preset " + Attr.ENCODING_SPEED + " " + Attr.FINISHED_FNAME + ".mp4");
+	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" -preset " + Attr.ENCODING_SPEED + " " + actualPath + Attr.FINISHED_FNAME + ".mp4");
 	return str;
+}
+
+function createCommand(count, maxWidth, maxHeight) {
+	return createCommandWithPath(count, maxWidth, maxHeight, "");
 }

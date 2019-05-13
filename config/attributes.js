@@ -35,5 +35,6 @@ module.exports = {
 	AWS_S3_BUCKET_NAME: LocalAttr.AWS_S3_BUCKET_NAME || "tmp/",
 	AWS_S3_BUCKET_VIDEO_PATH: LocalAttr.AWS_S3_BUCKET_VIDEO_PATH || "tmp/",
 	AWS_S3_THUMBNAIL_PATH: LocalAttr.AWS_S3_THUMBNAIL_PATH || "thumbnails/",
-	STREAMLINK_EXECUTABLE_LOC: LocalAttr.STREAMLINK_LOCATION || "streamlink"
+	STREAMLINK_EXECUTABLE_LOC: LocalAttr.STREAMLINK_LOCATION || "streamlink",
+	CDN_URL: "https://d2b3tzzd3kh620.cloudfront.net"
 };

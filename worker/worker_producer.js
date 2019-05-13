@@ -162,7 +162,7 @@ module.exports.startProcessingCycle = function() {
 
 // queueVideoToProcess
 // Queues a video to being being processed.
-module.exports.queueVideoToProcess = function(userID, pmsID, downloadID) {
+module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs) {
 	return new Promise(function(resolve, reject) {
 		var msgOptions = {
 			persistent: true,
@@ -171,6 +171,7 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID) {
 			timestamp: (new Date).getTime(),
 			correlationId: userID,
 			contentType: pmsID,
+			contentEncoding: JSON.stringify(toCombineIDs),
 			messageId: downloadID + ""
 		};
 

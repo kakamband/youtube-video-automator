@@ -1,8 +1,62 @@
 var Promise = require('bluebird');
 var shell = require('shelljs');
 var cLogger = require('color-log');
+var Attr = require('../config/attributes');
 var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+
+module.exports.downloadEachAWSClip = function(userID, toDownload) {
+	return new Promise(function(resolve, reject) {
+		var currentDateTime = new Date();
+		var folderPath = ORIGIN_PATH + "video_data_hijacks/" + userID + "-" + currentDateTime.getTime() + "/";
+
+		// Make a directory for these downloads
+		shell.mkdir(folderPath);
+
+		// Start downloading each clip
+		var count = 0;
+		if (toDownload.length <= 0) return reject(new Error("Can't download no clips..."));
+
+		function next() {
+			return downloadClip(toDownload[count], folderPath, count)
+			.then(function() {
+				count++;
+				if (count <= toDownload.length - 1) {
+					return next();
+				} else {
+					return resolve(folderPath);
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function downloadClip(clipInfo, folderPath, clipNumber) {
+	return new Promise(function(resolve, reject) {
+		if (clipInfo.downloaded_file == null || clipInfo.downloaded_file == undefined) {
+			return reject(new Error("The downloaded file could not be found!"));
+		}
+
+		var fileNameSplit = clipInfo.downloaded_file.split(Attr.CDN_URL);
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
+
+		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual + " " + folderPath + "clip-" + clipNumber + ".mp4";
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve();
+		});
+	});
+}
 
 module.exports.downloadContent = function(content) {
 	return new Promise(function(resolve, reject) {

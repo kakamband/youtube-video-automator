@@ -63,7 +63,7 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 				.where("twitch_link", "=", twitchLink)
 				.update({
 					state: "init-stop",
-					clip_stopped_downloading: (new Date()).toString(),
+					clip_stopped_downloading: (new Date()).getTime() + "",
 					updated_at: new Date() // We can update this here since it will be updated anyways after ~5 seconds. Updating here helps with processing time estimates.
 				})
 				.then(function(results) {
@@ -2410,7 +2410,7 @@ module.exports.getAllProcessingReadyVideos = function() {
 				"downloads d1 " +
 			"WHERE " +
 				"clip_stopped_downloading = ( " +
-					"SELECT MAX(clip_stopped_downloading) FROM downloads d2 WHERE d1.user_id = d2.user_id " +
+					"SELECT clip_stopped_downloading FROM downloads d2 WHERE d1.user_id = d2.user_id AND state='done' ORDER BY (clip_stopped_downloading)::float DESC LIMIT 1 " +
 				") AND " +
 				"state='done' AND " +
 				"NOT EXISTS (SELECT * FROM users u1 WHERE u1.id = NULLIF(d1.user_id, '')::int AND u1.currently_processing = true)"
@@ -2442,16 +2442,37 @@ module.exports.setUserVidProcessing = function(userID, pmsID) {
 	});
 }
 
-module.exports.setDownloadProcessing = function(downloadID) {
+function _updateDownloadStateAndUsed(downloadID, newState) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("id", "=", parseInt(downloadID))
 		.update({
-			state: "processing",
+			state: newState,
 			used: true
 		})
 		.then(function(results) {
 			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setDownloadProcessing = function(downloadID) {
+	return _updateDownloadStateAndUsed(downloadID, "processing");
+}
+
+module.exports.setDownloadUploading = function(downloadID) {
+	return _updateDownloadStateAndUsed(downloadID, "uploading");
+}
+
+module.exports.getAllDownloadsIn = function(downloadIDs) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.whereIn("id", downloadIDs)
+		.then(function(results) {
+			return resolve(results);
 		})
 		.catch(function(err) {
 			return reject(err);

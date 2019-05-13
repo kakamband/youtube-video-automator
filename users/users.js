@@ -15,7 +15,7 @@ var shell = require('shelljs');
 // --------------------------------------------
 
 // The CDN URL
-const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
+const cdnURL = Attr.CDN_URL;
 
 const downloadingClipNotification = "currently-clipping";
 const needTitleOrDescriptionNotification = "need-title-or-description";
@@ -714,7 +714,7 @@ function uploadImageToS3(userID, imgB64) {
             }
 
             var filepathSplit = filepath.split("/");
-            var fileNameInCDN = "https://d2b3tzzd3kh620.cloudfront.net/" + Attr.AWS_S3_THUMBNAIL_PATH + filepathSplit[filepathSplit.length - 1];
+            var fileNameInCDN = Attr.CDN_URL + "/" + Attr.AWS_S3_THUMBNAIL_PATH + filepathSplit[filepathSplit.length - 1];
 
             return _uploadFileToS3(filepath)
             .then(function() {
@@ -921,10 +921,10 @@ function getClipVideoHelper(userID, downloadID) {
             if (downloadObj == undefined) {
                 return reject(Errors.clipDoesntExist());
             } else {
-                if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith(Attr.CDN_URL)) {
                     redis.set(clipVideoKey, "false", "EX", clipVideoTTL);
                     return resolve(undefined);
-                } else if (downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                } else if (downloadObj.downloaded_file.startsWith(Attr.CDN_URL)) {
                     redis.set(clipVideoKey, downloadObj.downloaded_file, "EX", clipVideoTTL);
                     return resolve(downloadObj.downloaded_file);
                 } else {
@@ -1116,6 +1116,8 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInF
                 info.processing_start_estimate = "currently_processing";
             } else if (info.state == "deleted-soon" || info.state == "deleted") {
                 info.processing_start_estimate = "clip_deleted";
+            } else if (info.state == "uploading") {
+                info.processing_start_estimate = "currently_uploading";
             } else if (info.state == "done-need-info") {
                 info.processing_start_estimate = "need_title_description_first";
             } else if (processingEstimateDone != null && fullCycle == false) {
