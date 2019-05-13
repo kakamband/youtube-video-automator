@@ -207,19 +207,19 @@ function getNotifications(pmsID, notificationNames) {
 }
 
 module.exports.getVideosNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description"]);
+	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description"]);
+	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description", "currently-processing", "currently-uploading"]);
 }
 
 module.exports.getAccountNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description"]);
+	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
 }
 
 module.exports.getDefaultsNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description"]);
+	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
 }
 
 module.exports.settingsOverview = function(pmsID) {
@@ -609,6 +609,26 @@ function createNewUserNotifications(pmsID) {
 		return knex('notifications')
 		.insert([dashboardNotification, videosNotification, accountNotification, defaultsNotification])
 		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return ErrorHelper.dbError(err);
+		});
+	});
+}
+
+module.exports.createProcessingNotification = function(pmsID, contentStr) {
+	return new Promise(function(resolve, reject) {
+		return knex('notifications')
+		.insert({
+			pms_user_id: pmsID,
+			notification: "currently-processing",
+			seen: false,
+			content: contentStr,
+			created_at: new Date(),
+			updated_at: new Date()
+		})
+		.then(function(result) {
 			return resolve();
 		})
 		.catch(function(err) {
@@ -1294,7 +1314,7 @@ function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 					state: "done", // DO NOT UPDATE updated_at here since this is used to show video length.
 				})
 				.then(function(results) {
-					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description"]);
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
 				})
 				.then(function() {
 					// TODO: Send this to do encoding next
@@ -1444,7 +1464,7 @@ module.exports.setClipAsDeleted = function(userID, pmsID, downloadID) {
 					deleted_at: new Date() // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
 				})
 				.then(function(results) {
-					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description"]);
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
 				})
 				.then(function() {
 					return resolve();

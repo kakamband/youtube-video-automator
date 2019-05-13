@@ -19,6 +19,13 @@ var Combiner = require('../combiner/combiner');
 // The CDN URL
 const cdnURL = Attr.CDN_URL;
 
+const downloadingClipNotification = "currently-clipping";
+const needTitleOrDescriptionNotification = "need-title-or-description";
+const videoProcessingNotification = "currently-processing";
+const videoUploadingNotification = "currently-uploading";
+// The names of all of the clip flow notifications, this is used to clear when adding a new one.
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification];
+
 // downloadContent
 // Initiates a download of content for a user
 module.exports.downloadContent = function(userID, gameName, twitchStream, downloadID) {
@@ -126,8 +133,15 @@ module.exports.checkForVideosToProcess = function() {
 module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs) {
 	return new Promise(function(resolve, reject) {
 		var combinedVideos = [];
+		var finalFileLocation = null;
 
-		return dbController.getAllDownloadsIn(allClipIDs)
+		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
+		.then(function() {
+			return dbController.createProcessingNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
+			return dbController.getAllDownloadsIn(allClipIDs);
+		})
 		.then(function(allDownloads) {
 			combinedVideos = allDownloads;
 			
@@ -138,6 +152,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 			return Downloader.downloadEachAWSClip(userID, combinedVideos);
 		})
 		.then(function(downloadLocation) {
+			finalFileLocation = downloadLocation;
 			return Combiner.combineAllUsersClips(downloadLocation, combinedVideos);
 		})
 		.then(function() {

@@ -586,6 +586,8 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
   var showNotification = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
   var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
+  var showProcessingNotification = false; var processingContent = {download_id: -1};
+  var showUploadingNotification = false; var uploadingContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
@@ -596,6 +598,12 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
      } else if (result.notifications[i].notification == "need-title-or-description") {
         showNeedClipInfoNotification = true;
         needInfoContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-processing") {
+        showProcessingNotification = true;
+        processingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-uploading") {
+        showUploadingNotification = true;
+        uploadingContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -622,6 +630,24 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
     $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
     $(".close-need-info-notification").click(function() {
       closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video processing notification
+  if (showProcessingNotification) {
+    $(".video-processing-notification").show();
+    $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
+    $(".close-video-processing-notification").click(function() {
+      closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video uploading notification
+  if (showProcessingNotification) {
+    $(".video-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
+    $(".close-video-uploading-notification").click(function() {
+      closeNotification($, "currently-uploading", username, ID, email, passwordHash); 
     });
   }
   stretchAWB($);
@@ -1070,6 +1096,8 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
   var showNotification = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
   var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
+  var showProcessingNotification = false; var processingContent = {download_id: -1};
+  var showUploadingNotification = false; var uploadingContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "account-intro") {
@@ -1080,6 +1108,12 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
      } else if (result.notifications[i].notification == "need-title-or-description") {
         showNeedClipInfoNotification = true;
         needInfoContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-processing") {
+        showProcessingNotification = true;
+        processingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-uploading") {
+        showUploadingNotification = true;
+        uploadingContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1109,6 +1143,24 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
     });
   }
 
+  // Video processing notification
+  if (showProcessingNotification) {
+    $(".video-processing-notification").show();
+    $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
+    $(".close-video-processing-notification").click(function() {
+      closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video uploading notification
+  if (showProcessingNotification) {
+    $(".video-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
+    $(".close-video-uploading-notification").click(function() {
+      closeNotification($, "currently-uploading", username, ID, email, passwordHash); 
+    });
+  }
+
   stretchAWB($);
 }
 
@@ -1125,6 +1177,8 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
   var showNotification = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
   var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
+  var showProcessingNotification = false; var processingContent = {download_id: -1};
+  var showUploadingNotification = false; var uploadingContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "videos-intro") {
@@ -1135,6 +1189,12 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
      } else if (result.notifications[i].notification == "need-title-or-description") {
         showNeedClipInfoNotification = true;
         needInfoContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-processing") {
+        showProcessingNotification = true;
+        processingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-uploading") {
+        showUploadingNotification = true;
+        uploadingContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1165,6 +1225,23 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
     });
   }
 
+  // Video processing notification
+  if (showProcessingNotification) {
+    $(".video-processing-notification").show();
+    $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
+    $(".close-video-processing-notification").click(function() {
+      closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video uploading notification
+  if (showProcessingNotification) {
+    $(".video-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
+    $(".close-video-uploading-notification").click(function() {
+      closeNotification($, "currently-uploading", username, ID, email, passwordHash); 
+    });
+  }
 
   stretchAWB($);
 }
@@ -1259,6 +1336,10 @@ function toggleDashboardNotification($, result, username, ID, email, passwordHas
   var showNotification = false;
   var showClipInfoNotification = false;
   var showClipInfoContent = null;
+  var showProcessingNotification = false;
+  var processingContent = null;
+  var showUploadingNotification = false;
+  var uploadingContent = null;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "dashboard-intro") {
@@ -1266,6 +1347,12 @@ function toggleDashboardNotification($, result, username, ID, email, passwordHas
      } else if (result.notifications[i].notification == "need-title-or-description") {
       showClipInfoNotification = true;
       showClipInfoContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-processing") {
+        showProcessingNotification = true;
+        processingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-uploading") {
+        showUploadingNotification = true;
+        uploadingContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -1284,6 +1371,24 @@ function toggleDashboardNotification($, result, username, ID, email, passwordHas
     $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + showClipInfoContent.download_id));
     $(".close-need-info-notification").click(function() {
       closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video processing notification
+  if (showProcessingNotification) {
+    $(".video-processing-notification").show();
+    $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
+    $(".close-video-processing-notification").click(function() {
+      closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video uploading notification
+  if (showProcessingNotification) {
+    $(".video-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
+    $(".close-video-uploading-notification").click(function() {
+      closeNotification($, "currently-uploading", username, ID, email, passwordHash); 
     });
   }
 
@@ -3055,6 +3160,12 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
           case "need-title-or-description":
             $(".clipping-need-info-notification").hide();
             break;
+          case "currently-processing":
+            $(".video-processing-notification").hide();
+            break;
+          case "currently-uploading":
+            $(".video-uploading-notification").hide();
+            break;
         }
       },
       dataType: "json"
@@ -3078,6 +3189,8 @@ jQuery(document).ready(function( $ ){
   $(".account-notification-container").hide();
   $(".defaults-intro-notification").hide();
   $(".dashboard-internal-server-error").hide();
+  $(".video-uploading-notification").hide();
+  $(".video-processing-notification").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");
