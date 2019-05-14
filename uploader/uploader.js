@@ -601,10 +601,53 @@ function _uploadVideo(gameName, clips) {
 	return uploadVideo(gameName, clips, (Attr.FINISHED_FNAME + ".mp4"));
 }
 
-module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation) {
+function _uploadToYoutubeHelper(videoObject) {
 	return new Promise(function(resolve, reject) {
-		// Todo
-		return resolve();
+
+	});
+}
+
+module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		const youtube = google.youtube({ version:'v3'});
+		var fileSize = fs.statSync(fileName).size;
+
+		// Start the progress bar
+		cLogger.info("Starting upload for " + gameName);
+		const bar1 = new _cliProgress.Bar({
+			format: _colors.green('Progress [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} | Elapsed: {duration_formatted}'),
+			barsize: 80,
+			fps: 20,
+			etaBuffer: 15
+		});
+		bar1.start(fileSize, 0);
+
+		var categoryVal = vidInfo.youtube_settings.category;
+		if (vidInfo.youtube_settings.custom_category != null) {
+			categoryVal = vidInfo.youtube_settings.custom_category;
+		}
+		var languageVal = vidInfo.youtube_settings.vid_language;
+		if (vidInfo.youtube_settings.custom_language != null) {
+			languageVal = vidInfo.youtube_settings.custom_language;
+		}
+
+		var videoObject = {
+			title: vidInfo.title,
+			description: vidInfo.description,
+			tags: vidInfo.youtube_settings.tags,
+			categoryId: categoryVal,
+			defaultLanguage: languageVal
+		};
+
+		// TODO:
+		return _uploadToYoutubeHelper(videoObject)
+		.then(function() {
+
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
