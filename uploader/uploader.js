@@ -17,6 +17,7 @@ var Attr = require('../config/attributes');
 var dateFormat = require('dateformat');
 const VIDEO_DATA_DEFAULT_DIR = "video_data/";
 const VIDEO_DATA_HIJACKED_DIR = "video_data_hijacks/";
+var ErrorHelper = require('../errors/errors');
 var VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
 
 // Constants
@@ -601,16 +602,86 @@ function _uploadVideo(gameName, clips) {
 	return uploadVideo(gameName, clips, (Attr.FINISHED_FNAME + ".mp4"));
 }
 
-function _uploadToYoutubeHelper(videoObject) {
+function _createYoutubeClientForUser(accessTkn, refreshTkn) {
+	
+	// Generate the Auth Client
+	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
+	if (Attr.SERVER_ENVIRONMENT == "production") {
+		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+	}
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		redirectLink
+	);
+
+	// Add the stored OAuth Credentials to the auth client
+    oauth2Client.setCredentials({
+    	access_token: accessTkn,
+		refresh_token: refreshTkn
+	});
+
+	// Set the google auth client to be this new auth client.
+	google.options({
+		auth: oauth2Client
+	});
+
+	// Create a youtube API object for this user
+	var youtubeClient = google.youtube({ version:'v3'});
+
+	return youtubeClient;
+}
+
+function _uploadToYoutubeHelper(videoObject, fileName, bar1, accessTkn, refreshTkn) {
 	return new Promise(function(resolve, reject) {
 
+		// Create the google api client for this user
+		var youtubeClient = _createYoutubeClientForUser(accessTkn, refreshTkn);
+
+		return youtubeClient.videos.insert({
+			part: "id,snippet,status",
+			notifySubscribers: true,
+			requestBody: {
+				snippet: videoObject,
+				status: {
+					privacyStatus: "private", // FOR NOW ONLY
+				},
+			},
+			media: {
+				body: fs.createReadStream(fileName),
+			},
+		}, {
+	    	onUploadProgress: evt => {
+	    		const progress = evt.bytesRead;
+				bar1.update(Math.round(progress));
+	    	},
+		})
+		.then(function(res) {
+			let data = res.data;
+			let videoID = data.id;
+			let channelID = data.snippet.channelId;
+
+			return resolve([videoID, channelID, youtubeClient]);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
 module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
 	return new Promise(function(resolve, reject) {
-		const youtube = google.youtube({ version:'v3'});
 		var fileSize = fs.statSync(fileName).size;
+
+		// Some values that we will need throughout the lifecycle of this function
+		var videoID = null;
+		var channelID = null;
+		var usersAccessTkn = null;
+		var usersRefreshTkn = null;
+		var youtubeClient = null;
+
+		// The absolute location of the file
+		var fileName = folderLocation + "finished.mp4";
 
 		// Start the progress bar
 		cLogger.info("Starting upload for " + gameName);
@@ -622,6 +693,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		});
 		bar1.start(fileSize, 0);
 
+		// Extract some of the youtube settings
 		var categoryVal = vidInfo.youtube_settings.category;
 		if (vidInfo.youtube_settings.custom_category != null) {
 			categoryVal = vidInfo.youtube_settings.custom_category;
@@ -631,6 +703,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			languageVal = vidInfo.youtube_settings.custom_language;
 		}
 
+		// Build the video object
 		var videoObject = {
 			title: vidInfo.title,
 			description: vidInfo.description,
@@ -639,10 +712,188 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			defaultLanguage: languageVal
 		};
 
-		// TODO:
-		return _uploadToYoutubeHelper(videoObject)
-		.then(function() {
+		// Get the users OAuth2 Tokens
+		return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
+		.then(function(userTokens) {
+			if (userTokens == null) {
+				return reject(new Error("Could not find the users access + refresh tokens."));
+			}
 
+			usersAccessTkn = userTokens.access_token;
+			usersRefreshTkn = userTokens.refresh_token;
+
+			// Start uploading to Youtube
+			return _uploadToYoutubeHelper(videoObject, fileName, bar1, usersAccessTkn, usersRefreshTkn);
+		})
+		.then(function(postedVidInfo) {
+			videoID = postedVidInfo[0];
+			channelID = postedVidInfo[1];
+			youtubeClient = postedVidInfo[2];
+
+			return _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderLocation, pmsID);
+		})
+		.then(function() {
+			bar1.stop();
+			return resolve();
+		})
+		.catch(function(err) {
+			bar1.stop();
+			return reject(err);
+		});
+	});
+}
+
+function _attemptToAddToPlaylist(youtubeClient, videoID, playlistID) {
+	return new Promise(function(resolve, reject) {
+		// Now try to add the playlist if it exists
+		return addToYoutubePlaylist(youtube, videoID, playlistID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a playlist, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddToPlaylist", {
+				video_id: videoID,
+				playlist_id: playlistID
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+}
+
+function _downloadThumbnailToLocal(thumbnailImg, folderPath) {
+	return new Promise(function(resolve, reject) {
+		// Get the actual file name that is stored in S3
+		var fileNameSplit = thumbnailImg.split(Attr.CDN_URL);
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
+
+		// Get the image file type
+		var imageFileTypeSplit = fileNameActual.split(".");
+		var imageFileType = imageFileTypeSplit[imageFileTypeSplit.length - 1];
+
+		// Create the destination path
+		var destinationPath = folderPath + "thumbnail_to_set." + imageFileType;
+
+		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual + " " + destinationPath;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve(destinationPath);
+		});
+	});
+}
+
+function _deleteDownloadedThumbnailHelper(imageLocation) {
+	return new Promise(function(resolve, reject) {
+		var cmd = "rm " + imageLocation;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				ErrorHelper.scopeConfigureWarning("uploader._deleteDownloadedThumbnailHelper", {
+					image_location: imageLocation
+				});
+				ErrorHelper.emitSimpleError(stderr);
+			}
+
+			return resolve();
+		});
+	});
+}
+
+function _setThumbnailHelper(youtubeClient, videoID, thumbnailImgPath) {
+	return new Promise(function(resolve, reject) {
+		return youtubeClient.thumbnails.set({
+			videoId: videoID,
+			media: {
+				mimeType: "image/jpeg",
+				body: fs.createReadStream(thumbnailImgPath)
+			},
+		},
+		(err, thumbResponse) => {
+			if (err) {
+				return reject(err);
+			} else {
+				cLogger.info("Thumbnail succesfully added!");
+				return resolve();
+			}
+		});
+	});
+}
+
+function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderPath) {
+	return new Promise(function(resolve, reject) {
+		var downloadedThumbnailLocation = null;
+
+		return _downloadThumbnailToLocal(thumbnailImg, folderPath)
+		.then(function(destinationPath) {
+			downloadedThumbnailLocation = destinationPath;
+			return _setThumbnailHelper(youtubeClient, videoID, destinationPath);
+		})
+		.then(function() {
+			return _deleteDownloadedThumbnailHelper(destinationPath);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddVidThumbnail", {
+				video_id: videoID,
+				thumbnail_img: thumbnailImg,
+				folder_path: folderPath
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+}
+
+function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID) {
+	return new Promise(function(resolve, reject) {
+		return Commenter.addUsersDefaultComment(youtube, videoID, channelID, gameName, pmsID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a comment, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddComment", {
+				video_id: videoID,
+				channel_id: channelID,
+				game_name: gameName
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+} 
+
+function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderPath, pmsID) {
+	return new Promise(function(resolve, reject) {
+
+		// First try to add a playlist
+		var playlistID = vidInfo.youtube_settings.playlist;
+		if (vidInfo.youtube_settings.custom_playlist != null) {
+			playlistID = vidInfo.youtube_settings.custom_playlist;
+		}
+
+		return _attemptToAddToPlaylist(youtubeClient, videoID, playlistID)
+		.then(function() {
+			var thumbnailImg = vidInfo.youtube_settings.thumbnails.default_image;
+			if (vidInfo.youtube_settings.thumbnails.specific_image != null) {
+				thumbnailImg = vidInfo.youtube_settings.thumbnails.specific_image;
+			}
+
+			return _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderPath);
+		})
+		.then(function() {
+			return _attemptToAddComment(youtubeClient, videoID, channelID, vidInfo.game, pmsID);
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {

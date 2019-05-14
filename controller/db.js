@@ -9,7 +9,9 @@ const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
 module.exports.alreadyUsed = function(game, id, trackingID) {
 	return new Promise(function(resolve, reject) {
 		knex('used_content')
-		.where("game", "=", game)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: game.toLowerCase()
+	    }))
 		.where("vod_id", "=", id)
 		.where("tracking_id", "=", trackingID)
 		.then(function(results) {
@@ -30,7 +32,9 @@ module.exports.finishedDownloading = function(userID, gameName, twitchStream, do
 		.where("id", "=", downloadID)
 		.where("user_id", "=", userID)
 		.where("twitch_link", "=", twitchStream)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.update({
 			state: "done",
 			downloaded_file: fileLocation,
@@ -284,6 +288,26 @@ module.exports.getPlaylists = function(pmsID) {
 	});
 }
 
+module.exports.getCommentsForGame = function(pmsID, gameName) {
+	return new Promise(function(resolve, reject) {
+		return knex('comments')
+		.where("pms_user_id", "=", pmsID)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
+		.then(function(results) {
+			if (results.length >= 0) {
+				return resolve(results);
+			} else {
+				return resolve([]);
+			}
+		})
+		.catch(function(err) {
+			return ErrorHelper.dbError(err);
+		});
+	});
+}
+
 module.exports.getComments = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('comments')
@@ -376,7 +400,9 @@ module.exports.removeTag = function(pmsID, gameName, tag) {
 	return new Promise(function(resolve, reject) {
 		return knex('tags')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("tag", "=", tag)
 		.del()
 		.then(function(results) {
@@ -392,7 +418,9 @@ module.exports.deleteThumbnail = function(pmsID, gameName, image) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("image_name", "=", image)
 		.del()
 		.then(function() {
@@ -448,7 +476,9 @@ module.exports.removeSignature = function(pmsID, gameName, signature) {
 	return new Promise(function(resolve, reject) {
 		return knex('signatures')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("signature", "=", signature)
 		.del()
 		.then(function(results) {
@@ -483,8 +513,29 @@ module.exports.removeComment = function(pmsID, gameName, comment) {
 	return new Promise(function(resolve, reject) {
 		return knex('comments')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("comment", "=", comment)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return ErrorHelper.dbError(err);
+		});
+	});
+}
+
+module.exports.removeSpecificComment = function(pmsID, gameName, comment, commentID) {
+	return new Promise(function(resolve, reject) {
+		return knex('comments')
+		.where("pms_user_id", "=", pmsID)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
+		.where("comment", "=", comment)
+		.where("id", "=", commentID)
 		.del()
 		.then(function(results) {
 			return resolve();
@@ -518,7 +569,9 @@ module.exports.deletePlaylist = function(pmsID, gameName, playlistID) {
 	return new Promise(function(resolve, reject) {
 		return knex('playlists')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("playlist_id", "=", playlistID)
 		.del()
 		.then(function(results) {
@@ -1171,7 +1224,9 @@ module.exports.needToStopDownload = function(userID, gameName, twitchLink, ID) {
 		return knex('downloads')
 		.where("id", "=", ID)
 		.where("user_id", "=", userID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("twitch_link", "=", twitchLink)
 		.orderBy("updated_at", "desc")
 		.limit(1)
@@ -1207,7 +1262,9 @@ module.exports.getVideosToBeCombined = function(userID, downloadID, gameName) {
 		.where("id", "!=", downloadID)
 		.where("user_id", "=", userID)
 		.where("used", "=", false)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.whereIn("state", ["done", "done-need-info"])
 		.where("exclusive", "=", false)
 		.where("deleted", "=", false)
@@ -1527,7 +1584,9 @@ module.exports.setUsed = function(clipObject) {
 module.exports.episodeCount = function(gameName) {
 	return new Promise(function(resolve, reject) {
 		knex('youtube_videos')
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.count('id as CNT')
 		.then(function(total) {
 			return resolve(total[0].CNT);
@@ -1557,7 +1616,9 @@ module.exports.getLatestClips = function(gameName) {
 				knex('used_content')
 				.select("clip_channel_name", "game", "clip_url")
 				.where(knex.raw('date_trunc(\'day\', created_at)=\'' + dateVal + '\''))
-				.where("game", "=", gameName)
+				.where(knex.raw('LOWER(game) = :gameNAME', {
+			    	gameNAME: gameName.toLowerCase()
+			    }))
 				.then(function(results2) {
 					return resolve(results2);
 				})
@@ -1576,7 +1637,9 @@ module.exports.getPlaylist = function(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		knex('playlists')
 		.where("user_id", "=", userID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.limit(1)
 		.then(function(result) {
 			if (result.length > 0) {
@@ -1596,7 +1659,9 @@ module.exports.getThumbnail = function(userID, gameName, hijacked, hijackedName)
 		if (hijacked) {
 			return knex('thumbnails')
 			.where("user_id", "=", userID)
-			.where("game", "=", gameName)
+			.where(knex.raw('LOWER(game) = :gameNAME', {
+		    	gameNAME: gameName.toLowerCase()
+		    }))
 			.where("hijacked", "=", true)
 			.where("hijacked_name", "=", hijackedName)
 			.orderBy("created_at", "desc")
@@ -1639,7 +1704,9 @@ function findGameHijackedThumbnail(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
 		.where("user_id", "=", userID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.where("hijacked", "=", true)
 		.whereNull("hijacked_name")
 		.orderBy("created_at", "desc")
@@ -1661,7 +1728,9 @@ function findGameThumbnail(gameName, userID) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')
 		.where("user_id", "=", userID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.orderBy("created_at", "desc")
 		.limit(1)
 		.then(function(result) {
@@ -1728,6 +1797,25 @@ module.exports.getRefreshToken = function(clientID) {
 	return new Promise(function(resolve, reject) {
 		knex('user_tokens')
 		.where("client_id", '=', clientID)
+		.limit(1)
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(results[0]);
+			}
+			return resolve(null);
+		})
+		.catch(function(err) {
+			return ErrorHelper.dbError(err);
+		});
+	});
+}
+
+module.exports.getUsersTokens = function(userID, clientID) {
+	return new Promise(function(resolve, reject) {
+		return knex('user_tokens')
+		.where("user_id", "=", userID)
+		.where("client_id", '=', clientID)
+		.orderBy("created_at", "DESC")
 		.limit(1)
 		.then(function(results) {
 			if (results.length > 0) {
@@ -1906,7 +1994,9 @@ module.exports.getAllTags = function(pmsID, userID, downloadID, gameName) {
 	return new Promise(function(resolve, reject) {
 		return knex('tags')
 		.where("pms_user_id", "=", pmsID)
-		.where("game", "=", gameName)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
 		.whereNotExists(knex.select('*').from('custom_options').whereRaw('tags.tag = custom_options.option_value AND custom_options.option_name = \'custom_tag_deletion\' AND custom_options.download_id = \'' + downloadID + '\' AND custom_options.user_id = \'' + userID + '\''))
 		.then(function(tags) {
 			if (tags.length == 0) {
@@ -2248,7 +2338,9 @@ module.exports.setDownloadInitialOrder = function(userID, downloadID, gameName) 
 			.where("id", "!=", downloadID)
 			.where("user_id", "=", userID)
 			.where("used", "=", false)
-			.where("game", "=", gameName)
+			.where(knex.raw('LOWER(game) = :gameNAME', {
+		    	gameNAME: gameName.toLowerCase()
+		    }))
 			.whereIn("state", ["done", "done-need-info"])
 			.where("exclusive", "=", false)
 			.where("deleted", "=", false)
