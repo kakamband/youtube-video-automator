@@ -161,7 +161,7 @@ module.exports.startProcessingCycle = function() {
 }
 
 // queueVideoToProcess
-// Queues a video to being being processed.
+// Queues a video to begin being processed.
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs) {
 	return new Promise(function(resolve, reject) {
 		var msgOptions = {
@@ -178,6 +178,34 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 		return workerStartingWork("encoder")
 		.then(function() {
 			return makeProcessingPost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// queueVideoToUpload
+// Queues a video to begin being uploaded.
+module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFileLocation) {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 4,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentType: pmsID,
+			contentEncoding: finalFileLocation,
+			messageId: downloadID + ""
+		};
+
+		return workerStartingWork("uploader")
+		.then(function() {
+			return makeUploadingPost(Attr.UPLOADING_AMQP_CHANNEL_NAME, msgOptions);
 		})
 		.then(function() {
 			return resolve();
@@ -302,6 +330,10 @@ function makeProcessingCyclePost(queueName, msgOptions) {
 
 function makeProcessingPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "processing_start");
+}
+
+function makeUploadingPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "uploading_start");
 }
 
 function getMessagesAndConsumers(queueName) {

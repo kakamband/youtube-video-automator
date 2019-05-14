@@ -617,12 +617,12 @@ function createNewUserNotifications(pmsID) {
 	});
 }
 
-module.exports.createProcessingNotification = function(pmsID, contentStr) {
+function _createNotificationHelper(pmsID, notificationName, contentStr) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.insert({
 			pms_user_id: pmsID,
-			notification: "currently-processing",
+			notification: notificationName,
 			seen: false,
 			content: contentStr,
 			created_at: new Date(),
@@ -635,46 +635,22 @@ module.exports.createProcessingNotification = function(pmsID, contentStr) {
 			return ErrorHelper.dbError(err);
 		});
 	});
+}
+
+module.exports.createUploadingNotification = function(pmsID, contentStr) {
+	return _createNotificationHelper(pmsID, "currently-uploading", contentStr);
+}
+
+module.exports.createProcessingNotification = function(pmsID, contentStr) {
+	return _createNotificationHelper(pmsID, "currently-processing", contentStr);
 }
 
 module.exports.createDownloadNotification = function(pmsID, contentStr) {
-	return new Promise(function(resolve, reject) {
-		return knex('notifications')
-		.insert({
-			pms_user_id: pmsID,
-			notification: "currently-clipping",
-			seen: false,
-			content: contentStr,
-			created_at: new Date(),
-			updated_at: new Date()
-		})
-		.then(function(result) {
-			return resolve();
-		})
-		.catch(function(err) {
-			return ErrorHelper.dbError(err);
-		});
-	});
+	return _createNotificationHelper(pmsID, "currently-clipping", contentStr);
 }
 
 function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
-	return new Promise(function(resolve, reject) {
-		return knex('notifications')
-		.insert({
-			pms_user_id: pmsID,
-			notification: "need-title-or-description",
-			seen: false,
-			content: contentStr,
-			created_at: new Date(),
-			updated_at: new Date()
-		})
-		.then(function(result) {
-			return resolve();
-		})
-		.catch(function(err) {
-			return ErrorHelper.dbError(err);
-		});
-	});
+	return _createNotificationHelper(pmsID, "need-title-or-description", contentStr);
 }
 
 function userInPlaceboDB(pmsID) {

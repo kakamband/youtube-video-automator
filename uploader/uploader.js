@@ -601,6 +601,13 @@ function _uploadVideo(gameName, clips) {
 	return uploadVideo(gameName, clips, (Attr.FINISHED_FNAME + ".mp4"));
 }
 
+module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation) {
+	return new Promise(function(resolve, reject) {
+		// Todo
+		return resolve();
+	});
+}
+
 // Uploads the video that is in the current directory, named 'finished.mkv'
 function uploadVideo(gameName, clips, fileName) {
 	return new Promise(function(resolve, reject) {

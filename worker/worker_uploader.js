@@ -5,29 +5,13 @@ var Attr = require('../config/attributes');
 var Secrets = require('../config/secrets');
 var cLogger = require('color-log');
 var Helpers = require('./worker_helpers');
+var MessageHandler = require('./worker_function_wrappers');
 var shell = require('shelljs');
 var redis = require('redis');
 const Sentry = require('@sentry/node');
 var retriesMap = new Map();
 
 const redisUploadingKey = "uploading_queue_msg_count";
-
-function errMsg(workerActivity, ackMsg, queueMessage, err) {
-  Sentry.withScope(scope => {
-    scope.setTag("scope", "server-worker-uploader");
-    scope.setTag("environment", Attr.ENV);
-    scope.setTag("activity", workerActivity);
-    scope.setExtra("AckMsg", ackMsg);
-    scope.setExtra("QueueMsg", queueMessage);
-
-    Sentry.captureException(err);
-  });
-  console.log("[ERRORED] (" + workerActivity + "): ", err);
-}
-
-function successMsg(message) {
-  cLogger.mark("[x] Done (" + message + ")");
-}
 
 function knexConnection() {
   var dbConnection = {
@@ -63,58 +47,7 @@ function knexConnection() {
 }
 
 function handleMessage(message, msg, ch, knex) {
-  switch (message) {
-    case "downloading_task":
-      var userID = msg.properties.correlationId;
-      var gameName = msg.properties.contentType;
-      var twitchStream = msg.properties.contentEncoding;
-      var downloadID = parseInt(msg.properties.messageId);
-      cLogger.info("Starting a downloading task.");
-
-      return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
-      .then(function() {
-        successMsg(message);
-        return Helpers.decrementMsgCount("uploader");
-      }).then(function() {
-        ch.ack(msg);
-      }).catch(function(err) {
-        errMsg(message, msg, message, err);
-        return Helpers.decrementMsgCount("uploader")
-        .then(function() {
-          ch.ack(msg);
-        })
-        .catch(function(err) {
-          Sentry.captureException(err);
-          ch.ack(msg);
-        });
-      });
-    break;
-    case "transfer_video_task":
-      var userID = msg.properties.correlationId;
-      var twitchStream = msg.properties.contentEncoding;
-      var downloadID = parseInt(msg.properties.messageId);
-      cLogger.info("Starting a transfer to S3 task.");
-
-      return Helpers.transferToS3(userID, twitchStream, downloadID)
-      .then(function() {
-        successMsg(message);
-        return Helpers.decrementMsgCount("uploader");
-      })
-      .then(function() {
-        ch.ack(msg);
-      }).catch(function(err) {
-        errMsg(message, msg, message, err);
-        return Helpers.decrementMsgCount("uploader")
-        .then(function() {
-          ch.ack(msg);
-        })
-        .catch(function(err) {
-          Sentry.captureException(err);
-          ch.ack(msg);
-        });
-      });
-    break;
-  }
+  return MessageHandler.handleMessage(ch, message, msg, "uploader");
 }
 
 global.ORIGIN_PATH = (shell.pwd() + "/");

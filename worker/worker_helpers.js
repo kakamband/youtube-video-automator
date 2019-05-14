@@ -11,6 +11,7 @@ const { getVideoDurationInSeconds } = require('get-video-duration');
 var Users = require('../users/users');
 var Downloader = require('../downloader/downloader');
 var Combiner = require('../combiner/combiner');
+var Uploader = require('../uploader/uploader');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -159,11 +160,34 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
 		})
 		.then(function() {
-			return resolve();
-			// TODO: Create this function
-			//return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID);
+			return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID, finalFileLocation);
 		})
 		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// startVideoUploading
+// Starts uploading a video to Youtube
+module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation) {
+	return new Promise(function(resolve, reject) {
+		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
+		.then(function() {
+			return dbController.createUploadingNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
+			return Users.getClipInfoWrapper(userID, pmsID, downloadID);
+		})
+		.then(function(vidInfo) {
+			// TODO
+			return Uploader.uploadUsersVideo(userID, pmsID, downloadID, fileLocation, vidInfo);
+		})
+		.then(function(youtubeVidURL) {
+			// TODO
 			return resolve();
 		})
 		.catch(function(err) {
