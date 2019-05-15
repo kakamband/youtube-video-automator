@@ -150,7 +150,14 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 		    	return a.order_number - b.order_number;
 			});
 
-			return Downloader.downloadEachAWSClip(userID, combinedVideos);
+			return Downloader.validateClipsCanBeProcessed(userID, combinedVideos);
+		})
+		.then(function(isValid) {
+			if (!isValid) {
+				return Promise.reject(new Error("The clips cannot be processed. Processing terminated."));
+			} else {
+				return Downloader.downloadEachAWSClip(userID, combinedVideos);
+			}
 		})
 		.then(function(downloadLocation) {
 			finalFileLocation = downloadLocation;
@@ -160,12 +167,13 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
 		})
 		.then(function() {
-			return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID, finalFileLocation);
+			return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID, finalFileLocation, allClipIDs);
 		})
 		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
+			// TODO: Don't error here if you can, update the downloads and resolve.
 			return reject(err);
 		});
 	});
@@ -173,8 +181,10 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 
 // startVideoUploading
 // Starts uploading a video to Youtube
-module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation) {
+module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation, allClipIDs) {
 	return new Promise(function(resolve, reject) {
+		var vidInfo = null;
+
 		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
 		.then(function() {
 			return dbController.createUploadingNotification(pmsID, JSON.stringify({download_id: downloadID}));
@@ -182,15 +192,23 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 		.then(function() {
 			return Users.getClipInfoWrapper(userID, pmsID, downloadID);
 		})
-		.then(function(vidInfo) {
-			// TODO
-			return Uploader.uploadUsersVideo(userID, pmsID, downloadID, fileLocation, vidInfo);
+		.then(function(videoInfo) {
+			vidInfo = videoInfo;
+			return Uploader.validateVideoCanBeUploaded(userID, pmsID, downloadID, fileLocation, vidInfo);
+		})
+		.then(function(isValid) {
+			if (!isValid) {
+				return Promise.reject(new Error("The video cannot be uploaded. Uploading terminated."));
+			} else {
+				return Uploader.uploadUsersVideo(userID, pmsID, downloadID, fileLocation, vidInfo);
+			}
 		})
 		.then(function(youtubeVidURL) {
 			// TODO
 			return resolve();
 		})
 		.catch(function(err) {
+			// TODO: Don't error here if you can, update the downloads and resolve.
 			return reject(err);
 		});
 	});
@@ -317,10 +335,18 @@ function preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos) {
 
 function preliminaryProcessingStep(userID, pmsID, downloadID, combinedVideos) {
 	return new Promise(function(resolve, reject) {
+		var vidNumber = null;
+
 		return dbController.setUserVidProcessing(userID, pmsID)
 		.then(function() {
+			// Get the count for the video
+			return dbController.getVideoCountNumber(userID);
+		})
+		.then(function(videoNumber) {
+			vidNumber = videoNumber;
+
 			// Set the latest clipped video to be processing, and used.
-			return dbController.setDownloadProcessing(downloadID);
+			return dbController.setDownloadProcessing(downloadID, vidNumber);
 		})
 		.then(function() {
 			var count = 0;
@@ -328,7 +354,7 @@ function preliminaryProcessingStep(userID, pmsID, downloadID, combinedVideos) {
 
 			// Set all the other combined videos to be processing, and used.
 			function next() {
-				return dbController.setDownloadProcessing(combinedVideos[count].id)
+				return dbController.setDownloadProcessing(combinedVideos[count].id, vidNumber)
 				.then(function() {
 					count++;
 					if (count <= combinedVideos.length - 1) {

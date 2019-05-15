@@ -4,6 +4,45 @@ var cLogger = require('color-log');
 var Attr = require('../config/attributes');
 var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+var ErrorHelper = require('../errors/errors');
+
+module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
+	return new Promise(function(resolve, reject) {
+
+		function logErrorWrapper(missingItm) {
+			var tmpErr = "Can't upload video since it is missing: " + missingItm;
+			cLogger.error(tmpErr);
+			ErrorHelper.scopeConfigureWarning("uploader.validateVideoCanBeUploaded", {
+				user_id: userID,
+				pms_id: pmsID,
+				download_id: downloadID,
+				folder_loc: folderLocation,
+				vid_info: vidInfo
+			});
+			ErrorHelper.emitSimpleError(new Error(tmpErr));
+			return resolve(false);
+		}
+
+		var count = 0;
+		if (toDownload.length <= 0) return logErrorWrapper("clips");
+
+		function next() {
+			var currentClip = toDownload[count];
+			if (currentClip.downloaded_file == null || currentClip.downloaded_file == "" || currentClip.downloaded_file.indexOf(Attr.CDN_URL) < 0) {
+				return logErrorWrapper("downloaded_file");
+			} else {
+				count++;
+				if (count < toDownload.length - 1) {
+					return next();
+				} else {
+					return resolve(true);
+				}
+			}
+		}
+
+		return next();
+	});
+}
 
 module.exports.downloadEachAWSClip = function(userID, toDownload) {
 	return new Promise(function(resolve, reject) {

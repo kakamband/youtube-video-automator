@@ -2547,8 +2547,26 @@ function _updateDownloadStateAndUsed(downloadID, newState) {
 	});
 }
 
-module.exports.setDownloadProcessing = function(downloadID) {
-	return _updateDownloadStateAndUsed(downloadID, "processing");
+function _updateDownloadStateAndUsedAndVidNum(downloadID, newState, vidNumber) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("id", "=", parseInt(downloadID))
+		.update({
+			state: newState,
+			used: true,
+			video_number: vidNumber
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setDownloadProcessing = function(downloadID, vidNumber) {
+	return _updateDownloadStateAndUsedAndVidNum(downloadID, "processing", vidNumber);
 }
 
 module.exports.setDownloadUploading = function(downloadID) {
@@ -2561,6 +2579,26 @@ module.exports.getAllDownloadsIn = function(downloadIDs) {
 		.whereIn("id", downloadIDs)
 		.then(function(results) {
 			return resolve(results);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function getVideoCountNumber = function(userID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereNotNull("video_number")
+		.orderBy("video_number", "DESC")
+		.limit(1)
+		.then(function(results) {
+			if (results.length <= 0) {
+				return resolve(1);
+			} else {
+				return resolve(parseInt(results[0].video_number) + 1);
+			}
 		})
 		.catch(function(err) {
 			return reject(err);

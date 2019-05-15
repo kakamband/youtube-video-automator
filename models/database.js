@@ -103,6 +103,7 @@ module.exports.initialize = function(knex) {
 			table.integer("clip_seconds");
 			table.string("clip_stopped_downloading");
 			table.string("expected_processing_time");
+			table.integer("video_number");
 			table.timestamps();
 		});
 	}).then(function() {

@@ -190,7 +190,7 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 
 // queueVideoToUpload
 // Queues a video to begin being uploaded.
-module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFileLocation) {
+module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFileLocation, toCombineIDs) {
 	return new Promise(function(resolve, reject) {
 		var msgOptions = {
 			persistent: true,
@@ -200,7 +200,8 @@ module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFil
 			correlationId: userID,
 			contentType: pmsID,
 			contentEncoding: finalFileLocation,
-			messageId: downloadID + ""
+			messageId: downloadID + "",
+			type: JSON.stringify(toCombineIDs)
 		};
 
 		return workerStartingWork("uploader")

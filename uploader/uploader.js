@@ -669,6 +669,73 @@ function _uploadToYoutubeHelper(videoObject, fileName, bar1, accessTkn, refreshT
 	});
 }
 
+function _checkIfFileExists(fileLocation) {
+	return new Promise(function(resolve, reject) {
+		return fs.access(fileLocation, error => {
+			if (!error) {
+				return resolve(true);
+			} catch (error) {
+				return resolve(false);
+			}
+		});
+	});
+}
+
+function _checkIfNeededVidInfo(vidInfo) {
+	return new Promise(function(resolve, reject) {
+		if (vidInfo.description == null) {
+			return resolve("description");
+		} else if (vidInfo.title == null) {
+			return resolve("title");
+		} else if (!vidInfo.youtube_settings.category || vidInfo.youtube_settings.category == null || vidInfo.youtube_settings.category == "") {
+			return resolve("category");
+		} else if (!vidInfo.youtube_settings.vid_language || vidInfo.youtube_settings.vid_language == null || vidInfo.youtube_settings.vid_language == "") {
+			return resolve("video_language");
+		} else {
+			return resolve(undefined);
+		}
+	})
+}
+
+module.exports.validateVideoCanBeUploaded = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		// TODO: Validate that the user has room to upload
+
+		function logErrorWrapper(missingItm) {
+			var tmpErr = "Can't upload video since it is missing: " + missingItm;
+			cLogger.error(tmpErr);
+			ErrorHelper.scopeConfigureWarning("uploader.validateVideoCanBeUploaded", {
+				user_id: userID,
+				pms_id: pmsID,
+				download_id: downloadID,
+				folder_loc: folderLocation,
+				vid_info: vidInfo
+			});
+			ErrorHelper.emitSimpleError(new Error(tmpErr));
+			return resolve(false);
+		}
+
+		return _checkIfFileExists(folderLocation + "finished.mp4")
+		.then(function(fileExists) {
+			if (!fileExists) {
+				return logErrorWrapper("processed_video");
+			} else {
+				return _checkIfNeededVidInfo(vidInfo);
+			}
+		})
+		.then(function(anyMissingOptions) {
+			if (anyMissingOptions != undefined) {
+				return logErrorWrapper(anyMissingOptions);
+			} else {
+				return resolve(true);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
 	return new Promise(function(resolve, reject) {
 		var fileSize = fs.statSync(fileName).size;
@@ -684,7 +751,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		var fileName = folderLocation + "finished.mp4";
 
 		// Start the progress bar
-		cLogger.info("Starting upload for " + gameName);
+		cLogger.info("Starting upload for " + userID + " the highest clip downloadID is: " + downloadID);
 		const bar1 = new _cliProgress.Bar({
 			format: _colors.green('Progress [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} | Elapsed: {duration_formatted}'),
 			barsize: 80,
@@ -702,11 +769,17 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		if (vidInfo.youtube_settings.custom_language != null) {
 			languageVal = vidInfo.youtube_settings.custom_language;
 		}
+		var descriptionVal = vidInfo.description;
+		if (vidInfo.youtube_settings.signature != null) {
+			descriptionVal += "\n\n" + vidInfo.youtube_settings.signature;
+		}
+
+		// TODO: If it is a free account, add some self promotion to the description + the tags.
 
 		// Build the video object
 		var videoObject = {
 			title: vidInfo.title,
-			description: vidInfo.description,
+			description: descriptionVal,
 			tags: vidInfo.youtube_settings.tags,
 			categoryId: categoryVal,
 			defaultLanguage: languageVal
@@ -734,7 +807,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		})
 		.then(function() {
 			bar1.stop();
-			return resolve();
+			return resolve("https://www.youtube.com/watch?v=" + videoID);
 		})
 		.catch(function(err) {
 			bar1.stop();
@@ -872,6 +945,28 @@ function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID
 	});
 } 
 
+function _attemptToLikeVideo(youtubeClient, videoID, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		if (vidInfo.youtube_settings == "true" || vidInfo.youtube_settings == true) {
+			return Rater.likeVideo(youtube, videoID)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				cLogger.info("Have encountered an error adding a like, however not terminating since its not worth.");
+				ErrorHelper.scopeConfigureWarning("uploader._attemptToLikeVideo", {
+					video_id: videoID,
+					vidInfo: vidInfo
+				});
+				ErrorHelper.emitSimpleError(err);
+				return resolve();
+			});
+		} else {
+			return resolve(); // They dont want to automatically like the video
+		}
+	});
+}
+
 function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderPath, pmsID) {
 	return new Promise(function(resolve, reject) {
 
@@ -892,6 +987,9 @@ function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, 
 		})
 		.then(function() {
 			return _attemptToAddComment(youtubeClient, videoID, channelID, vidInfo.game, pmsID);
+		})
+		.then(function() {
+			return _attemptToLikeVideo(youtubeClient, videoID, vidInfo);
 		})
 		.then(function() {
 			return resolve();

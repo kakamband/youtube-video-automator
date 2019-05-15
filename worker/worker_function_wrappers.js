@@ -150,9 +150,10 @@ function handleUploadingStart(ch, msg, message, workerType) {
 	var pmsID = msg.properties.contentType;
 	var fileLocation = msg.properties.contentEncoding;
 	var downloadID = parseInt(msg.properties.messageId);
+	var allClipIDs = JSON.parse(msg.properties.type);
 	cLogger.info("Starting to upload a video (DownloadID: " + downloadID + ").");
 
-	return Helpers.startVideoUploading(userID, pmsID, downloadID, fileLocation)
+	return Helpers.startVideoUploading(userID, pmsID, downloadID, fileLocation, allClipIDs)
 	.then(function() {
 		successMsg(message);
 		return Helpers.decrementMsgCount(workerType);
