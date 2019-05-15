@@ -226,7 +226,17 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 			return dbController.setUserVidNotProcessing(userID, pmsID);
 		})
 		.then(function() {
-			// TODO: Add a youtube video to the db.
+			return dbController.addYoutubeVideo({
+				user_id: userID,
+				game: vidInfo.game,
+				url: youtubeVideoURL,
+				created_at: new Date(),
+				updated_at: new Date(),
+				video_number: vidInfo.video_number
+			});
+		})
+		.then(function() {
+			return resolve();
 		})
 		.catch(function(err) {
 			// Fail Safely
