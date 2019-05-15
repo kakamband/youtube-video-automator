@@ -215,15 +215,15 @@ module.exports.getVideosNotifications = function(pmsID) {
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description", "currently-processing", "currently-uploading"]);
+	return getNotifications(pmsID, ["dashboard-intro", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 }
 
 module.exports.getAccountNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
+	return getNotifications(pmsID, ["account-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 }
 
 module.exports.getDefaultsNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
+	return getNotifications(pmsID, ["defaults-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 }
 
 module.exports.settingsOverview = function(pmsID) {
@@ -700,6 +700,10 @@ module.exports.createProcessingNotification = function(pmsID, contentStr) {
 
 module.exports.createDownloadNotification = function(pmsID, contentStr) {
 	return _createNotificationHelper(pmsID, "currently-clipping", contentStr);
+}
+
+module.exports.createDoneUploadingNotification = function(pmsID, contentStr) {
+	return _createNotificationHelper(pmsID, "done-uploading", contentStr);
 }
 
 function createNeedTitleOrDescriptionNotification(pmsID, contentStr) {
@@ -1347,7 +1351,7 @@ function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 					state: "done", // DO NOT UPDATE updated_at here since this is used to show video length.
 				})
 				.then(function(results) {
-					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 				})
 				.then(function() {
 					// TODO: Send this to do encoding next
@@ -1497,7 +1501,7 @@ module.exports.setClipAsDeleted = function(userID, pmsID, downloadID) {
 					deleted_at: new Date() // DONT SET UPDATED AT HERE SINCE THATS USED TO DISPLAY VIDEO TIME
 				})
 				.then(function(results) {
-					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
+					return _setNotificationsSeen(pmsID, ["currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 				})
 				.then(function() {
 					return resolve();
@@ -2512,13 +2516,13 @@ module.exports.getAllProcessingReadyVideos = function() {
 	});
 }
 
-module.exports.setUserVidProcessing = function(userID, pmsID) {
+function _setUserVidProcessingValue(userID, pmsID, processingVal) {
 	return new Promise(function(resolve, reject) {
 		return knex('users')
 		.where("id", "=", parseInt(userID))
 		.where("pms_user_id", "=", pmsID)
 		.update({
-			currently_processing: true,
+			currently_processing: processingVal,
 			updated_at: new Date()
 		})
 		.then(function(results) {
@@ -2528,6 +2532,15 @@ module.exports.setUserVidProcessing = function(userID, pmsID) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.setUserVidProcessing = function(userID, pmsID) {
+	return _setUserVidProcessingValue(userID, pmsID, true);
+}
+
+
+module.exports.setUserVidNotProcessing = function(userID, pmsID) {
+	return _setUserVidProcessingValue(userID, pmsID, false);
 }
 
 function _updateDownloadStateAndUsed(downloadID, newState) {
@@ -2584,6 +2597,35 @@ module.exports.getAllDownloadsIn = function(downloadIDs) {
 			return reject(err);
 		});
 	});
+}
+
+function _updateDownloadStateOnly(userID, downloadIDs, newState) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.whereIn("id", downloadIDs)
+		.where("user_id", "=", userID)
+		.update({
+			state: newState,
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.processingFailedForDownloads = function(userID, downloadIDs) {
+	return _updateDownloadStateOnly(userID, downloadIDs, "processing-failed");
+}
+
+module.exports.uploadingFailedForDownloads = function(userID, downloadIDs) {
+	return _updateDownloadStateOnly(userID, downloadIDs, "uploading-failed");
+}
+
+module.exports.uploadingDoneForDownloads = function(userID, downloadIDs) {
+	return _updateDownloadStateOnly(userID, downloadIDs, "uploaded");
 }
 
 function getVideoCountNumber = function(userID) {

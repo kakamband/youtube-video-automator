@@ -34,6 +34,7 @@ module.exports.initialize = function(knex) {
 			table.string("user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("url").notNullable();
+			table.integer("video_number").notNullable();
 			table.timestamps();
 		});
 	}).then(function() {

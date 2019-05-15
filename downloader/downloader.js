@@ -9,27 +9,24 @@ var ErrorHelper = require('../errors/errors');
 module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
 	return new Promise(function(resolve, reject) {
 
-		function logErrorWrapper(missingItm) {
+		function logErrorWrapper(missingItm, content) {
 			var tmpErr = "Can't upload video since it is missing: " + missingItm;
 			cLogger.error(tmpErr);
 			ErrorHelper.scopeConfigureWarning("uploader.validateVideoCanBeUploaded", {
 				user_id: userID,
-				pms_id: pmsID,
-				download_id: downloadID,
-				folder_loc: folderLocation,
-				vid_info: vidInfo
+				extra_info: content
 			});
 			ErrorHelper.emitSimpleError(new Error(tmpErr));
 			return resolve(false);
 		}
 
 		var count = 0;
-		if (toDownload.length <= 0) return logErrorWrapper("clips");
+		if (toDownload.length <= 0) return logErrorWrapper("clips", {});
 
 		function next() {
 			var currentClip = toDownload[count];
 			if (currentClip.downloaded_file == null || currentClip.downloaded_file == "" || currentClip.downloaded_file.indexOf(Attr.CDN_URL) < 0) {
-				return logErrorWrapper("downloaded_file");
+				return logErrorWrapper("downloaded_file", currentClip);
 			} else {
 				count++;
 				if (count < toDownload.length - 1) {

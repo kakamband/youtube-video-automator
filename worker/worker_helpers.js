@@ -24,8 +24,9 @@ const downloadingClipNotification = "currently-clipping";
 const needTitleOrDescriptionNotification = "need-title-or-description";
 const videoProcessingNotification = "currently-processing";
 const videoUploadingNotification = "currently-uploading";
+const videoDoneUploadingNotification = "done-uploading";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
-const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification];
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification];
 
 // downloadContent
 // Initiates a download of content for a user
@@ -173,8 +174,14 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 			return resolve();
 		})
 		.catch(function(err) {
-			// TODO: Don't error here if you can, update the downloads and resolve.
-			return reject(err);
+			// Fail Safely
+			return _processingFailedHandler(userID, pmsID, allClipIDs, err)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
 		});
 	});
 }
@@ -184,6 +191,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation, allClipIDs) {
 	return new Promise(function(resolve, reject) {
 		var vidInfo = null;
+		var youtubeVideoURL = null;
 
 		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
 		.then(function() {
@@ -204,12 +212,31 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 			}
 		})
 		.then(function(youtubeVidURL) {
-			// TODO
-			return resolve();
+			youtubeVideoURL = youtubeVidURL;
+
+			return dbController.setNotificationsSeen(pmsID, clipFlowNotifications);
+		})
+		.then(function() {
+			return dbController.createDoneUploadingNotification(pmsID, JSON.stringify({download_id: downloadID, video_url: youtubeVideoURL}));
+		})
+		.then(function() {
+			return dbController.uploadingDoneForDownloads(userID, allClipIDs);
+		})
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			// TODO: Add a youtube video to the db.
 		})
 		.catch(function(err) {
-			// TODO: Don't error here if you can, update the downloads and resolve.
-			return reject(err);
+			// Fail Safely
+			return _uploadingFailedHandler(userID, pmsID, allClipIDs, err)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
 		});
 	});
 }
@@ -219,6 +246,54 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _uploadingFailedHandler(userID, pmsID, allClipIDs, err) {
+	return new Promise(function(resolve, reject) {
+		// Emit this to Sentry
+		ErrorHelper.scopeConfigure("worker_helpers._uploadingFailedHandler", {
+			"message": "Uploading has failed, the download states have been updated accordingly.",
+			user_id: userID,
+			pms_id: pmsID,
+			all_clip_id: allClipIDs
+		});
+		ErrorHelper.emitSimpleError(err);
+
+		return dbController.uploadingFailedForDownloads(userID, allClipIDs)
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _processingFailedHandler(userID, pmsID, allClipIDs, err) {
+	return new Promise(function(resolve, reject) {
+		// Emit this to Sentry
+		ErrorHelper.scopeConfigure("worker_helpers._processingFailedHandler", {
+			"message": "Processing has failed, the download states have been updated accordingly.",
+			user_id: userID,
+			pms_id: pmsID,
+			all_clip_id: allClipIDs
+		});
+		ErrorHelper.emitSimpleError(err);
+
+		return dbController.processingFailedForDownloads(userID, allClipIDs)
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
 
 function queueVideosToProcess(possibleVideos) {
 	return new Promise(function(resolve, reject) {
