@@ -2628,7 +2628,7 @@ module.exports.uploadingDoneForDownloads = function(userID, downloadIDs) {
 	return _updateDownloadStateOnly(userID, downloadIDs, "uploaded");
 }
 
-function getVideoCountNumber = function(userID) {
+module.exports.getVideoCountNumber = function(userID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')
 		.where("user_id", "=", userID)

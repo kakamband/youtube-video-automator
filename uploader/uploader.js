@@ -617,7 +617,6 @@ function _createYoutubeClientForUser(accessTkn, refreshTkn) {
 
 	// Add the stored OAuth Credentials to the auth client
     oauth2Client.setCredentials({
-    	access_token: accessTkn,
 		refresh_token: refreshTkn
 	});
 
@@ -632,19 +631,30 @@ function _createYoutubeClientForUser(accessTkn, refreshTkn) {
 	return youtubeClient;
 }
 
-function _uploadToYoutubeHelper(videoObject, fileName, bar1, accessTkn, refreshTkn) {
+function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fileSize) {
 	return new Promise(function(resolve, reject) {
 
 		// Create the google api client for this user
 		var youtubeClient = _createYoutubeClientForUser(accessTkn, refreshTkn);
 
+		var previousLog = new Date();
+		function progressLogger(progress) {
+			var secondsPassed = Math.floor(((new Date()).getTime() - previousLog.getTime()) / 1000);
+			if (secondsPassed > 10) {
+	    		var percentProgress = Math.round((progress / fileSize) * 100);
+	    		cLogger.mark("Upload Progress (" + percentProgress + "%)");
+	    		previousLog = new Date();
+			}
+		}
+
+		cLogger.info("Starting to upload video.");
 		return youtubeClient.videos.insert({
 			part: "id,snippet,status",
 			notifySubscribers: true,
 			requestBody: {
 				snippet: videoObject,
 				status: {
-					privacyStatus: "private", // FOR NOW ONLY
+					privacyStatus: "public", // FOR NOW ONLY
 				},
 			},
 			media: {
@@ -653,7 +663,7 @@ function _uploadToYoutubeHelper(videoObject, fileName, bar1, accessTkn, refreshT
 		}, {
 	    	onUploadProgress: evt => {
 	    		const progress = evt.bytesRead;
-				bar1.update(Math.round(progress));
+	    		progressLogger(progress);
 	    	},
 		})
 		.then(function(res) {
@@ -674,7 +684,7 @@ function _checkIfFileExists(fileLocation) {
 		return fs.access(fileLocation, error => {
 			if (!error) {
 				return resolve(true);
-			} catch (error) {
+			} else {
 				return resolve(false);
 			}
 		});
@@ -738,6 +748,9 @@ module.exports.validateVideoCanBeUploaded = function(userID, pmsID, downloadID, 
 
 module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
 	return new Promise(function(resolve, reject) {
+		// The absolute location of the file
+		var fileName = folderLocation + "finished.mp4";
+
 		var fileSize = fs.statSync(fileName).size;
 
 		// Some values that we will need throughout the lifecycle of this function
@@ -747,18 +760,8 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		var usersRefreshTkn = null;
 		var youtubeClient = null;
 
-		// The absolute location of the file
-		var fileName = folderLocation + "finished.mp4";
-
 		// Start the progress bar
 		cLogger.info("Starting upload for " + userID + " the highest clip downloadID is: " + downloadID);
-		const bar1 = new _cliProgress.Bar({
-			format: _colors.green('Progress [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} | Elapsed: {duration_formatted}'),
-			barsize: 80,
-			fps: 20,
-			etaBuffer: 15
-		});
-		bar1.start(fileSize, 0);
 
 		// Extract some of the youtube settings
 		var categoryVal = vidInfo.youtube_settings.category;
@@ -796,7 +799,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			usersRefreshTkn = userTokens.refresh_token;
 
 			// Start uploading to Youtube
-			return _uploadToYoutubeHelper(videoObject, fileName, bar1, usersAccessTkn, usersRefreshTkn);
+			return _uploadToYoutubeHelper(videoObject, fileName, usersAccessTkn, usersRefreshTkn, fileSize);
 		})
 		.then(function(postedVidInfo) {
 			videoID = postedVidInfo[0];
@@ -806,11 +809,9 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			return _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderLocation, pmsID);
 		})
 		.then(function() {
-			bar1.stop();
 			return resolve("https://www.youtube.com/watch?v=" + videoID);
 		})
 		.catch(function(err) {
-			bar1.stop();
 			return reject(err);
 		});
 	});
@@ -819,7 +820,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 function _attemptToAddToPlaylist(youtubeClient, videoID, playlistID) {
 	return new Promise(function(resolve, reject) {
 		// Now try to add the playlist if it exists
-		return addToYoutubePlaylist(youtube, videoID, playlistID)
+		return addToYoutubePlaylist(youtubeClient, videoID, playlistID)
 		.then(function() {
 			return resolve();
 		})
@@ -837,6 +838,7 @@ function _attemptToAddToPlaylist(youtubeClient, videoID, playlistID) {
 
 function _downloadThumbnailToLocal(thumbnailImg, folderPath) {
 	return new Promise(function(resolve, reject) {
+
 		// Get the actual file name that is stored in S3
 		var fileNameSplit = thumbnailImg.split(Attr.CDN_URL);
 		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
@@ -902,6 +904,11 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 	return new Promise(function(resolve, reject) {
 		var downloadedThumbnailLocation = null;
 
+		// No thumbnail to add.
+		if (thumbnailImg == null) {
+			return resolve();
+		}
+
 		return _downloadThumbnailToLocal(thumbnailImg, folderPath)
 		.then(function(destinationPath) {
 			downloadedThumbnailLocation = destinationPath;
@@ -928,7 +935,7 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 
 function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID) {
 	return new Promise(function(resolve, reject) {
-		return Commenter.addUsersDefaultComment(youtube, videoID, channelID, gameName, pmsID)
+		return Commenter.addUsersDefaultComment(youtubeClient, videoID, channelID, gameName, pmsID)
 		.then(function() {
 			return resolve();
 		})
@@ -948,7 +955,7 @@ function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID
 function _attemptToLikeVideo(youtubeClient, videoID, vidInfo) {
 	return new Promise(function(resolve, reject) {
 		if (vidInfo.youtube_settings == "true" || vidInfo.youtube_settings == true) {
-			return Rater.likeVideo(youtube, videoID)
+			return Rater.likeVideo(youtubeClient, videoID)
 			.then(function() {
 				return resolve();
 			})
