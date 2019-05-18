@@ -16,7 +16,7 @@ module.exports.combineAllUsersClips = function(folderLocation, toCombine) {
 			cLogger.info("Running CMD: " + cmd);
 			return shell.exec(cmd, function(code, stdout, stderr) {
 				if (code != 0) {
-					cLogger.error("Error downloading content: ", stderr);
+					cLogger.error("Error renaming singular clip: ", stderr);
 					return reject(stderr);
 				}
 
@@ -99,10 +99,11 @@ function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath) {
 	return new Promise(function(resolve, reject) {
 		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath), function(code, stdout, stderr) {
 			if (code != 0) {
-				cLogger.error("Error downloading content: ", stderr);
+				cLogger.error("Error combining multiple clips: ", stderr);
 				return reject(stderr);
 			}
 
+			// Remove all the uncombined clips. They are no longer needed.
 			return shell.exec("rm " + actualPath + "clip-*.mp4", function(code, stdout, stderr) {
 				return resolve();
 			});

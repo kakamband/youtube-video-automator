@@ -235,7 +235,7 @@ module.exports.settingsOverview = function(pmsID) {
 		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-category\') as default_category'))
 		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-language\') as default_language'))
 		.select(knex.raw('(select count(*) from playlists where pms_user_id=\'' + pmsID + '\') as playlists_count'))
-		.select(knex.raw('(select count(*) from comments where pms_user_id=\'' + pmsID + '\') as comments_count'))
+		.select(knex.raw('(select count(*) from comments where pms_user_id=\'' + pmsID + '\' AND comment_id is NULL) as comments_count'))
 		.select(knex.raw('(select count(*) from signatures where pms_user_id=\'' + pmsID + '\') as signatures_count'))
 		.select(knex.raw('(select count(*) from tags where pms_user_id=\'' + pmsID + '\') as tags_count'))
 		.select(knex.raw('(select count(*) from thumbnails where pms_user_id=\'' + pmsID + '\') as thumbnails_count'))
@@ -295,6 +295,7 @@ module.exports.getCommentsForGame = function(pmsID, gameName) {
 		.where(knex.raw('LOWER(game) = :gameNAME', {
 	    	gameNAME: gameName.toLowerCase()
 	    }))
+	    .whereNull("comment_id")
 		.then(function(results) {
 			if (results.length >= 0) {
 				return resolve(results);
@@ -312,6 +313,7 @@ module.exports.getComments = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('comments')
 		.where("pms_user_id", "=", pmsID)
+	    .whereNull("comment_id")
 		.then(function(results) {
 			if (results.length >= 0) {
 				return resolve(results);
@@ -498,7 +500,8 @@ module.exports.addComment = function(pmsID, gameName, comment) {
 			game: gameName,
 			comment: comment,
 			created_at: new Date(),
-			updated_at: new Date()
+			updated_at: new Date(),
+			comment_id: null
 		})
 		.then(function(results) {
 			return resolve();
@@ -517,7 +520,8 @@ module.exports.removeComment = function(pmsID, gameName, comment) {
 	    	gameNAME: gameName.toLowerCase()
 	    }))
 		.where("comment", "=", comment)
-		.del()
+	    .whereNull("comment_id")
+	    .del()
 		.then(function(results) {
 			return resolve();
 		})
@@ -527,7 +531,7 @@ module.exports.removeComment = function(pmsID, gameName, comment) {
 	});
 }
 
-module.exports.removeSpecificComment = function(pmsID, gameName, comment, commentID) {
+module.exports.removeSpecificComment = function(pmsID, gameName, comment, commentID, commentPostID) {
 	return new Promise(function(resolve, reject) {
 		return knex('comments')
 		.where("pms_user_id", "=", pmsID)
@@ -536,7 +540,10 @@ module.exports.removeSpecificComment = function(pmsID, gameName, comment, commen
 	    }))
 		.where("comment", "=", comment)
 		.where("id", "=", commentID)
-		.del()
+	    .whereNull("comment_id")
+	    .update({
+	    	comment_id: commentPostID
+	    })
 		.then(function(results) {
 			return resolve();
 		})
@@ -1978,7 +1985,7 @@ module.exports.getYoutubeVideoSettings = function(userID, pmsID, downloadID) {
 		.select(knex.raw('(SELECT option_value FROM custom_options WHERE user_id=\'' + userID + '\' AND option_name=\'custom_playlist\' AND download_id=\'' + downloadID + '\' ORDER BY created_at DESC LIMIT 1) as custom_playlist'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-like\') as liked'))
 		.select(knex.raw('(SELECT value FROM simple_default WHERE pms_user_id=\'' + pmsID + '\' AND setting_name=\'minimum-length\') as minimum_video_length'))
-		.select(knex.raw('(SELECT count(*) FROM comments WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game) as comments_count'))
+		.select(knex.raw('(SELECT count(*) FROM comments WHERE pms_user_id=\'' + pmsID + '\' AND game=downloads.game AND comment_id is NULL) as comments_count'))
 		.select(knex.raw('(SELECT option_value FROM custom_options WHERE user_id=\'' + userID + '\' AND option_name=\'force_processing\' AND download_id=\'' + downloadID + '\' ORDER BY created_at DESC LIMIT 1) as force_video_processing'))
 		.where("id", "=", downloadID)
 		.then(function(results) {

@@ -61,6 +61,7 @@ module.exports.initialize = function(knex) {
 			table.string("game").notNullable();
 			table.string("comment").notNullable();
 			table.timestamps();
+			table.string("comment_id");
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('signatures', function(table) {

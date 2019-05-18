@@ -28,7 +28,7 @@ module.exports.addDefaultComment = function(youtube, videoID, channelID, gameNam
 function _getRandomComment(commentList) {
 	return new Promise(function(resolve, reject) {
 		var count = 0;
-		var max = 2;
+		const maxRandIterations = 2;
 
 		function getRandomIndex() {
 			return Math.floor(Math.random() * Math.floor(commentList.length));
@@ -39,7 +39,7 @@ function _getRandomComment(commentList) {
 			count++;
 
 			// Iterate twice to add a bit more randomness here
-			if (count < max) {
+			if (count < maxRandIterations) {
 				return next();
 			} else {
 				cLogger.info("Choosing random comment at index: " + randInd + " from a total of " + commentList.length + " comments.");
@@ -72,7 +72,7 @@ function _insertCommentHelper(youtube, channelID, videoID, commentText) {
 			}
 
 			cLogger.info("Comment succesfully added!");
-			return resolve();
+			return resolve(resp);
 		});
 	});
 }
@@ -93,8 +93,8 @@ function _attemptToAddUserComment(youtube, videoID, channelID, gameName, pmsID) 
 			postedComment = chosenComment;
 			return _insertCommentHelper(youtube, channelID, videoID, postedComment.comment);
 		})
-		.then(function() {
-			return dbController.removeSpecificComment(pmsID, gameName, postedComment.comment, postedComment.id);
+		.then(function(postedCommentResp) {
+			return dbController.removeSpecificComment(pmsID, gameName, postedComment.comment, postedComment.id, postedCommentResp.id);
 		})
 		.then(function() {
 			return resolve();
