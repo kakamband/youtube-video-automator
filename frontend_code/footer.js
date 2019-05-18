@@ -581,29 +581,71 @@ function updateSetting($, username, ID, email, pass, setting, settingJSON) {
   });
 }
 
-// Toggles the defaults notifications if they are set or not
-function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
-  var showNotification = false;
+function _handleAllNotifications($, result, username, ID, email, passwordHash) {
+  var showNotification = false, showNotification1 = false, showNotification2 = false, showNotification3 = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
   var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
+  var showProcessingNotification = false; var processingContent = {download_id: -1};
+  var showUploadingNotification = false; var uploadingContent = {download_id: -1};
+  var showDoneUploadingNotification = false; var uploadingDoneContent = {download_id: -1, video_url: "https://www.youtube.com"};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
        showNotification = true;
+     } else if (result.notifications[i].notification == "account-intro") {
+       showNotification1 = true;
+     } else if (result.notifications[i].notification == "videos-intro") {
+       showNotification2 = true;
+     } else if (result.notifications[i].notification == "dashboard-intro") {
+       showNotification3 = true;
      } else if (result.notifications[i].notification == "currently-clipping") {
         showDLNotification = true;
         dlContent = JSON.parse(result.notifications[i].content);
      } else if (result.notifications[i].notification == "need-title-or-description") {
         showNeedClipInfoNotification = true;
         needInfoContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-processing") {
+        showProcessingNotification = true;
+        processingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-uploading") {
+        showUploadingNotification = true;
+        uploadingContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "done-uploading") {
+        showDoneUploadingNotification = true;
+        uploadingDoneContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
   
+  // Defaults intro Notification
   if (showNotification) {
     $(".defaults-intro-notification").show();
     $(".close-notification").click(function() {
       closeNotification($, "defaults-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Account intro Notification
+  if (showNotification1) {
+    $(".account-notification-container").show();
+    $(".close-notification").click(function() {
+      closeNotification($, "account-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Videos intro notification
+  if (showNotification2) {
+    $(".videos-notification-container").show();
+    $(".close-notification").click(function() {
+      closeNotification($, "videos-intro", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Dashboard intro notification
+  if (showNotification3) {
+    $(".dashboard-into-notification").show();
+    $(".close-notification").click(function() {
+      closeNotification($, "dashboard-intro", username, ID, email, passwordHash); 
     });
   }
 
@@ -624,7 +666,39 @@ function toggleDefaultsNotification($, result, username, ID, email, passwordHash
       closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
     });
   }
+
+  // Video processing notification
+  if (showProcessingNotification) {
+    $(".video-processing-notification").show();
+    $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
+    $(".close-video-processing-notification").click(function() {
+      closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video uploading notification
+  if (showProcessingNotification) {
+    $(".video-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
+    $(".close-video-uploading-notification").click(function() {
+      closeNotification($, "currently-uploading", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video done uploading notification
+  if (showDoneUploadingNotification) {
+    $(".video-done-uploading-notification").show();
+    $("#video-uploading-action-link").attr("href", uploadingContent.video_url);
+    $(".close-video-done-uploading-notification").click(function() {
+      closeNotification($, "done-uploading", username, ID, email, passwordHash); 
+    });
+  }
   stretchAWB($);
+}
+
+// Toggles the defaults notifications if they are set or not
+function toggleDefaultsNotification($, result, username, ID, email, passwordHash) {
+  _handleAllNotifications($, result, username, ID, email, passwordHash);
 }
 
 // Handles the minimum video settings
@@ -1066,50 +1140,8 @@ function defaultSettings($, username, ID, email, pass) {
 // -----------------------------------------
 
 // Toggles the account notifications if they are set or not
-function toggleAccountNotification($, result, username, ID, email, passwordHash) {  
-  var showNotification = false;
-  var showDLNotification = false; var dlContent = {download_id: -1};
-  var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
-  if (result.notifications.length > 0) {
-    for (var i = 0; i < result.notifications.length; i++) {
-     if (result.notifications[i].notification == "account-intro") {
-       showNotification = true;
-     } else if (result.notifications[i].notification == "currently-clipping") {
-        showDLNotification = true;
-        dlContent = JSON.parse(result.notifications[i].content);
-     } else if (result.notifications[i].notification == "need-title-or-description") {
-        showNeedClipInfoNotification = true;
-        needInfoContent = JSON.parse(result.notifications[i].content);
-     }
-    }
-  }
-  
-  if (showNotification) {
-    $(".account-notification-container").show();
-    $(".close-notification").click(function() {
-      closeNotification($, "account-intro", username, ID, email, passwordHash); 
-    });
-  }
-
-  // Download Action Notification
-  if (showDLNotification) {
-    $(".currently-clipping-notification").show();
-    $("#curr-clipping-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + dlContent.download_id));
-    $(".close-action-notification").click(function() {
-      closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
-    });
-  }
-
-  // Need Clip Info Notification
-  if (showNeedClipInfoNotification) {
-    $(".clipping-need-info-notification").show();
-    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
-    $(".close-need-info-notification").click(function() {
-      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
-    });
-  }
-
-  stretchAWB($);
+function toggleAccountNotification($, result, username, ID, email, passwordHash) {
+  _handleAllNotifications($, result, username, ID, email, passwordHash);
 }
 
 // -----------------------------------------
@@ -1121,52 +1153,8 @@ function toggleAccountNotification($, result, username, ID, email, passwordHash)
 // -----------------------------------------
 
 // Toggles the video notifications if they are set or not
-function toggleVideosNotification($, result, username, ID, email, passwordHash) {  
-  var showNotification = false;
-  var showDLNotification = false; var dlContent = {download_id: -1};
-  var showNeedClipInfoNotification = false; var needInfoContent = {download_id: -1};
-  if (result.notifications.length > 0) {
-    for (var i = 0; i < result.notifications.length; i++) {
-     if (result.notifications[i].notification == "videos-intro") {
-       showNotification = true;
-     } else if (result.notifications[i].notification == "currently-clipping") {
-        showDLNotification = true;
-        dlContent = JSON.parse(result.notifications[i].content);
-     } else if (result.notifications[i].notification == "need-title-or-description") {
-        showNeedClipInfoNotification = true;
-        needInfoContent = JSON.parse(result.notifications[i].content);
-     }
-    }
-  }
-  
-  // Intro notification
-  if (showNotification) {
-    $(".videos-notification-container").show();
-    $(".close-notification").click(function() {
-      closeNotification($, "videos-intro", username, ID, email, passwordHash); 
-    });
-  }
-
-  // Download Action Notification
-  if (showDLNotification) {
-    $(".currently-clipping-notification").show();
-    $("#curr-clipping-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + dlContent.download_id));
-    $(".close-action-notification").click(function() {
-      closeNotification($, "currently-clipping", username, ID, email, passwordHash); 
-    });
-  }
-
-  // Need Clip Info Notification
-  if (showNeedClipInfoNotification) {
-    $(".clipping-need-info-notification").show();
-    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + needInfoContent.download_id));
-    $(".close-need-info-notification").click(function() {
-      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
-    });
-  }
-
-
-  stretchAWB($);
+function toggleVideosNotification($, result, username, ID, email, passwordHash) {
+  _handleAllNotifications($, result, username, ID, email, passwordHash);
 }
 
 // -----------------------------------------
@@ -1255,39 +1243,8 @@ function foundAuth($, username, ID, email, pass) {
 }
 
 // Toggles the dashboard notifications if they are set or not
-function toggleDashboardNotification($, result, username, ID, email, passwordHash) {  
-  var showNotification = false;
-  var showClipInfoNotification = false;
-  var showClipInfoContent = null;
-  if (result.notifications.length > 0) {
-    for (var i = 0; i < result.notifications.length; i++) {
-     if (result.notifications[i].notification == "dashboard-intro") {
-       showNotification = true;
-     } else if (result.notifications[i].notification == "need-title-or-description") {
-      showClipInfoNotification = true;
-      showClipInfoContent = JSON.parse(result.notifications[i].content);
-     }
-    }
-  }
-  
-  // Shows dashboard notification
-  if (showNotification) {
-    $(".dashboard-into-notification").show();
-    $(".close-notification").click(function() {
-      closeNotification($, "dashboard-intro", username, ID, email, passwordHash); 
-    });
-  }
-
-  // Show clip info notification
-  if (showClipInfoNotification) {
-    $(".clipping-need-info-notification").show();
-    $("#clip-needs-info-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + showClipInfoContent.download_id));
-    $(".close-need-info-notification").click(function() {
-      closeNotification($, "need-title-or-description", username, ID, email, passwordHash); 
-    });
-  }
-
-  stretchAWB($);
+function toggleDashboardNotification($, result, username, ID, email, passwordHash) {
+  _handleAllNotifications($, result, username, ID, email, passwordHash);
 }
 
 // The popup window has been opened, now we poll to see when/if the user ever actually allows the authentication to go through.
@@ -1747,7 +1704,7 @@ function textareaAutoScaling($, ID) {
 }
 
 // Saves a title or description
-function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueName, value) {
+function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueName, value, clipInfo) {
   var dataOBJ = {
     "username": username,
     "user_id": ID,
@@ -1770,6 +1727,7 @@ function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueN
       if (result.success) {
         console.log("Updated title or description of clip.");
         _scrollToTitleAndDescIfEmpty($, false, "Done");
+        _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
       }
     },
     dataType: "json"
@@ -1777,7 +1735,7 @@ function saveTitleDesc($, username, ID, email, pass, downloadID, urlPART, valueN
 }
 
 // Handles a saving for a textarea
-function handleTextAreaSaving($, username, ID, email, pass, downloadID, textareaID) {
+function handleTextAreaSaving($, username, ID, email, pass, downloadID, textareaID, clipInfo) {
   var textareaTimeoutID;
   $("#" + textareaID).bind('input propertychange', function() {
 
@@ -1785,9 +1743,9 @@ function handleTextAreaSaving($, username, ID, email, pass, downloadID, textarea
     textareaTimeoutID = setTimeout(function() {
 
       if (textareaID == "clip-title-input") {
-        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val());
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/title", "title", $("#" + textareaID).val(), clipInfo);
       } else if (textareaID == "clip-description-input") {
-        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val());
+        saveTitleDesc($, username, ID, email, pass, downloadID, "/user/clip/description", "description", $("#" + textareaID).val(), clipInfo);
       } else if (textareaID == "clip-playlist-input") {
 
         var dataOBJ = {
@@ -2182,7 +2140,7 @@ function handleCustomPlaylist($, username, ID, email, pass, downloadID, clipInfo
     $("#clip-playlist-input").val(clipInfo.youtube_settings.playlist);
   }
 
-  handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input");
+  handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-playlist-input", clipInfo);
   $(".playlist-item-set-change").click(function() {
     $(".playlist-item-set").hide();
     $(".playlist-item-set-change").hide();
@@ -2603,8 +2561,8 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
         textareaAutoScaling($, "clip-playlist-input");
 
         // Handles the title and description saving
-        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input");
-        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-title-input");
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-description-input", clipInfo);
+        handleTextAreaSaving($, username, ID, email, pass, downloadID, "clip-title-input", clipInfo);
 
         // If the title or description are already set
         if (clipInfo.title) {
@@ -3054,6 +3012,15 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
           case "need-title-or-description":
             $(".clipping-need-info-notification").hide();
             break;
+          case "currently-processing":
+            $(".video-processing-notification").hide();
+            break;
+          case "currently-uploading":
+            $(".video-uploading-notification").hide();
+            break;
+          case "done-uploading":
+            $(".video-done-uploading-notification").hide();
+            break;
         }
       },
       dataType: "json"
@@ -3077,6 +3044,9 @@ jQuery(document).ready(function( $ ){
   $(".account-notification-container").hide();
   $(".defaults-intro-notification").hide();
   $(".dashboard-internal-server-error").hide();
+  $(".video-uploading-notification").hide();
+  $(".video-processing-notification").hide();
+  $(".video-done-uploading-notification").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");

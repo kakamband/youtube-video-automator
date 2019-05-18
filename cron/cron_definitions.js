@@ -9,6 +9,8 @@ module.exports.getCronJobs = function() {
 
 	// Permanent delete cron job
 	crons.push(getPermDeleteCron());
+	// Processing cron job
+	crons.push(kickOffProcessing());
 
 	return crons;
 }
@@ -31,4 +33,24 @@ function getPermDeleteCron() {
 	});
 
 	return permanentDeleteCron;
+}
+
+// The kick off processing cron job.
+// This cron job initiates videos that need to start to be processed.
+// This runs every 5 minutes.
+function kickOffProcessing() {
+	const every5MinCron = "3 */5 * * * *";
+
+	var kickOffProcessingCron = new CronJob(every5MinCron, function() {
+		WorkerProducer.startProcessingCycle()
+		.then(function() {
+			cLogger.info("Done posting processing cycle.");
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure("cron_handler.init", {job_name: "kick_off_processing"});
+			ErrorHelper.emitSimpleError(err);
+		});
+	});
+
+	return kickOffProcessingCron;
 }

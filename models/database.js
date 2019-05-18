@@ -34,6 +34,7 @@ module.exports.initialize = function(knex) {
 			table.string("user_id").notNullable();
 			table.string("game").notNullable();
 			table.string("url").notNullable();
+			table.integer("video_number").notNullable();
 			table.timestamps();
 		});
 	}).then(function() {
@@ -60,6 +61,7 @@ module.exports.initialize = function(knex) {
 			table.string("game").notNullable();
 			table.string("comment").notNullable();
 			table.timestamps();
+			table.string("comment_id");
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('signatures', function(table) {
@@ -103,6 +105,7 @@ module.exports.initialize = function(knex) {
 			table.integer("clip_seconds");
 			table.string("clip_stopped_downloading");
 			table.string("expected_processing_time");
+			table.integer("video_number");
 			table.timestamps();
 		});
 	}).then(function() {
@@ -113,6 +116,7 @@ module.exports.initialize = function(knex) {
 			table.string("email").notNullable();
 			table.string("password").notNullable();
 			table.timestamps();
+			table.boolean("currently_processing").default(false).notNullable();
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('defined_subscriptions', function(table) {

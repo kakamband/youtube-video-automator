@@ -85,7 +85,8 @@ module.exports.init = function() {
 			const url = oauth2Client.generateAuthUrl({
 				access_type: 'offline',
 				scope: scopes,
-				state: "LOCAL"
+				state: "LOCAL",
+				prompt: 'consent'
 			});
 
 			opn(url);
@@ -116,7 +117,8 @@ module.exports.initLink = function(userID) {
 		const url = oauth2Client.generateAuthUrl({
 			access_type: 'offline',
 			scope: scopes,
-			state: userID
+			state: userID,
+			prompt: 'consent'
 		});
 
 		return resolve(url);

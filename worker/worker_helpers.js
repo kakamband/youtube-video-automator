@@ -8,13 +8,25 @@ var shell = require('shelljs');
 var WorkerProducer = require('./worker_producer');
 var CronHandler = require('../cron/cron_handler');
 const { getVideoDurationInSeconds } = require('get-video-duration');
+var Users = require('../users/users');
+var Downloader = require('../downloader/downloader');
+var Combiner = require('../combiner/combiner');
+var Uploader = require('../uploader/uploader');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
 // --------------------------------------------
 
 // The CDN URL
-const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
+const cdnURL = Attr.CDN_URL;
+
+const downloadingClipNotification = "currently-clipping";
+const needTitleOrDescriptionNotification = "need-title-or-description";
+const videoProcessingNotification = "currently-processing";
+const videoUploadingNotification = "currently-uploading";
+const videoDoneUploadingNotification = "done-uploading";
+// The names of all of the clip flow notifications, this is used to clear when adding a new one.
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification];
 
 // downloadContent
 // Initiates a download of content for a user
@@ -101,11 +113,356 @@ module.exports.handleGracefulInitAndShutdown = function(workerType) {
 	});
 }
 
+// checkForVideosToProcess
+// Checks to see if any videos are prepared for processing, and kicks them off if there is any.
+module.exports.checkForVideosToProcess = function() {
+	return new Promise(function(resolve, reject) {
+		return dbController.getAllProcessingReadyVideos()
+		.then(function(possibleVideos) {
+			return queueVideosToProcess(possibleVideos);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// startVideoProcessing
+// Starts processing a video, and then kicks off the upload of the video.
+module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs) {
+	return new Promise(function(resolve, reject) {
+		var combinedVideos = [];
+		var finalFileLocation = null;
+
+		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
+		.then(function() {
+			return dbController.createProcessingNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
+			return dbController.getAllDownloadsIn(allClipIDs);
+		})
+		.then(function(allDownloads) {
+			combinedVideos = allDownloads;
+			
+			combinedVideos.sort(function(a, b) {
+		    	return a.order_number - b.order_number;
+			});
+
+			return Downloader.validateClipsCanBeProcessed(userID, combinedVideos);
+		})
+		.then(function(isValid) {
+			if (!isValid) {
+				return Promise.reject(new Error("The clips cannot be processed. Processing terminated."));
+			} else {
+				return Downloader.downloadEachAWSClip(userID, combinedVideos);
+			}
+		})
+		.then(function(downloadLocation) {
+			finalFileLocation = downloadLocation;
+			return Combiner.combineAllUsersClips(downloadLocation, combinedVideos);
+		})
+		.then(function() {
+			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
+		})
+		.then(function() {
+			return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID, finalFileLocation, allClipIDs);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			// Fail Safely
+			return _processingFailedHandler(userID, pmsID, allClipIDs, err)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		});
+	});
+}
+
+// startVideoUploading
+// Starts uploading a video to Youtube
+module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation, allClipIDs) {
+	return new Promise(function(resolve, reject) {
+		var vidInfo = null;
+		var youtubeVideoURL = null;
+
+		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
+		.then(function() {
+			return dbController.createUploadingNotification(pmsID, JSON.stringify({download_id: downloadID}));
+		})
+		.then(function() {
+			return Users.getClipInfoWrapper(userID, pmsID, downloadID);
+		})
+		.then(function(videoInfo) {
+			vidInfo = videoInfo;
+			return Uploader.validateVideoCanBeUploaded(userID, pmsID, downloadID, fileLocation, vidInfo);
+		})
+		.then(function(isValid) {
+			if (!isValid) {
+				return Promise.reject(new Error("The video cannot be uploaded. Uploading terminated."));
+			} else {
+				return Uploader.uploadUsersVideo(userID, pmsID, downloadID, fileLocation, vidInfo);
+			}
+		})
+		.then(function(youtubeVidURL) {
+			youtubeVideoURL = youtubeVidURL;
+
+			return dbController.setNotificationsSeen(pmsID, clipFlowNotifications);
+		})
+		.then(function() {
+			return dbController.createDoneUploadingNotification(pmsID, JSON.stringify({download_id: downloadID, video_url: youtubeVideoURL}));
+		})
+		.then(function() {
+			return dbController.uploadingDoneForDownloads(userID, allClipIDs);
+		})
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return dbController.addYoutubeVideo({
+				user_id: userID,
+				game: vidInfo.game,
+				url: youtubeVideoURL,
+				created_at: new Date(),
+				updated_at: new Date(),
+				video_number: vidInfo.video_number
+			});
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			// Fail Safely
+			return _uploadingFailedHandler(userID, pmsID, allClipIDs, err)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		});
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _uploadingFailedHandler(userID, pmsID, allClipIDs, err) {
+	return new Promise(function(resolve, reject) {
+		// Emit this to Sentry
+		ErrorHelper.scopeConfigure("worker_helpers._uploadingFailedHandler", {
+			"message": "Uploading has failed, the download states have been updated accordingly.",
+			user_id: userID,
+			pms_id: pmsID,
+			all_clip_id: allClipIDs
+		});
+		ErrorHelper.emitSimpleError(err);
+
+		return dbController.uploadingFailedForDownloads(userID, allClipIDs)
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _processingFailedHandler(userID, pmsID, allClipIDs, err) {
+	return new Promise(function(resolve, reject) {
+		// Emit this to Sentry
+		ErrorHelper.scopeConfigure("worker_helpers._processingFailedHandler", {
+			"message": "Processing has failed, the download states have been updated accordingly.",
+			user_id: userID,
+			pms_id: pmsID,
+			all_clip_id: allClipIDs
+		});
+		ErrorHelper.emitSimpleError(err);
+
+		return dbController.processingFailedForDownloads(userID, allClipIDs)
+		.then(function() {
+			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function queueVideosToProcess(possibleVideos) {
+	return new Promise(function(resolve, reject) {
+		var count = 0;
+		if (possibleVideos.length <= 0) return resolve();
+
+		function nextPossibleHelper() {
+			count++;
+			if (count <= possibleVideos.length - 1) {
+				return next();
+			} else {
+				return resolve();
+			}
+		}
+
+		function next() {
+			var currentVid = possibleVideos[count];
+
+			cLogger.info("Checking if the following video (" + currentVid.id + ") can be processed.");
+			return Users.getClipInfoWrapper(currentVid.user_id, currentVid.pms_user_id, currentVid.id)
+			.then(function(info) {
+
+				// If the processing estimate has already been set in the DB.
+				var processingStartEstimate = info.processing_start_estimate;
+				if (currentVid.expected_processing_time != null) {
+					processingStartEstimate = currentVid.expected_processing_time;
+				}
+
+				var cantProcessValues = ["still_currently_clipping", "currently_processing", "currently_uploading", "clip_deleted", "need_title_description_first", null];
+
+				if (cantProcessValues.indexOf(processingStartEstimate) >= 0) {
+					// This video is in a state which we can't process so either continue, or end.
+					cLogger.mark("The following video has a process starting estimate (" + processingStartEstimate + ") that we can't process.");
+					return nextPossibleHelper();
+				} else {
+					var currentDate = new Date();
+					var expectedStartDate = new Date(processingStartEstimate);
+
+					// This video is in a state where we can continue. Now make sure that the current time has surpassed the expected processing time
+					if (expectedStartDate >= currentDate) {
+						// This video is expected to start processing, however not yet. So either continue, or end.
+						cLogger.mark("The following video has a start processing estimate that is in the future (" + expectedStartDate + ").");
+						return nextPossibleHelper();
+					} else {
+						// This video is in a state where we CAN start processing it. So just add it to the end of the encoder queue.
+						// So first make sure that the user is marked as currently processing. Then change the download state to be processing.
+						return preliminaryProcessingStep(currentVid.user_id, currentVid.pms_user_id, currentVid.id, info.videos_to_combine)
+						.then(function() {
+							// Get all of the videos that will be combined into a an array
+							var toCombineIDs = [currentVid.id];
+							for (var i = 0; i < info.videos_to_combine.length; i++) {
+								toCombineIDs.push(info.videos_to_combine[i].id);
+							}
+
+							// Queue this video up for processing.
+							cLogger.mark("The video can, and will being processing.");
+							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs);
+						})
+						.then(function() {
+							return nextPossibleHelper();
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					}
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos) {
+	return new Promise(function(resolve, reject) {
+		return dbController.setUserVidProcessing(userID, pmsID)
+		.then(function() {
+			// Set the latest clipped video to be processing, and used.
+			return dbController.setDownloadUploading(downloadID);
+		})
+		.then(function() {
+			var count = 0;
+			if (combinedVideos == null || combinedVideos.length <= 0) return Promise.resolve();
+
+			// Set all the other combined videos to be processing, and used.
+			function next() {
+				return dbController.setDownloadUploading(combinedVideos[count].id)
+				.then(function() {
+					count++;
+					if (count <= combinedVideos.length - 1) {
+						return next();
+					} else {
+						return Promise.resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function preliminaryProcessingStep(userID, pmsID, downloadID, combinedVideos) {
+	return new Promise(function(resolve, reject) {
+		var vidNumber = null;
+
+		return dbController.setUserVidProcessing(userID, pmsID)
+		.then(function() {
+			// Get the count for the video
+			return dbController.getVideoCountNumber(userID);
+		})
+		.then(function(videoNumber) {
+			vidNumber = videoNumber;
+
+			// Set the latest clipped video to be processing, and used.
+			return dbController.setDownloadProcessing(downloadID, vidNumber);
+		})
+		.then(function() {
+			var count = 0;
+			if (combinedVideos == null || combinedVideos.length <= 0) return Promise.resolve();
+
+			// Set all the other combined videos to be processing, and used.
+			function next() {
+				return dbController.setDownloadProcessing(combinedVideos[count].id, vidNumber)
+				.then(function() {
+					count++;
+					if (count <= combinedVideos.length - 1) {
+						return next();
+					} else {
+						return Promise.resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
 
 function transferToS3Helper(userID, twitchStream, downloadID) {
 	var downloadObj = null;

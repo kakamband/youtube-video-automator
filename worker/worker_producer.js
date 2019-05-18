@@ -136,6 +136,87 @@ module.exports.startPermDeleteCycle = function() {
 	});
 }
 
+// startProcessingCycle
+// Checks to see if any videos can be processed, and if they can it queues them up.
+module.exports.startProcessingCycle = function() {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 5,
+			mandatory: true,
+			timestamp: (new Date).getTime()
+		};
+
+		return workerStartingWork("encoder")
+		.then(function() {
+			return makeProcessingCyclePost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// queueVideoToProcess
+// Queues a video to begin being processed.
+module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs) {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 4,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentType: pmsID,
+			contentEncoding: JSON.stringify(toCombineIDs),
+			messageId: downloadID + ""
+		};
+
+		return workerStartingWork("encoder")
+		.then(function() {
+			return makeProcessingPost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// queueVideoToUpload
+// Queues a video to begin being uploaded.
+module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFileLocation, toCombineIDs) {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 4,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentType: pmsID,
+			contentEncoding: finalFileLocation,
+			messageId: downloadID + "",
+			type: JSON.stringify(toCombineIDs)
+		};
+
+		return workerStartingWork("uploader")
+		.then(function() {
+			return makeUploadingPost(Attr.UPLOADING_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -242,6 +323,18 @@ function makeDownloadPost(queueName, msgOptions) {
 
 function makePermDeletePost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "permanent_delete_task");
+}
+
+function makeProcessingCyclePost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "processing_cycle_start");
+}
+
+function makeProcessingPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "processing_start");
+}
+
+function makeUploadingPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "uploading_start");
 }
 
 function getMessagesAndConsumers(queueName) {

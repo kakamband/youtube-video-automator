@@ -17,6 +17,7 @@ var Attr = require('../config/attributes');
 var dateFormat = require('dateformat');
 const VIDEO_DATA_DEFAULT_DIR = "video_data/";
 const VIDEO_DATA_HIJACKED_DIR = "video_data_hijacks/";
+var ErrorHelper = require('../errors/errors');
 var VIDEO_DATA_DIRECTORY = VIDEO_DATA_DEFAULT_DIR;
 
 // Constants
@@ -599,6 +600,433 @@ function initUpload(content) {
 
 function _uploadVideo(gameName, clips) {
 	return uploadVideo(gameName, clips, (Attr.FINISHED_FNAME + ".mp4"));
+}
+
+function _createYoutubeClientForUser(accessTkn, refreshTkn) {
+	
+	// Generate the Auth Client
+	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
+	if (Attr.SERVER_ENVIRONMENT == "production") {
+		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+	}
+	const oauth2Client = new google.auth.OAuth2(
+		Secrets.GOOGLE_API_CLIENT_ID,
+		Secrets.GOOGLE_API_CLIENT_SECRET,
+		redirectLink
+	);
+
+	// Add the stored OAuth Credentials to the auth client
+    oauth2Client.setCredentials({
+		refresh_token: refreshTkn
+	});
+
+	// Set the google auth client to be this new auth client.
+	google.options({
+		auth: oauth2Client
+	});
+
+	// Create a youtube API object for this user
+	var youtubeClient = google.youtube({ version:'v3'});
+
+	return youtubeClient;
+}
+
+function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fileSize) {
+	return new Promise(function(resolve, reject) {
+
+		// Create the google api client for this user
+		var youtubeClient = _createYoutubeClientForUser(accessTkn, refreshTkn);
+
+		var previousLog = new Date();
+		function progressLogger(progress) {
+			var secondsPassed = Math.floor(((new Date()).getTime() - previousLog.getTime()) / 1000);
+			if (secondsPassed > 10) {
+	    		var percentProgress = Math.round((progress / fileSize) * 100);
+	    		cLogger.mark("Upload Progress (" + percentProgress + "%)");
+	    		previousLog = new Date();
+			}
+		}
+
+		cLogger.info("Starting to upload video.");
+		return youtubeClient.videos.insert({
+			part: "id,snippet,status",
+			notifySubscribers: true,
+			requestBody: {
+				snippet: videoObject,
+				status: {
+					privacyStatus: "public", // TODO: Possibly change this to be a configurable value.
+				},
+			},
+			media: {
+				body: fs.createReadStream(fileName),
+			},
+		}, {
+	    	onUploadProgress: evt => {
+	    		const progress = evt.bytesRead;
+	    		progressLogger(progress);
+	    	},
+		})
+		.then(function(res) {
+			let data = res.data;
+			let videoID = data.id;
+			let channelID = data.snippet.channelId;
+
+			return resolve([videoID, channelID, youtubeClient]);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _checkIfFileExists(fileLocation) {
+	return new Promise(function(resolve, reject) {
+		return fs.access(fileLocation, error => {
+			if (!error) {
+				return resolve(true);
+			} else {
+				return resolve(false);
+			}
+		});
+	});
+}
+
+function _checkIfNeededVidInfo(vidInfo) {
+	return new Promise(function(resolve, reject) {
+		if (vidInfo.description == null) {
+			return resolve("description");
+		} else if (vidInfo.title == null) {
+			return resolve("title");
+		} else if (!vidInfo.youtube_settings.category || vidInfo.youtube_settings.category == null || vidInfo.youtube_settings.category == "") {
+			return resolve("category");
+		} else if (!vidInfo.youtube_settings.vid_language || vidInfo.youtube_settings.vid_language == null || vidInfo.youtube_settings.vid_language == "") {
+			return resolve("video_language");
+		} else {
+			return resolve(undefined);
+		}
+	})
+}
+
+module.exports.validateVideoCanBeUploaded = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		// TODO: Validate that the user has room to upload
+
+		function logErrorWrapper(missingItm) {
+			var tmpErr = "Can't upload video since it is missing: " + missingItm;
+			cLogger.error(tmpErr);
+			ErrorHelper.scopeConfigureWarning("uploader.validateVideoCanBeUploaded", {
+				user_id: userID,
+				pms_id: pmsID,
+				download_id: downloadID,
+				folder_loc: folderLocation,
+				vid_info: vidInfo
+			});
+			ErrorHelper.emitSimpleError(new Error(tmpErr));
+			return resolve(false);
+		}
+
+		return _checkIfFileExists(folderLocation + "finished.mp4")
+		.then(function(fileExists) {
+			if (!fileExists) {
+				return logErrorWrapper("processed_video");
+			} else {
+				return _checkIfNeededVidInfo(vidInfo);
+			}
+		})
+		.then(function(anyMissingOptions) {
+			if (anyMissingOptions != undefined) {
+				return logErrorWrapper(anyMissingOptions);
+			} else {
+				return resolve(true);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLocation, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		// The absolute location of the file
+		var fileName = folderLocation + "finished.mp4";
+
+		var fileSize = fs.statSync(fileName).size;
+
+		// Some values that we will need throughout the lifecycle of this function
+		var videoID = null;
+		var channelID = null;
+		var usersAccessTkn = null;
+		var usersRefreshTkn = null;
+		var youtubeClient = null;
+
+		// Start the progress bar
+		cLogger.info("Starting upload for " + userID + " the highest clip downloadID is: " + downloadID);
+
+		// Extract some of the youtube settings
+		var categoryVal = vidInfo.youtube_settings.category;
+		if (vidInfo.youtube_settings.custom_category != null) {
+			categoryVal = vidInfo.youtube_settings.custom_category;
+		}
+		var languageVal = vidInfo.youtube_settings.vid_language;
+		if (vidInfo.youtube_settings.custom_language != null) {
+			languageVal = vidInfo.youtube_settings.custom_language;
+		}
+		var descriptionVal = vidInfo.description;
+		if (vidInfo.youtube_settings.signature != null) {
+			descriptionVal += "\n\n" + vidInfo.youtube_settings.signature;
+		}
+
+		// TODO: If it is a free account, add some self promotion to the description + the tags.
+
+		// Build the video object
+		var videoObject = {
+			title: vidInfo.title,
+			description: descriptionVal,
+			tags: vidInfo.youtube_settings.tags,
+			categoryId: categoryVal,
+			defaultLanguage: languageVal
+		};
+
+		// Get the users OAuth2 Tokens
+		return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
+		.then(function(userTokens) {
+			if (userTokens == null) {
+				return reject(new Error("Could not find the users access + refresh tokens."));
+			}
+
+			usersAccessTkn = userTokens.access_token;
+			usersRefreshTkn = userTokens.refresh_token;
+
+			// Start uploading to Youtube
+			return _uploadToYoutubeHelper(videoObject, fileName, usersAccessTkn, usersRefreshTkn, fileSize);
+		})
+		.then(function(postedVidInfo) {
+			videoID = postedVidInfo[0];
+			channelID = postedVidInfo[1];
+			youtubeClient = postedVidInfo[2];
+
+			return _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderLocation, pmsID);
+		})
+		.then(function() {
+			return _deleteProcessedVideoFolder(folderLocation);
+		})
+		.then(function() {
+			return resolve("https://www.youtube.com/watch?v=" + videoID);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _deleteProcessedVideoFolder(folderLocation) {
+	return new Promise(function(resolve, reject) {
+		var cmd = "rm -rf " + folderLocation;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				cLogger.info("Unable to delete the processed video folder. Needs to be manually deleted.");
+				ErrorHelper.scopeConfigureWarning("uploader._deleteProcessedVideoFolder", {
+					folder_location: folderLocation,
+					err: stderr
+				});
+				ErrorHelper.emitSimpleError(err);
+			}
+
+			return resolve();
+		});
+	});
+}
+
+function _attemptToAddToPlaylist(youtubeClient, videoID, playlistID) {
+	return new Promise(function(resolve, reject) {
+		// Now try to add the playlist if it exists
+		return addToYoutubePlaylist(youtubeClient, videoID, playlistID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a playlist, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddToPlaylist", {
+				video_id: videoID,
+				playlist_id: playlistID
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+}
+
+function _downloadThumbnailToLocal(thumbnailImg, folderPath) {
+	return new Promise(function(resolve, reject) {
+
+		// Get the actual file name that is stored in S3
+		var fileNameSplit = thumbnailImg.split(Attr.CDN_URL);
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
+
+		// Get the image file type
+		var imageFileTypeSplit = fileNameActual.split(".");
+		var imageFileType = imageFileTypeSplit[imageFileTypeSplit.length - 1];
+
+		// Create the destination path
+		var destinationPath = folderPath + "thumbnail_to_set." + imageFileType;
+
+		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual + " " + destinationPath;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve(destinationPath);
+		});
+	});
+}
+
+function _deleteDownloadedThumbnailHelper(imageLocation) {
+	return new Promise(function(resolve, reject) {
+		var cmd = "rm " + imageLocation;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				ErrorHelper.scopeConfigureWarning("uploader._deleteDownloadedThumbnailHelper", {
+					image_location: imageLocation
+				});
+				ErrorHelper.emitSimpleError(stderr);
+			}
+
+			return resolve();
+		});
+	});
+}
+
+function _setThumbnailHelper(youtubeClient, videoID, thumbnailImgPath) {
+	return new Promise(function(resolve, reject) {
+		return youtubeClient.thumbnails.set({
+			videoId: videoID,
+			media: {
+				mimeType: "image/jpeg",
+				body: fs.createReadStream(thumbnailImgPath)
+			},
+		},
+		(err, thumbResponse) => {
+			if (err) {
+				return reject(err);
+			} else {
+				cLogger.info("Thumbnail succesfully added!");
+				return resolve();
+			}
+		});
+	});
+}
+
+function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderPath) {
+	return new Promise(function(resolve, reject) {
+		var downloadedThumbnailLocation = null;
+
+		// No thumbnail to add.
+		if (thumbnailImg == null) {
+			return resolve();
+		}
+
+		return _downloadThumbnailToLocal(thumbnailImg, folderPath)
+		.then(function(destinationPath) {
+			downloadedThumbnailLocation = destinationPath;
+			return _setThumbnailHelper(youtubeClient, videoID, destinationPath);
+		})
+		.then(function() {
+			return _deleteDownloadedThumbnailHelper(destinationPath);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddVidThumbnail", {
+				video_id: videoID,
+				thumbnail_img: thumbnailImg,
+				folder_path: folderPath
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+}
+
+function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID) {
+	return new Promise(function(resolve, reject) {
+		return Commenter.addUsersDefaultComment(youtubeClient, videoID, channelID, gameName, pmsID)
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			cLogger.info("Have encountered an error adding a comment, however not terminating since its not worth.");
+			ErrorHelper.scopeConfigureWarning("uploader._attemptToAddComment", {
+				video_id: videoID,
+				channel_id: channelID,
+				game_name: gameName
+			});
+			ErrorHelper.emitSimpleError(err);
+			return resolve();
+		});
+	});
+} 
+
+function _attemptToLikeVideo(youtubeClient, videoID, vidInfo) {
+	return new Promise(function(resolve, reject) {
+		if (vidInfo.youtube_settings.liked == "true" || vidInfo.youtube_settings.liked == true) {
+			return Rater.likeVideo(youtubeClient, videoID)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				cLogger.info("Have encountered an error adding a like, however not terminating since its not worth.");
+				ErrorHelper.scopeConfigureWarning("uploader._attemptToLikeVideo", {
+					video_id: videoID,
+					vidInfo: vidInfo
+				});
+				ErrorHelper.emitSimpleError(err);
+				return resolve();
+			});
+		} else {
+			return resolve(); // They dont want to automatically like the video
+		}
+	});
+}
+
+function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderPath, pmsID) {
+	return new Promise(function(resolve, reject) {
+
+		// First try to add a playlist
+		var playlistID = vidInfo.youtube_settings.playlist;
+		if (vidInfo.youtube_settings.custom_playlist != null) {
+			playlistID = vidInfo.youtube_settings.custom_playlist;
+		}
+
+		return _attemptToAddToPlaylist(youtubeClient, videoID, playlistID)
+		.then(function() {
+			var thumbnailImg = vidInfo.youtube_settings.thumbnails.default_image;
+			if (vidInfo.youtube_settings.thumbnails.specific_image != null) {
+				thumbnailImg = vidInfo.youtube_settings.thumbnails.specific_image;
+			}
+
+			return _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderPath);
+		})
+		.then(function() {
+			return _attemptToAddComment(youtubeClient, videoID, channelID, vidInfo.game, pmsID);
+		})
+		.then(function() {
+			return _attemptToLikeVideo(youtubeClient, videoID, vidInfo);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
 }
 
 // Uploads the video that is in the current directory, named 'finished.mkv'

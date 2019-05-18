@@ -9,24 +9,8 @@ var shell = require('shelljs');
 var redis = require('redis');
 var retriesMap = new Map();
 const Sentry = require('@sentry/node');
+var MessageHandler = require('./worker_function_wrappers');
 const redisFallbackKey = "fallback_queue_msg_count";
-
-function errMsg(workerActivity, ackMsg, queueMessage, err) {
-  Sentry.withScope(scope => {
-    scope.setTag("scope", "server-worker-fallback");
-    scope.setTag("environment", Attr.ENV);
-    scope.setTag("activity", workerActivity);
-    scope.setExtra("AckMsg", ackMsg);
-    scope.setExtra("QueueMsg", queueMessage);
-
-    Sentry.captureException(err);
-  });
-  console.log("[ERRORED] (" + workerActivity + "): ", err);
-}
-
-function successMsg(message) {
-  cLogger.mark("[x] Done (" + message + ")");
-}
 
 function knexConnection() {
   var dbConnection = {
@@ -62,79 +46,7 @@ function knexConnection() {
 }
 
 function handleMessage(message, msg, ch, knex) {
-  switch (message) {
-    case "downloading_task":
-      var userID = msg.properties.correlationId;
-      var gameName = msg.properties.contentType;
-      var twitchStream = msg.properties.contentEncoding;
-      var downloadID = parseInt(msg.properties.messageId);
-      cLogger.info("Starting a downloading task.");
-
-      return Helpers.downloadContent(userID, gameName, twitchStream, downloadID)
-      .then(function() {
-        successMsg(message);
-        return Helpers.decrementMsgCount("fallback");
-      }).then(function() {
-        ch.ack(msg);
-      }).catch(function(err) {
-        errMsg(message, msg, message, err);
-        return Helpers.decrementMsgCount("fallback")
-        .then(function() {
-          ch.ack(msg);
-        })
-        .catch(function(err) {
-          Sentry.captureException(err);
-          ch.ack(msg);
-        });
-      });
-    break;
-    case "permanent_delete_task":
-      return Helpers.permDeleteWrapper()
-      .then(function() {
-          successMsg(message);
-          return Helpers.decrementMsgCount("fallback");
-      })
-      .then(function() {
-          ch.ack(msg);
-      })
-      .catch(function(err) {
-        errMsg(message, msg, message, err);
-        return Helpers.decrementMsgCount("fallback")
-        .then(function() {
-          ch.ack(msg);
-        })
-        .catch(function(err) {
-          Sentry.captureException(err);
-          ch.ack(msg);
-        });
-      });
-    break;
-    case "transfer_video_task":
-      var userID = msg.properties.correlationId;
-      var twitchStream = msg.properties.contentEncoding;
-      var downloadID = parseInt(msg.properties.messageId);
-      cLogger.info("Starting a transfer to S3 task.");
-
-      return Helpers.transferToS3(userID, twitchStream, downloadID)
-      .then(function() {
-        successMsg(message);
-        return Helpers.decrementMsgCount("fallback");
-      })
-      .then(function() {
-        ch.ack(msg);
-      }).catch(function(err) {
-        errMsg(message, msg, message, err);
-        return Helpers.decrementMsgCount("fallback")
-        .then(function() {
-          ch.ack(msg);
-        })
-        .catch(function(err) {
-          Sentry.captureException(err);
-          ch.ack(msg);
-        });
-      });
-    break;
-  }
+  return MessageHandler.handleMessage(ch, message, msg, "fallback");
 }
 
 global.ORIGIN_PATH = (shell.pwd() + "/");

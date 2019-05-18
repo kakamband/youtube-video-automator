@@ -15,12 +15,15 @@ var shell = require('shelljs');
 // --------------------------------------------
 
 // The CDN URL
-const cdnURL = "https://d2b3tzzd3kh620.cloudfront.net";
+const cdnURL = Attr.CDN_URL;
 
 const downloadingClipNotification = "currently-clipping";
 const needTitleOrDescriptionNotification = "need-title-or-description";
+const videoProcessingNotification = "currently-processing";
+const videoUploadingNotification = "currently-uploading";
+const videoDoneUploadingNotification = "done-uploading";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
-const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification];
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification];
 
 const defaultTTL = 3600; // 1 hour.
 
@@ -582,7 +585,7 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
         return validateUserAndGetID(username, pmsID, email, password)
         .then(function(id) {
             userID = id;
-            return _getClipInfoHelper(userID, pmsID, downloadID, true);
+            return _getClipInfoHelper(userID, pmsID, downloadID, true, true);
         })
         .then(function(clipInfo) {
             var allowedStates = ["currently_processing", "still_currently_clipping", "clip_deleted", "need_title_description_first"];
@@ -714,7 +717,7 @@ function uploadImageToS3(userID, imgB64) {
             }
 
             var filepathSplit = filepath.split("/");
-            var fileNameInCDN = "https://d2b3tzzd3kh620.cloudfront.net/" + Attr.AWS_S3_THUMBNAIL_PATH + filepathSplit[filepathSplit.length - 1];
+            var fileNameInCDN = Attr.CDN_URL + "/" + Attr.AWS_S3_THUMBNAIL_PATH + filepathSplit[filepathSplit.length - 1];
 
             return _uploadFileToS3(filepath)
             .then(function() {
@@ -921,10 +924,10 @@ function getClipVideoHelper(userID, downloadID) {
             if (downloadObj == undefined) {
                 return reject(Errors.clipDoesntExist());
             } else {
-                if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                if (downloadObj.downloaded_file == null || !downloadObj.downloaded_file.startsWith(Attr.CDN_URL)) {
                     redis.set(clipVideoKey, "false", "EX", clipVideoTTL);
                     return resolve(undefined);
-                } else if (downloadObj.downloaded_file.startsWith("https://d2b3tzzd3kh620.cloudfront.net")) {
+                } else if (downloadObj.downloaded_file.startsWith(Attr.CDN_URL)) {
                     redis.set(clipVideoKey, downloadObj.downloaded_file, "EX", clipVideoTTL);
                     return resolve(downloadObj.downloaded_file);
                 } else {
@@ -1003,7 +1006,7 @@ function _legacyClipSecondsCalculator(createdAt, updatedAt) {
     return legacyLength;
 }
 
-function predictProcessingStartTime(startedDateTime) {
+function predictProcessingStartTime(startedDateTime, getEstimateInFuture) {
     startedDateTime.setSeconds(0); // Seconds are irrelevant here
 
     // Step 1 add the minimum delay time to the date
@@ -1019,14 +1022,14 @@ function predictProcessingStartTime(startedDateTime) {
     // Step 4 Make sure that this is in the future.
     // If the expected start time is already passed, something weird has occured so change it to be in the future.
     var currentDateTime = new Date();
-    if (startedDateTime < currentDateTime) {
+    if (startedDateTime < currentDateTime && getEstimateInFuture == true) {
         return predictProcessingStartTime(currentDateTime);
     } else {
         return startedDateTime;
     }
 }
 
-function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
+function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInFuture) {
     var info = {};
     var gameName = null;
     var totalVideoLength = 0;
@@ -1116,16 +1119,18 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
                 info.processing_start_estimate = "currently_processing";
             } else if (info.state == "deleted-soon" || info.state == "deleted") {
                 info.processing_start_estimate = "clip_deleted";
+            } else if (info.state == "uploading") {
+                info.processing_start_estimate = "currently_uploading";
             } else if (info.state == "done-need-info") {
                 info.processing_start_estimate = "need_title_description_first";
             } else if (processingEstimateDone != null && fullCycle == false) {
                 info.processing_start_estimate = processingEstimateDone;
             } else if (info.youtube_settings.force_video_processing == "true" || info.youtube_settings.force_video_processing == true) {
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else if (totalVideoLength >= minimumVideoLengthSeconds && processingEstimateDone == null) { // If the total video length is already greater than the minimum video length, then mark this with a time the video will start processing
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else if (info.exclusive == "true" || info.exclusive == true) {
-                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping)).toString();
+                info.processing_start_estimate = (predictProcessingStartTime(currentClipStoppedClipping, getEstimateInFuture)).toString();
             } else {
                 info.processing_start_estimate = null; // It won't be processed yet since it is still below the minimum video length
             }
@@ -1138,8 +1143,12 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle) {
     });
 }
 
+module.exports.getClipInfoWrapper = function(userID, pmsID, downloadID) {
+    return _getClipInfoHelper(userID, pmsID, downloadID, true, false);
+}
+
 function getClipInfoHelper(userID, pmsID, downloadID) {
-    return _getClipInfoHelper(userID, pmsID, downloadID, false);
+    return _getClipInfoHelper(userID, pmsID, downloadID, false, true);
 }
 
 function customCategory(userID, downloadID, optionValue) {
