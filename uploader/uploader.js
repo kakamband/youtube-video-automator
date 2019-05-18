@@ -654,7 +654,7 @@ function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fi
 			requestBody: {
 				snippet: videoObject,
 				status: {
-					privacyStatus: "public", // FOR NOW ONLY
+					privacyStatus: "public", // TODO: Possibly change this to be a configurable value.
 				},
 			},
 			media: {
@@ -809,10 +809,32 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			return _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderLocation, pmsID);
 		})
 		.then(function() {
+			return _deleteProcessedVideoFolder(folderLocation);
+		})
+		.then(function() {
 			return resolve("https://www.youtube.com/watch?v=" + videoID);
 		})
 		.catch(function(err) {
 			return reject(err);
+		});
+	});
+}
+
+function _deleteProcessedVideoFolder(folderLocation) {
+	return new Promise(function(resolve, reject) {
+		var cmd = "rm -rf " + folderLocation;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				cLogger.info("Unable to delete the processed video folder. Needs to be manually deleted.");
+				ErrorHelper.scopeConfigureWarning("uploader._deleteProcessedVideoFolder", {
+					folder_location: folderLocation,
+					err: stderr
+				});
+				ErrorHelper.emitSimpleError(err);
+			}
+
+			return resolve();
 		});
 	});
 }
@@ -954,7 +976,7 @@ function _attemptToAddComment(youtubeClient, videoID, channelID, gameName, pmsID
 
 function _attemptToLikeVideo(youtubeClient, videoID, vidInfo) {
 	return new Promise(function(resolve, reject) {
-		if (vidInfo.youtube_settings == "true" || vidInfo.youtube_settings == true) {
+		if (vidInfo.youtube_settings.liked == "true" || vidInfo.youtube_settings.liked == true) {
 			return Rater.likeVideo(youtubeClient, videoID)
 			.then(function() {
 				return resolve();

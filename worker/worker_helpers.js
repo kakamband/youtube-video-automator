@@ -343,7 +343,7 @@ function queueVideosToProcess(possibleVideos) {
 					var expectedStartDate = new Date(processingStartEstimate);
 
 					// This video is in a state where we can continue. Now make sure that the current time has surpassed the expected processing time
-					if (expectedStartDate > currentDate) {
+					if (expectedStartDate >= currentDate) {
 						// This video is expected to start processing, however not yet. So either continue, or end.
 						cLogger.mark("The following video has a start processing estimate that is in the future (" + expectedStartDate + ").");
 						return nextPossibleHelper();

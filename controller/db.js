@@ -211,7 +211,7 @@ function getNotifications(pmsID, notificationNames) {
 }
 
 module.exports.getVideosNotifications = function(pmsID) {
-	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading"]);
+	return getNotifications(pmsID, ["videos-intro", "currently-clipping", "need-title-or-description", "currently-processing", "currently-uploading", "done-uploading"]);
 }
 
 module.exports.getDashboardNotifications = function(pmsID) {
@@ -531,7 +531,7 @@ module.exports.removeComment = function(pmsID, gameName, comment) {
 	});
 }
 
-module.exports.removeSpecificComment = function(pmsID, gameName, comment, commentID, commentPostID) {
+module.exports.postedComment = function(pmsID, gameName, comment, commentID, commentPostID) {
 	return new Promise(function(resolve, reject) {
 		return knex('comments')
 		.where("pms_user_id", "=", pmsID)

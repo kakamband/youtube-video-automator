@@ -14,7 +14,8 @@ module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
 			cLogger.error(tmpErr);
 			ErrorHelper.scopeConfigureWarning("uploader.validateVideoCanBeUploaded", {
 				user_id: userID,
-				extra_info: content
+				extra_info: content,
+				to_download: toDownload
 			});
 			ErrorHelper.emitSimpleError(new Error(tmpErr));
 			return resolve(false);
@@ -29,7 +30,7 @@ module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
 				return logErrorWrapper("downloaded_file", currentClip);
 			} else {
 				count++;
-				if (count < toDownload.length - 1) {
+				if (count <= toDownload.length - 1) {
 					return next();
 				} else {
 					return resolve(true);

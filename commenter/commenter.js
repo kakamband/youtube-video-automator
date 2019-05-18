@@ -72,7 +72,7 @@ function _insertCommentHelper(youtube, channelID, videoID, commentText) {
 			}
 
 			cLogger.info("Comment succesfully added!");
-			return resolve(resp);
+			return resolve(resp.data);
 		});
 	});
 }
@@ -94,7 +94,7 @@ function _attemptToAddUserComment(youtube, videoID, channelID, gameName, pmsID) 
 			return _insertCommentHelper(youtube, channelID, videoID, postedComment.comment);
 		})
 		.then(function(postedCommentResp) {
-			return dbController.removeSpecificComment(pmsID, gameName, postedComment.comment, postedComment.id, postedCommentResp.id);
+			return dbController.postedComment(pmsID, gameName, postedComment.comment, postedComment.id, postedCommentResp.id);
 		})
 		.then(function() {
 			return resolve();
