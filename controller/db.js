@@ -988,7 +988,7 @@ function addNewPayments(ID, paymentsRAW) {
 			.where('pms_user_id', '=', ID)
 			.where('subscription_id', '=', payments[count].subscription_plan_id)
 			.where('payment_gateway', '=', payments[count].payment_gateway)
-			.returning('status')
+			.returning(['status', 'updated_at'])
 			.then(function(result) {
 				if (result.length == 0) {
 					cLogger.info("Payment doesn't exist, verifying payment integrity with Stripe first.");
@@ -1018,14 +1018,18 @@ function addNewPayments(ID, paymentsRAW) {
 						}
 					});
 				} else { // Already exists, so just update
-					if (result[0].status != payments[count].status) {
+					var previousPaymentDate = new Date(result[0].updated_at);
+					var newPaymentDate = new Date(payments[count].date);
+
+					if (result[0].status != payments[count].status || newPaymentDate > previousPaymentDate) {
 						cLogger.info("Payment already exists. Updating and Continuing.");
 						return knex('payments')
 						.where('pms_user_id', '=', ID)
 						.where('subscription_id', '=', payments[count].subscription_plan_id)
 						.where('payment_gateway', '=', payments[count].payment_gateway)
 						.update({
-							status: payments[count].status
+							status: payments[count].status,
+							updated_at: newPaymentDate
 						})
 						.then(function() {
 							count++;
