@@ -5,6 +5,7 @@ var ErrorHelper = require('../errors/errors');
 var Errors = require('../errors/defined_errors');
 const stripeProd = require('stripe')(Secrets.STRIPE_PROD_SECRET);
 const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
+var Attr = require('../config/attributes');
 
 module.exports.alreadyUsed = function(game, id, trackingID) {
 	return new Promise(function(resolve, reject) {
@@ -931,8 +932,8 @@ module.exports.createOrUpdateUserSubscriptions = function(username, ID, email, p
 		.then(function() {
 			return getCurrentActiveSubscription(ID);
 		})
-		.then(function(activeSubscription) {
-			return resolve(activeSubscription);
+		.then(function(activeSubscriptionInfo) {
+			return resolve(activeSubscriptionInfo);
 		})
 		.catch(function(err) {
 			return ErrorHelper.dbError(err);
@@ -953,7 +954,42 @@ function updateRedisValidUserKey(username, ID, oldEmail, oldPassword, newEmail, 
 	});
 }
 
+function _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID) {
+	return new Promise(function(resolve, reject) {
+		var subInfo = Attr.SUBSCRIPTION_VIDEO_CAPS.get(activeSubscriptionID);
+
+		if (subInfo == undefined) {
+			return ErrorHelper.dbError(new Error("The subscription was not defined: " + activeSubscriptionID));
+		} else {
+			if (subInfo.per_month) {
+				return knex('youtube_videos')
+				.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
+				.whereRaw("created_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
+				.count('id as CNT')
+				.then(function(total) {
+					return resolve(subInfo.videos_allowed - parseInt(total[0].CNT));
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				return knex('youtube_videos')
+				.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
+				.count('id as CNT')
+				.then(function(total) {
+					return resolve(subInfo.videos_allowed - parseInt(total[0].CNT));
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		}
+	});
+}
+
 function getCurrentActiveSubscription(pmsID) {
+	var activeSubscriptionID = -1;
+
 	return new Promise(function(resolve, reject) {
 		return knex('payments')
 		.returning("subscription_id")
@@ -963,10 +999,14 @@ function getCurrentActiveSubscription(pmsID) {
 		.limit(1)
 		.then(function(results) {
 			if (results.length == 0) {
-				return resolve(-1);
+				return resolve([-1, 0]);
 			}
 
-			return resolve(results[0].subscription_id);
+			activeSubscriptionID = results[0].subscription_id;
+			return _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID);
+		})
+		.then(function(numVideosLeft) {
+			return resolve([activeSubscriptionID, numVideosLeft]);
 		})
 		.catch(function(err) {
 			return ErrorHelper.dbError(err);

@@ -155,7 +155,8 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 		.then(function(results) {
 			return res.json({
 				success: true,
-				active_subscription: results[0],
+				active_subscription: results[0][0],
+				number_videos_left: results[0][1],
 				notifications: results[1]
 			});
 		})

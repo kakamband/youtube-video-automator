@@ -2853,7 +2853,7 @@ function dashboardAuthenticator($, username, ID, email, subscriptions, passwordH
       },
       success: function(result,status,xhr) {
         if (result.success) {
-		      toggleProfessionalPrompt($, result);
+		      toggleBasedOnSubscription($, result);
           toggleDashboardNotification($, result, username, ID, email, passwordHash);
           getHasToken($, username, ID, email, passwordHash);
         } else {
@@ -2890,7 +2890,7 @@ function authenticateWithAutoTuberHost($, username, ID, email, subscriptions, pa
       },
       success: function(result,status,xhr) {
         if (result.success) {
-          toggleProfessionalPrompt($, result);
+          toggleBasedOnSubscription($, result);
           console.log("Succesfully authenticated.");
         } else {
           console.log("Unsuccesfully authenticated.");
@@ -2921,7 +2921,7 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
       },
       success: function(result,status,xhr) {
         if (result.success) {
-          toggleProfessionalPrompt($, result);
+          toggleBasedOnSubscription($, result);
           
           switch (route) {
             case "videos":
@@ -2943,8 +2943,11 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
     });
 }
 
-// Toggles the professional prompt if the professional subscription is active
-function toggleProfessionalPrompt($, result) {
+// Toggles anything based on what the subscription level for the user is
+// What currently is being toggled: 
+// 1) The upgrade to professional prompt at the bottom of the screen.
+// 2) The info notification that you have no more videos to make.
+function toggleBasedOnSubscription($, result) {
   if (result.active_subscription == "716") { // If they are professional.
     $(".upgrade-to-professional-prompt").hide(); 
   }
