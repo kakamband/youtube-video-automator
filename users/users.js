@@ -294,9 +294,19 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
         })
         .then(function(gameName) {
             if (gameName != undefined) {
-                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+                return dbController.getActiveSubscriptionWrapper(pmsID);
             } else {
                 return resolve([false, "The stream link was invalid, or not live."]);
+            }
+        })
+        .then(function(subscriptionInfo) {
+            let activeSubscriptionID = subscriptionInfo[0];
+            let numberOfVideosLeft = subscriptionInfo[1];
+
+            if (numberOfVideosLeft > 0) {
+                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+            } else {
+                return resolve([false, "You do not have any more videos left for this payment period."]);
             }
         })
         .then(function(dlID) {

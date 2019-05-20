@@ -999,6 +999,10 @@ function _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID) {
 	});
 }
 
+module.exports.getActiveSubscriptionWrapper = function(pmsID) {
+	return getCurrentActiveSubscription(pmsID);
+}
+
 function getCurrentActiveSubscription(pmsID) {
 	var activeSubscriptionID = -1;
 
