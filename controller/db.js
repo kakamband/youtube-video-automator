@@ -1036,7 +1036,7 @@ function getCurrentActiveSubscription(pmsID) {
 	});
 }
 
-function addNewPayments(ID, paymentsRAW) {
+function addNewPayments(pmsID, paymentsRAW) {
 	var payments = JSON.parse(paymentsRAW);
 
 	return new Promise(function(resolve, reject) {
@@ -1048,7 +1048,7 @@ function addNewPayments(ID, paymentsRAW) {
 		function next() {
 			return knex('payments')
 			.select(['status', 'updated_at'])
-			.where('pms_user_id', '=', ID)
+			.where('pms_user_id', '=', pmsID)
 			.where('subscription_id', '=', payments[count].subscription_plan_id)
 			.where('payment_gateway', '=', payments[count].payment_gateway)
 			.then(function(result) {
@@ -1056,12 +1056,16 @@ function addNewPayments(ID, paymentsRAW) {
 					cLogger.info("Payment doesn't exist, verifying payment integrity with Stripe first.");
 					return stripePaymentExists(payments[count].transaction_id)
 					.then(function() {
-						return insertPayment(ID, payments[count])
+						return insertPayment(pmsID, payments[count])
 						.then(function() {
 							count++;
 							if (count < payments.length - 1) {
 								return next();
 							} else {
+								// Clear the cached count since it needs to be recalculated.
+								var key = "users_number_of_videos_left_" + pmsID;
+								redis.del(key);
+
 								return resolve();
 							}
 						})
@@ -1086,7 +1090,7 @@ function addNewPayments(ID, paymentsRAW) {
 					if (result[0].status != payments[count].status || newPaymentDate > previousPaymentDate) {
 						cLogger.info("Payment already exists. Updating and Continuing.");
 						return knex('payments')
-						.where('pms_user_id', '=', ID)
+						.where('pms_user_id', '=', pmsID)
 						.where('subscription_id', '=', payments[count].subscription_plan_id)
 						.where('payment_gateway', '=', payments[count].payment_gateway)
 						.update({
@@ -1098,6 +1102,10 @@ function addNewPayments(ID, paymentsRAW) {
 							if (count < payments.length - 1) {
 								return next();
 							} else {
+								// Clear the cached count since it needs to be recalculated.
+								var key = "users_number_of_videos_left_" + pmsID;
+								redis.del(key);
+
 								return resolve();
 							}
 						})
