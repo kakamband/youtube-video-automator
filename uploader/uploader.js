@@ -803,8 +803,6 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			descriptionVal += "\n\n" + vidInfo.youtube_settings.signature;
 		}
 
-		// TODO: If it is a free account, add some self promotion to the description + the tags.
-
 		// Build the video object
 		var videoObject = {
 			title: vidInfo.title,
@@ -814,8 +812,28 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			defaultLanguage: languageVal
 		};
 
-		// Get the users OAuth2 Tokens
-		return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
+		return dbController.getActiveSubscriptionWrapper(pmsID)
+		.then(function(subscriptionInfo) {
+			let activeSubscriptionID = subscriptionInfo[0];
+			let numberOfVideosLeft = subscriptionInfo[1];
+
+			// If the user has a basic subscription then add some autotuber free advertising to the description + the tags.
+			if (activeSubscriptionID == "667" || activeSubscriptionID == "-1" || activeSubscriptionID == -1) {
+				videoObject.description = videoObject.description + "\n\nProduced using the AutoTuber web application (twitchautomator.com). Jump start your Twitch streamer career by automatically uploading Youtube videos!";
+				videoObject.tags.push("autotuber");
+				videoObject.tags.push("AutoTuber");
+				videoObject.tags.push("twitchautomator.com");
+				videoObject.tags.push("twitchautomator.com/how-it-works");
+			}
+
+			// This should never happen. Sanity check.
+			if (numberOfVideosLeft <= 0) {
+				return reject(new Error("The number of videos left for the user is less than or equal to 0."));
+			}
+
+			// Get the users OAuth2 Tokens
+			return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID);
+		})
 		.then(function(userTokens) {
 			if (userTokens == null) {
 				return reject(new Error("Could not find the users access + refresh tokens."));
