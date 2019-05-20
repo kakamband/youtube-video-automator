@@ -2738,6 +2738,9 @@ module.exports.getVideoCountNumber = function(userID) {
 function _getUsersVideosHelper(userID, offsetVal, limitVal) {
 	return new Promise(function(resolve, reject) {
 		return knex('youtube_videos')
+		.select("*")
+		.select(knex.raw("(select value from titles where user_id=?::text AND download_id=(select id from downloads where user_id=?::text AND video_number=youtube_videos.video_number ORDER BY (clip_stopped_downloading)::float DESC LIMIT 1)::text ) as title", [userID, userID]))
+		.select(knex.raw("(select value from descriptions where user_id=?::text AND download_id=(select id from downloads where user_id=?::text AND video_number=youtube_videos.video_number ORDER BY (clip_stopped_downloading)::float DESC LIMIT 1)::text ) as description", [userID, userID]))
 		.where("user_id", "=", userID)
 		.orderBy("created_at", "DESC")
 		.offset(offsetVal)
