@@ -278,6 +278,7 @@ module.exports.getGamesList = function() {
 module.exports.startClip = function(username, pmsID, email, password, twitch_link) {
     var userID = "pms_" + pmsID;
     var downloadID = null;
+    var actualGameName = null;
     var result = [false, "Internal Server Error"];
     return new Promise(function(resolve, reject) {
         return validateUserAndGetID(username, pmsID, email, password)
@@ -294,6 +295,7 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
         })
         .then(function(gameName) {
             if (gameName != undefined) {
+                actualGameName = gameName;
                 return dbController.getActiveSubscriptionWrapper(pmsID);
             } else {
                 return resolve([false, "The stream link was invalid, or not live."]);
@@ -304,7 +306,7 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
             let numberOfVideosLeft = subscriptionInfo[1];
 
             if (numberOfVideosLeft > 0) {
-                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+                return Worker.addDownloadingTask((userID + ""), twitch_link, actualGameName);
             } else {
                 cLogger.error("The user has no videos left to upload. Cannot start a clip.");
                 return resolve([false, "You do not have any more videos left for this payment period."]);
