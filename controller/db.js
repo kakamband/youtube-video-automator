@@ -2774,6 +2774,14 @@ function _getUsersUnusedClipsHelper(userID, offsetVal, limitVal) {
 			if (results.length == 0) {
 				return resolve([]);
 			} else {
+
+				// Remove all of the downloaded_file's if they dont have the CDN in them
+	            for (var i = 0; i < results.length; i++) {
+	                if (results[i].downloaded_file.indexOf(Attr.CDN_URL) < 0) {
+	                	delete results[i].downloaded_file;
+	                }
+	            }
+
 				return resolve(results);
 			}
 		})

@@ -1189,9 +1189,32 @@ function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
   var trData = "<tr>";
   trData += trDataHelper(title);
   trData += trDataHelper(descr);
-  trData += trDataHelper("a href=\"" + vidURL + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">View</a>");
+  trData += trDataHelper("<a href=\"" + vidURL + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">View</a>");
   trData += trDataHelper(gameName);
   trData += trDataHelper(formatDateNicely(new Date(uploadDate)));
+
+  trData += "</tr>";
+  return trData;
+}
+
+function createClipDataTR(state, game, clipURL, clipID) {
+  
+  function trDataHelper(contentVal) {
+    return "<td class=\"published-video-td\">" + contentVal + "</td>";
+  }
+
+  var trData = "<tr>";
+  trData += trDataHelper(state);
+  trData += trDataHelper(game);
+
+  if (clipURL != undefined) {
+    trData += trDataHelper("Error Finding Clip.");
+  } else {
+    trData += trDataHelper("<a href=\"" + clipURL + "\" class=\"vp-a\">View</a>");
+  }
+
+  trData += trDataHelper("<a href=\"https://twitchautomator.com/dashboard?clipping=true&download_id=" + clipID + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">Settings</a>");
+  trData += trDataHelper("<a>Delete</a>");
 
   trData += "</tr>";
   return trData;
@@ -1202,6 +1225,7 @@ function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
+      $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
       var count = 0;
       function displayAllVideos() {
@@ -1210,15 +1234,27 @@ function getVideoPageData($, username, ID, email, passwordHash) {
         $(videoDisplayData).insertAfter("#top-published-video-header");
         count++;
         if (count <= data.done_videos.length - 1) {
-          return displayAllVideos();
-        } else {
-          return;
+          displayAllVideos();
         }
       }
 
       displayAllVideos();
     } else if (data.unused_clips && data.unused_clips.length > 0) {
       $(".no-clips-overlay").hide();
+      $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+
+      var count2 = 0;
+      function displayAllUnusedClips() {
+        var currentClipInfo = data.unused_clips[count2];
+        var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
+        $(clipDisplayData).insertAfter("#top-unused-clips-header");
+        count2++;
+        if (count2 <= data.unused_clips.length - 1) {
+          displayAllUnusedClips();
+        }
+      }
+
+      displayAllUnusedClips();
     }
   });
 }
