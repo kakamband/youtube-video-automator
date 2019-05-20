@@ -635,6 +635,27 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
     });
 }
 
+// getVideosData
+// Gets all the data need for displaying on the videos page
+module.exports.getVideosData = function(username, pmsID, email, password) {
+    var userID = pmsID;
+    var videoDataInfo = {};
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return dbController.getUsersPublishedVideos(userID);
+        })
+        .then(function(publishedVideos) {
+            videoDataInfo.done_videos = publishedVideos;
+            return resolve(videoDataInfo);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------

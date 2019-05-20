@@ -1157,6 +1157,36 @@ function toggleVideosNotification($, result, username, ID, email, passwordHash) 
   _handleAllNotifications($, result, username, ID, email, passwordHash);
 }
 
+// Calls the get video data endpoint
+function _getVideoDataHelper($, username, ID, email, passwordHash, cb) {
+    $.ajax({
+      type: "POST",
+      url: autoTuberURL + "/user/videos/info",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": passwordHash
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+        $("#err-loading-tkn-link").show();
+        stretchAWB($);
+      },
+      success: function(result,status,xhr) {
+        return cb(result);
+      },
+      dataType: "json"
+    });
+}
+
+// Gets all of the data that is needed for the videos page
+function getVideoPageData($, username, ID, email, passwordHash) {
+  return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
+    console.log("Data is: " + data);
+  });
+}
+
 // -----------------------------------------
 // Ending point for all Videos code
 // -----------------------------------------
@@ -2926,6 +2956,7 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
           switch (route) {
             case "videos":
               toggleVideosNotification($, result, username, ID, email, passwordHash);
+              getVideoPageData($, username, ID, email, passwordHash);
               break;
             case "account":
               toggleAccountNotification($, result, username, ID, email, passwordHash);

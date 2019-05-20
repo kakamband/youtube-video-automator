@@ -78,6 +78,9 @@ module.exports.SWAP_CLIP_ORDER = "/user/clip/swap-order";
 
 // Returns the processing time of a video, or if it won't be processed
 module.exports.POLL_PROCESSING_TIME = "/user/video/processing/estimate";
+
+// Returns all the data for the videos page
+module.exports.GET_VIDEOS_DATA = "/user/videos/info";
 // -------------------
 
 // Route definitions
@@ -420,6 +423,19 @@ module.exports.routes = new Map([
 			nameAndType("password", "string"),
 
 			nameAndType("download_id", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.GET_VIDEOS_DATA, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

@@ -466,4 +466,17 @@ router.post(Models.POLL_PROCESSING_TIME, function(req, res, next) {
 	});
 });
 
+router.post(Models.GET_VIDEOS_DATA, function(req, res, next) {
+	validFirst(Models.GET_VIDEOS_DATA, req, res, next, function() {
+		return Users.getVideosData(req.body.username, req.body.user_id, req.body.email, req.body.password)
+		.then(function(results) {
+			return res.json(results);
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.GET_VIDEOS_DATA, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

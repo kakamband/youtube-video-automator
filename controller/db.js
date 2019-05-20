@@ -2734,3 +2734,27 @@ module.exports.getVideoCountNumber = function(userID) {
 		});
 	});
 }
+
+function _getUsersVideosHelper(userID, offsetVal, limitVal) {
+	return new Promise(function(resolve, reject) {
+		return knex('youtube_videos')
+		.where("user_id", "=", userID)
+		.orderBy("created_at", "DESC")
+		.offset(offsetVal)
+		.limit(limitVal)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getUsersPublishedVideos = function(userID) {
+	return _getUsersVideosHelper(userID, 0, 10);
+}
