@@ -1197,24 +1197,36 @@ function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
   return trData;
 }
 
+function deleteUnusedClipHelper(clipID) {
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
+  if (globalJQuery == null) return;
+  if (!canAuth) return;
+
+  if (confirm("Are you sure you want to delete this clip? (ID: " + clipID + ")")) {
+      return deleteClipCall(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, clipID, true, function() {
+        globalJQuery("#unused-clip-in-tbl-id-" + clipID).hide();
+      });
+  }
+}
+
 function createClipDataTR(state, game, clipURL, clipID) {
   
   function trDataHelper(contentVal) {
     return "<td class=\"published-video-td\">" + contentVal + "</td>";
   }
 
-  var trData = "<tr>";
+  var trData = "<tr id=\"unused-clip-in-tbl-id-" + clipID + "\">";
   trData += trDataHelper(state);
   trData += trDataHelper(game);
 
-  if (clipURL != undefined) {
+  if (clipURL == undefined) {
     trData += trDataHelper("Error Finding Clip.");
   } else {
-    trData += trDataHelper("<a href=\"" + clipURL + "\" class=\"vp-a\">View</a>");
+    trData += trDataHelper("<a href=\"" + clipURL + "\" class=\"vp-a\" style=\"color: #6441A5; font-size: 15px; font-weight: 500;\">View</a>");
   }
 
   trData += trDataHelper("<a href=\"https://twitchautomator.com/dashboard?clipping=true&download_id=" + clipID + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">Settings</a>");
-  trData += trDataHelper("<a>Delete</a>");
+  trData += trDataHelper("<a class=\"delete-unused-clip-from-videos\" onclick=\"deleteUnusedClipHelper('" + clipID + "')\">Delete</a>");
 
   trData += "</tr>";
   return trData;
@@ -1256,6 +1268,17 @@ function getVideoPageData($, username, ID, email, passwordHash) {
 
       displayAllUnusedClips();
     }
+
+    // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+    // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+    // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+    $("a.vp-a").YouTubePopUp();
+    // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+    $(".vp-a").click(function() {
+      $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+      $(".VideoPopUpWrap").slice(1).remove();
+    });
   });
 }
 

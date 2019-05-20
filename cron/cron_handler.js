@@ -142,6 +142,11 @@ function deleteFromS3Bucket(fileName) {
 			return resolve();
 		}
 
+		// If the file for whatever reason was not uploaded to S3 just continue
+		if (fileName.indexOf(Attr.CDN_URL) < 0) {
+			return resolve();
+		}
+
 		var fileNameSplit = fileName.split(Attr.AWS_S3_BUCKET_VIDEO_PATH);
 		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
 
