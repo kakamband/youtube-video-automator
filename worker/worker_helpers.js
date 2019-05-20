@@ -233,7 +233,7 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 				created_at: new Date(),
 				updated_at: new Date(),
 				video_number: vidInfo.video_number
-			});
+			}, pmsID);
 		})
 		.then(function() {
 			return resolve();

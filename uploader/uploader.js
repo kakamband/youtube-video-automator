@@ -356,7 +356,7 @@ function handleBackfillFile(currFileName, numberOfUploads, index) {
 					updated_at: new Date()
 				};
 
-				return dbController.addYoutubeVideo(videoObj)
+				return dbController.addYoutubeVideo(videoObj, "") // DEPRECATED THIS WILL NO LONGER WORK
 				.then(function() {
 					cLogger.info("Have added the video to the DB.");
 					return resolve();
@@ -569,7 +569,7 @@ function addToDB(uploaded) {
 
 function addYTVideo(item) {
 	return new Promise(function(resolve, reject) {
-		return dbController.addYoutubeVideo(item)
+		return dbController.addYoutubeVideo(item, "") // DEPRECATED THIS WILL NOT WORK.
 		.then(function() {
 			return resolve();
 		})

@@ -88,11 +88,11 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 module.exports.doesUserExist = function(username, pmsID, email, password) {
 	return new Promise(function(resolve, reject) {
 		return knex('users')
+		.select("id")
 		.where('username', '=', username)
 		.where('pms_user_id', '=', pmsID)
 		.where('email', '=', email)
 		.where('password', '=', password)
-		.returning("id")
 		.then(function(user) {
 			if (user.length > 0) {
 				return resolve(user[0]);
@@ -956,34 +956,46 @@ function updateRedisValidUserKey(username, ID, oldEmail, oldPassword, newEmail, 
 
 function _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID) {
 	return new Promise(function(resolve, reject) {
-		var subInfo = Attr.SUBSCRIPTION_VIDEO_CAPS.get(activeSubscriptionID);
+		var key = "users_number_of_videos_left_" + pmsID;
 
-		if (subInfo == undefined) {
-			return ErrorHelper.dbError(new Error("The subscription was not defined: " + activeSubscriptionID));
-		} else {
-			if (subInfo.per_month) {
-				return knex('youtube_videos')
-				.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
-				.whereRaw("created_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
-				.count('id as CNT')
-				.then(function(total) {
-					return resolve(subInfo.videos_allowed - parseInt(total[0].CNT));
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else {
-				return knex('youtube_videos')
-				.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
-				.count('id as CNT')
-				.then(function(total) {
-					return resolve(subInfo.videos_allowed - parseInt(total[0].CNT));
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			}
-		}
+		return redis.get(key, function(err, reply) {
+            if (!err && reply != null && reply != "") {
+            	return resolve(parseInt(reply));
+            } else {
+            	var subInfo = Attr.SUBSCRIPTION_VIDEO_CAPS.get(activeSubscriptionID);
+
+				if (subInfo == undefined) {
+					return ErrorHelper.dbError(new Error("The subscription was not defined: " + activeSubscriptionID));
+				} else {
+					if (subInfo.per_month) {
+						return knex('youtube_videos')
+						.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
+						.whereRaw("created_at >= (SELECT updated_at FROM payments WHERE pms_user_id = ?)", [pmsID])
+						.count('id as CNT')
+						.then(function(total) {
+							var numberLeft = (subInfo.videos_allowed - parseInt(total[0].CNT));
+                			redis.set(key, numberLeft + "", "EX", 3600);
+							return resolve(numberLeft);
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					} else {
+						return knex('youtube_videos')
+						.whereRaw("user_id = (SELECT id FROM users WHERE pms_user_id = ? )::text", [pmsID])
+						.count('id as CNT')
+						.then(function(total) {
+							var numberLeft = (subInfo.videos_allowed - parseInt(total[0].CNT));
+                			redis.set(key, numberLeft + "", "EX", 3600);
+							return resolve(numberLeft);
+						})
+						.catch(function(err) {
+							return reject(err);
+						});
+					}
+				}
+            }
+        });
 	});
 }
 
@@ -992,7 +1004,7 @@ function getCurrentActiveSubscription(pmsID) {
 
 	return new Promise(function(resolve, reject) {
 		return knex('payments')
-		.returning("subscription_id")
+		.select("subscription_id")
 		.where("pms_user_id", "=", pmsID)
 		.whereRaw("updated_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
 		.orderBy("subscription_id", "DESC")
@@ -1025,10 +1037,10 @@ function addNewPayments(ID, paymentsRAW) {
 		var count = 0;
 		function next() {
 			return knex('payments')
+			.select(['status', 'updated_at'])
 			.where('pms_user_id', '=', ID)
 			.where('subscription_id', '=', payments[count].subscription_plan_id)
 			.where('payment_gateway', '=', payments[count].payment_gateway)
-			.returning(['status', 'updated_at'])
 			.then(function(result) {
 				if (result.length == 0) {
 					cLogger.info("Payment doesn't exist, verifying payment integrity with Stripe first.");
@@ -1201,9 +1213,9 @@ function addNewSubscriptions(pmsID, subs) {
 		var count = 0;
 		function next() {
 			return knex('user_subscriptions')
+			.select("status")
 			.where('pms_user_id', '=', pmsID)
 			.where('subscription_id', '=', subs[count].subscription_plan_id)
-			.returning("status")
 			.limit(1)
 			.then(function(result) {
 				if (result.length == 0) { // Doesn't exist yet
@@ -1801,11 +1813,16 @@ function findGameThumbnail(gameName, userID) {
 	});
 }
 
-module.exports.addYoutubeVideo = function(youtubeObj) {
+module.exports.addYoutubeVideo = function(youtubeObj, pmsID) {
 	return new Promise(function(resolve, reject) {
 		knex('youtube_videos')
 		.insert(youtubeObj)
 		.then(function(results) {
+
+			// Clear the cached count since it needs to be recalculated.
+			var key = "users_number_of_videos_left_" + pmsID;
+			redis.del(key);
+
 			return resolve();
 		})
 		.catch(function(err) {
