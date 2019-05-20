@@ -648,6 +648,10 @@ module.exports.getVideosData = function(username, pmsID, email, password) {
         })
         .then(function(publishedVideos) {
             videoDataInfo.done_videos = publishedVideos;
+            return dbController.getUsersUnusedClips(userID);
+        })
+        .then(function(unusedClips) {
+            videoDataInfo.unused_clips = unusedClips;
             return resolve(videoDataInfo);
         })
         .catch(function(err) {

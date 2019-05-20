@@ -2758,6 +2758,35 @@ function _getUsersVideosHelper(userID, offsetVal, limitVal) {
 	});
 }
 
+function _getUsersUnusedClipsHelper(userID, offsetVal, limitVal) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereIn("state", ["preparing", "started", "done", "done-need-info"])
+		.where("used", false)
+		.where("deleted", false)
+		.whereNull("video_number")
+		.whereNull("deleted_at")
+		.orderBy("created_at", "DESC")
+		.offset(offsetVal)
+		.limit(limitVal)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getUsersPublishedVideos = function(userID) {
 	return _getUsersVideosHelper(userID, 0, 10);
+}
+
+module.exports.getUsersUnusedClips = function(userID) {
+	return _getUsersUnusedClipsHelper(userID, 0, 10);
 }

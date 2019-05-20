@@ -1180,10 +1180,46 @@ function _getVideoDataHelper($, username, ID, email, passwordHash, cb) {
     });
 }
 
+function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
+  
+  function trDataHelper(contentVal) {
+    return "<td class=\"published-video-td\">" + contentVal + "</td>";
+  }
+
+  var trData = "<tr>";
+  trData += trDataHelper(title);
+  trData += trDataHelper(descr);
+  trData += trDataHelper("a href=\"" + vidURL + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">View</a>");
+  trData += trDataHelper(gameName);
+  trData += trDataHelper(formatDateNicely(new Date(uploadDate)));
+
+  trData += "</tr>";
+  return trData;
+}
+
 // Gets all of the data that is needed for the videos page
 function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
-    console.log("Data is: " + data);
+    if (data.done_videos && data.done_videos.length > 0) {
+      $(".no-videos-overlay").hide();
+
+      var count = 0;
+      function displayAllVideos() {
+        var currentVideoInfo = data.done_videos[count];
+        var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.game, currentVideoInfo.created_at);
+        $(videoDisplayData).insertAfter("#top-published-video-header");
+        count++;
+        if (count <= data.done_videos.length - 1) {
+          return displayAllVideos();
+        } else {
+          return;
+        }
+      }
+
+      displayAllVideos();
+    } else if (data.unused_clips && data.unused_clips.length > 0) {
+      $(".no-clips-overlay").hide();
+    }
   });
 }
 
@@ -1668,11 +1704,7 @@ function reorderCombinedClip(clipTRID, direction, clickedClipID, currentPageDown
 // Returns a row for a done clip
 function createClipItem(downloadID, clipNumber, clipDate, clipStreamer, clipLink, clipID, extraSeconds, pageDownloadID) {
   // Sanitize the date
-  var monthStr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  var clipDay = clipDate.getDate();
-  var clipMonth = monthStr[clipDate.getMonth()];
-  var clipYear = clipDate.getFullYear();
-  var clipDateStr = clipMonth + " " + clipDay + ", " + clipYear + ".";
+  var clipDateStr = formatDateNicely(clipDate);
 
   // Sanitize the streamer name
   var clipStreamerSplit = clipStreamer.split("twitch.tv/");
@@ -2984,6 +3016,16 @@ function toggleBasedOnSubscription($, result) {
   } else if (result.number_videos_left <= 0) {
     $(".no-videos-left-notification").show();
   }
+}
+
+function formatDateNicely(clipDate) {
+  var monthStr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var clipDay = clipDate.getDate();
+  var clipMonth = monthStr[clipDate.getMonth()];
+  var clipYear = clipDate.getFullYear();
+  var clipDateStr = clipMonth + " " + clipDay + ", " + clipYear + ".";
+
+  return clipDateStr;
 }
 
 // Resizes all the objects on the page
