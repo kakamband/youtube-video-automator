@@ -956,6 +956,12 @@ function updateRedisValidUserKey(username, ID, oldEmail, oldPassword, newEmail, 
 
 function _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID) {
 	return new Promise(function(resolve, reject) {
+		// Lets not error here.
+		if (activeSubscriptionID == "-1" || parseInt(activeSubscriptionID) == -1) {
+			return resolve(0);
+		}
+
+
 		var key = "users_number_of_videos_left_" + pmsID;
 
 		return redis.get(key, function(err, reply) {
