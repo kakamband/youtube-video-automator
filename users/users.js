@@ -897,6 +897,10 @@ function setUserDownloadingNotification(pmsID, downloadID) {
     var contentStr = JSON.stringify(content);
 
     return new Promise(function(resolve, reject) {
+        if (downloadID == undefined) {
+            return resolve();
+        }
+
         return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
         .then(function() {
             return dbController.createDownloadNotification(pmsID, contentStr);

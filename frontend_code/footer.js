@@ -2950,6 +2950,8 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
 function toggleBasedOnSubscription($, result) {
   if (result.active_subscription == "716") { // If they are professional.
     $(".upgrade-to-professional-prompt").hide(); 
+  } else if (result.number_videos_left <= 0) {
+    $(".no-videos-left-notification").show();
   }
 }
 
@@ -3050,6 +3052,7 @@ jQuery(document).ready(function( $ ){
   $(".video-uploading-notification").hide();
   $(".video-processing-notification").hide();
   $(".video-done-uploading-notification").hide();
+  $(".no-videos-left-notification").hide();
   
   // Logic now based on the specific route
   var pageURL = $(location).attr("href").split(".com/");

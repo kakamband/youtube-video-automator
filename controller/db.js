@@ -145,6 +145,7 @@ function _setNotificationsSeen(pmsID, notificationNames) {
 	return new Promise(function(resolve, reject) {
 		return knex('notifications')
 		.where("pms_user_id", "=", pmsID)
+		.where("seen", "=", false)
 		.whereIn("notification", notificationNames)
 		.update({
 			seen: true,
