@@ -151,7 +151,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 		    	return a.order_number - b.order_number;
 			});
 
-			return Downloader.validateClipsCanBeProcessed(userID, combinedVideos);
+			return Downloader.validateClipsCanBeProcessed(userID, pmsID, combinedVideos);
 		})
 		.then(function(isValid) {
 			if (!isValid) {
@@ -233,7 +233,7 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 				created_at: new Date(),
 				updated_at: new Date(),
 				video_number: vidInfo.video_number
-			});
+			}, pmsID);
 		})
 		.then(function() {
 			return resolve();

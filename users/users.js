@@ -100,21 +100,21 @@ module.exports.updateUser = function(userData) {
 // Handles the update user data endpoint, this endpoint is hit every time a request comes in first.
 // This checks with stripe and handles all of our checks to make sure the user can continue with the product.
 module.exports.updateUserData = function(username, ID, email, password, payments, subs, currentRoute) {
-    var activeSubscriptionNum = -1;
+    var activeSubscriptionInformation = [-1];
 
     return new Promise(function(resolve, reject) {
     	return dbController.createOrUpdateUserSubscriptions(username, ID, email, password, payments, subs)
-    	.then(function(activeSubscription) {
-            activeSubscriptionNum = activeSubscription;
+    	.then(function(activeSubscriptionInfo) {
+            activeSubscriptionInformation = activeSubscriptionInfo;
 
             if (currentRoute == null) {
-                return resolve([activeSubscription, []]);
+                return resolve([activeSubscriptionInfo, []]);
             } else {
                 return getCurrentRouteNotifications(ID, currentRoute);
             }
     	})
         .then(function(notifications) {
-            return resolve([activeSubscriptionNum, notifications]);
+            return resolve([activeSubscriptionInformation, notifications]);
         })
     	.catch(function(err) {
     		return reject(err);
@@ -294,9 +294,19 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
         })
         .then(function(gameName) {
             if (gameName != undefined) {
-                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+                return dbController.getActiveSubscriptionWrapper(pmsID);
             } else {
                 return resolve([false, "The stream link was invalid, or not live."]);
+            }
+        })
+        .then(function(subscriptionInfo) {
+            let activeSubscriptionID = subscriptionInfo[0];
+            let numberOfVideosLeft = subscriptionInfo[1];
+
+            if (numberOfVideosLeft > 0) {
+                return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
+            } else {
+                return resolve([false, "You do not have any more videos left for this payment period."]);
             }
         })
         .then(function(dlID) {
@@ -1927,7 +1937,7 @@ function validateUserAndGetID(username, ID, email, password) {
 
 	return new Promise(function(resolve, reject) {
 
-		// At some point we should be checking redis here instead. This will be one of the most used functions.
+        // Check if its in Redis first.
         return checkIfInRedis(redisKey)
         .then(function(reply) {
             if (reply != undefined) {
