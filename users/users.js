@@ -306,6 +306,7 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
             if (numberOfVideosLeft > 0) {
                 return Worker.addDownloadingTask((userID + ""), twitch_link, gameName);
             } else {
+                cLogger.error("The user has no videos left to upload. Cannot start a clip.");
                 return resolve([false, "You do not have any more videos left for this payment period."]);
             }
         })
