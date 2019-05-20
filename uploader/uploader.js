@@ -737,12 +737,38 @@ module.exports.validateVideoCanBeUploaded = function(userID, pmsID, downloadID, 
 			if (anyMissingOptions != undefined) {
 				return logErrorWrapper(anyMissingOptions);
 			} else {
+				return _userHasVideosLeft(pmsID);
+			}
+		})
+		.then(function(hasVideosLeft) {
+			if (!hasVideosLeft) {
+				return logErrorWrapper("videos_left_to_upload");
+			} else {
 				return resolve(true);
 			}
 		})
 		.catch(function(err) {
 			return reject(err);
 		});
+	});
+}
+
+function _userHasVideosLeft(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return dbController.getActiveSubscriptionWrapper(pmsID)
+		.then(function(subscriptionInfo) {
+            let activeSubscriptionID = subscriptionInfo[0];
+            let numberOfVideosLeft = subscriptionInfo[1];
+
+            if (numberOfVideosLeft > 0) {
+            	return resolve(true);
+            } else {
+            	return resolve(false);
+            }
+		})
+		.catch(function(err) {
+			return reject(err);
+		})
 	});
 }
 

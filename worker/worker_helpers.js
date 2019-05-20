@@ -151,7 +151,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 		    	return a.order_number - b.order_number;
 			});
 
-			return Downloader.validateClipsCanBeProcessed(userID, combinedVideos);
+			return Downloader.validateClipsCanBeProcessed(userID, pmsID, combinedVideos);
 		})
 		.then(function(isValid) {
 			if (!isValid) {

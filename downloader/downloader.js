@@ -6,7 +6,7 @@ var dbController = require('../controller/db');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 var ErrorHelper = require('../errors/errors');
 
-module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
+module.exports.validateClipsCanBeProcessed = function(userID, pmsID, toDownload) {
 	return new Promise(function(resolve, reject) {
 
 		function logErrorWrapper(missingItm, content) {
@@ -38,7 +38,36 @@ module.exports.validateClipsCanBeProcessed = function(userID, toDownload) {
 			}
 		}
 
-		return next();
+		return _userHasVideosLeft(pmsID)
+		.then(function(hasVideosLeft) {
+			if (!hasVideosLeft) {
+				return logErrorWrapper("videos_left_to_upload", {});
+			} else {
+				return next();
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _userHasVideosLeft(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return dbController.getActiveSubscriptionWrapper(pmsID)
+		.then(function(subscriptionInfo) {
+            let activeSubscriptionID = subscriptionInfo[0];
+            let numberOfVideosLeft = subscriptionInfo[1];
+
+            if (numberOfVideosLeft > 0) {
+            	return resolve(true);
+            } else {
+            	return resolve(false);
+            }
+		})
+		.catch(function(err) {
+			return reject(err);
+		})
 	});
 }
 
