@@ -2675,6 +2675,7 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
           var isChecked = $('#exclusive-video-input').is(":checked");
           updateExclusive($, username, ID, email, pass, downloadID, isChecked);
           toggleExclusivity(isChecked);
+          _handleExpectedProgEndClipHelper($, username, ID, email, pass, downloadID, clipInfo, false);
         });
 
         // Set the title and description to autogrow

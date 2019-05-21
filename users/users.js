@@ -1088,7 +1088,7 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInF
                 gameName = info.game;
 
                 if (info.clip_stopped_downloading != null) {
-                    currentClipStoppedClipping = new Date(info.clip_stopped_downloading);
+                    currentClipStoppedClipping = new Date(parseInt(info.clip_stopped_downloading));
                 } else {
                     // Legacy should not be used if possible...
                     cLogger.info("The clips stopped downloading date isn't set yet, or this is a legacy clip. Using created at for now.");

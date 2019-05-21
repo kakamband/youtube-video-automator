@@ -1454,7 +1454,8 @@ function possiblyUpdateDownloadState(userID, pmsID, downloadID) {
 function setTitleDescHelper(type, userID, pmsID, downloadID, value) {
 	return new Promise(function(resolve, reject) {
 		if (type == "titles" && value == "") {
-			return reject(new Error("The value passed for the title is empty. A description can be empty, but not a title."));
+			cLogger.info("The title is empty, so nothing to set.");
+			return resolve();
 		}
 
 		return titleOrDescExists(type, userID, downloadID)
