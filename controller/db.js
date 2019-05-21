@@ -1114,7 +1114,6 @@ function addNewPayments(pmsID, paymentsRAW) {
 							return ErrorHelper.dbError(err);
 						});
 					} else {
-						cLogger.info("Payment already exists. Not updating since status is the same, Continuing.");
 						count++;
 						if (count < payments.length - 1) {
 							return next();

@@ -1187,7 +1187,7 @@ function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
     return "<td class=\"published-video-td\">" + contentVal + "</td>";
   }
 
-  var trData = "<tr>";
+  var trData = "<tr style=\"height: 100px; border-bottom: 1pt solid #2c2c2c;\">";
   trData += trDataHelper(title);
   trData += trDataHelper(descr);
   trData += trDataHelper("<a href=\"" + vidURL + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">View</a>");
@@ -1216,7 +1216,7 @@ function createClipDataTR(state, game, clipURL, clipID) {
     return "<td class=\"published-video-td\">" + contentVal + "</td>";
   }
 
-  var trData = "<tr id=\"unused-clip-in-tbl-id-" + clipID + "\">";
+  var trData = "<tr id=\"unused-clip-in-tbl-id-" + clipID + "\" style=\"height: 100px; border-bottom: 1pt solid #2c2c2c;\">";
   trData += trDataHelper(state);
   trData += trDataHelper(game);
 

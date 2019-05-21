@@ -201,7 +201,6 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 		function next() {
 			return redis.get(redisKey, function(err, reply) {
 				if (!err && reply != null) {
-					cLogger.info("Checking if we need to stop through Redis.");
 					if (reply.toString() == "active") {
 						if (currentPolls >= maxPolls) {
 							cLogger.error("Have timed out! This is bad for resources, and should be avoided at all costs!");
@@ -226,7 +225,6 @@ function stopHelper(userID, gameName, twitchStream, downloadID) {
 						return resolve();
 					}
 				} else {
-					cLogger.info("Checking if we need to stop through the DB.");
 					return dbController.needToStopDownload(userID, gameName, twitchStream, downloadID)
 					.then(function(stop) {
 						if (stop) {
