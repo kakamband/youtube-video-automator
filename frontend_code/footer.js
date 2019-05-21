@@ -677,7 +677,7 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   }
 
   // Video uploading notification
-  if (showProcessingNotification) {
+  if (showUploadingNotification) {
     $(".video-uploading-notification").show();
     $("#video-uploading-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + uploadingContent.download_id));
     $(".close-video-uploading-notification").click(function() {
