@@ -981,7 +981,7 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 			return _setThumbnailHelper(youtubeClient, videoID, destinationPath);
 		})
 		.then(function() {
-			return _deleteDownloadedThumbnailHelper(destinationPath);
+			return _deleteDownloadedThumbnailHelper(downloadedThumbnailLocation);
 		})
 		.then(function() {
 			return resolve();

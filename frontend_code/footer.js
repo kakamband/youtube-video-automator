@@ -688,7 +688,8 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   // Video done uploading notification
   if (showDoneUploadingNotification) {
     $(".video-done-uploading-notification").show();
-    $("#video-uploading-action-link").attr("href", uploadingContent.video_url);
+    $("#video-done-uploading-action-link").attr("target", "_blank");
+    $("#video-done-uploading-action-link").attr("href", uploadingDoneContent.video_url);
     $(".close-video-done-uploading-notification").click(function() {
       closeNotification($, "done-uploading", username, ID, email, passwordHash); 
     });
