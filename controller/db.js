@@ -2592,6 +2592,9 @@ module.exports.getAllProcessingReadyVideos = function() {
 					"SELECT clip_stopped_downloading FROM downloads d2 WHERE d1.user_id = d2.user_id AND state='done' ORDER BY (clip_stopped_downloading)::float DESC LIMIT 1 " +
 				") AND " +
 				"state='done' AND " +
+				"downloaded_file IS NOT NULL AND " +
+				"deleted=false AND " +
+				"position('" + Attr.CDN_URL + "' in downloaded_file) > 0 AND " +
 				"NOT EXISTS (SELECT * FROM users u1 WHERE u1.id = NULLIF(d1.user_id, '')::int AND u1.currently_processing = true)"
 		)
 		.then(function(results) {
