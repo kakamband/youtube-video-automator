@@ -147,9 +147,9 @@ module.exports.startProcessingCycle = function() {
 			timestamp: (new Date).getTime()
 		};
 
-		return workerStartingWork("encoder")
-		.then(function() {
-			return makeProcessingCyclePost(Attr.ENCODING_AMQP_CHANNEL_NAME, msgOptions);
+		return getQueueMeta()
+		.then(function(queueChoice) {
+			return makeProcessingCyclePost(queueChoice, msgOptions)
 		})
 		.then(function() {
 			return resolve();

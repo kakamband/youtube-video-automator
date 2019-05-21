@@ -273,6 +273,9 @@ function _uploadingFailedHandler(userID, pmsID, allClipIDs, err) {
 			return dbController.setUserVidNotProcessing(userID, pmsID);
 		})
 		.then(function() {
+			return dbController.setNotificationsSeen(pmsID, clipFlowNotifications);
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
@@ -295,6 +298,9 @@ function _processingFailedHandler(userID, pmsID, allClipIDs, err) {
 		return dbController.processingFailedForDownloads(userID, allClipIDs)
 		.then(function() {
 			return dbController.setUserVidNotProcessing(userID, pmsID);
+		})
+		.then(function() {
+			return dbController.setNotificationsSeen(pmsID, clipFlowNotifications);
 		})
 		.then(function() {
 			return resolve();
