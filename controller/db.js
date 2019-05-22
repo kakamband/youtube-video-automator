@@ -2801,3 +2801,17 @@ module.exports.getUsersPublishedVideos = function(userID) {
 module.exports.getUsersUnusedClips = function(userID) {
 	return _getUsersUnusedClipsHelper(userID, 0, 10);
 }
+
+module.exports.insertIntoNeedToBeDeleted = function(row) {
+	return new Promise(function(resolve, reject) {
+		return knex('need_to_be_deleted')
+		.insert(row)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+

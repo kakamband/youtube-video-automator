@@ -30,7 +30,10 @@ module.exports.init = function() {
 module.exports.permDeleteClips = function() {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Starting permanent delete clips process.");
-		return dbController.getAllDeleted()
+		return _deleteAllFinishedVideoClips()
+		.then(function() {
+			return dbController.getAllDeleted();
+		})
 		.then(function(results) {
 
 			// Nothing to delete
@@ -84,6 +87,14 @@ module.exports.permDeleteClips = function() {
 		.catch(function(err) {
 			return reject(err);
 		});
+	});
+}
+
+function _deleteAllFinishedVideoClips() {
+	return new Promise(function(resolve, reject) {
+		// TODO
+		cLogger.info("TODO: _deleteAllFinishedVideoClips");
+		return resolve();
 	});
 }
 

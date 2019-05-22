@@ -1236,6 +1236,8 @@ function createClipDataTR(state, game, clipURL, clipID) {
 // Gets all of the data that is needed for the videos page
 function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
+
+    // Display done videos if they exist
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
@@ -1252,7 +1254,10 @@ function getVideoPageData($, username, ID, email, passwordHash) {
       }
 
       displayAllVideos();
-    } else if (data.unused_clips && data.unused_clips.length > 0) {
+    }
+
+    // Display unused clips if they exist also
+    if (data.unused_clips && data.unused_clips.length > 0) {
       $(".no-clips-overlay").hide();
       $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
@@ -2854,6 +2859,32 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
           $(".stop-clipping-button").addClass("a-tag-disabled");
             handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+        } else if (clipInfo.state == "processing" || clipInfo.state == "uploading" || clipInfo.state == "uploaded" || clipInfo.state == "processing-failed" || clipInfo.state == "uploading-failed") {
+
+          // Update the timers to the correct time
+          var stoppedDate = new Date(clipInfo.updated_at);
+          var diff = stoppedDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+          var clipSeconds = Math.abs(diffTmp);
+          var totalVidSeconds = clipSeconds + extraVidTime;
+          updateTimer($, clipSeconds, totalVidSeconds);
+          $(".stop-clipping-button").addClass("a-tag-disabled");
+          $(".delete-clip-button").addClass("a-tag-disabled");
+
+          $("#clip-status").removeClass("clip-status-active");
+          $("#clip-status").addClass("clip-status-done");
+
+          if (clipInfo.state == "processing") {
+            $("#clip-status").text("Processing");
+          } else if (clipInfo.state == "uploading") {
+            $("#clip-status").text("Uploading");
+          } else if (clipInfo.state == "uploaded") {
+            $("#clip-status").text("Uploaded (Clips will be deleted after 48 hours)");
+          } else if (clipInfo.state == "processing-failed") {
+            $("#clip-status").text("Processing Failed");
+          } else if (clipInfo.state == "uploading-failed") {
+            $("#clip-status").text("Uploading Failed");
+          }
         }
 
         // Set the exclusive checkbox value
