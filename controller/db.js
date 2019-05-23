@@ -2035,6 +2035,27 @@ module.exports.getAllDeleted = function() {
 	});
 }
 
+module.exports.getAllNeedToBeDeleted = function() {
+	return new Promise(function(resolve, reject) {
+		return knex('need_to_be_deleted')
+		.select("*")
+		.select(knex.raw('(SELECT downloaded_file FROM downloads WHERE id=NULLIF(need_to_be_deleted.download_id, '')::int) as downloaded_file'))
+		.where("deleted", false)
+		.orderBy("created_at", "ASC")
+		.limit(100)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.setAsPermanentlyDeleted = function(downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('downloads')

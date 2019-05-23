@@ -1242,13 +1242,13 @@ function getVideoPageData($, username, ID, email, passwordHash) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
-      var count = 0;
+      var count = data.done_videos.length - 1;
       function displayAllVideos() {
         var currentVideoInfo = data.done_videos[count];
         var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.game, currentVideoInfo.created_at);
         $(videoDisplayData).insertAfter("#top-published-video-header");
-        count++;
-        if (count <= data.done_videos.length - 1) {
+        count--;
+        if (count >= 0) {
           displayAllVideos();
         }
       }
@@ -1261,13 +1261,13 @@ function getVideoPageData($, username, ID, email, passwordHash) {
       $(".no-clips-overlay").hide();
       $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
-      var count2 = 0;
+      var count2 = data.unused_clips.length - 1;
       function displayAllUnusedClips() {
         var currentClipInfo = data.unused_clips[count2];
         var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
         $(clipDisplayData).insertAfter("#top-unused-clips-header");
-        count2++;
-        if (count2 <= data.unused_clips.length - 1) {
+        count2--;
+        if (count2 >= 0) {
           displayAllUnusedClips();
         }
       }

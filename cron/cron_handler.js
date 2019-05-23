@@ -90,11 +90,47 @@ module.exports.permDeleteClips = function() {
 	});
 }
 
+function _possiblyDeleteClip(toBeDeleted) {
+	return new Promise(function(resolve, reject) {
+		var currentDate = new Date();
+		var cantBeDeletedBefore = new Date(toBeDeleted.cant_delete_before);
+
+		if (currentDate >= cantBeDeletedBefore) {
+			return 
+		} else {
+			return resolve();
+		}
+	});
+}
+
 function _deleteAllFinishedVideoClips() {
 	return new Promise(function(resolve, reject) {
-		// TODO
-		cLogger.info("TODO: _deleteAllFinishedVideoClips");
-		return resolve();
+		return dbController.getAllNeedToBeDeleted()
+		.then(function(results) {
+			if (!results || results.length == 0) return resolve();
+
+			var count = 0;
+			function next() {
+				var currentToBeDeleted = results[count];
+				return _possiblyDeleteClip(currentToBeDeleted)
+				.then(function() {
+					count++;
+					if (count <= results.length - 1) {
+						return next();
+					} else {
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
