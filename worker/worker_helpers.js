@@ -260,37 +260,6 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 // Helper functions below.
 // --------------------------------------------
 
-function _deleteClipFromS3NowHelper(currentClip) {
-	return new Promise(function(resolve, reject) {
-		if (currentClip.downloaded_file == null || currentClip.downloaded_file == undefined) {
-			// Emit this to Sentry
-			ErrorHelper.scopeConfigure("worker_helpers._deleteClipFromS3NowHelper", {
-				clip: currentClip
-			});
-			ErrorHelper.emitSimpleError(new Error("Cannot find a downloaded file to delete this clip."));
-			return resolve();
-		}
-
-		var fileNameSplit = currentClip.downloaded_file.split(Attr.CDN_URL);
-		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
-		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
-
-		var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual;
-		cLogger.info("Running CMD: " + cmd);
-		return shell.exec(cmd, function(code, stdout, stderr) {
-			if (code != 0) {
-				// Emit this to Sentry
-				ErrorHelper.scopeConfigure("worker_helpers._deleteClipFromS3NowHelper", {
-					clip: currentClip
-				});
-				ErrorHelper.emitSimpleError(new Error(stderr));
-			}
-
-			return resolve();
-		});
-	})
-}
-
 function _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL) {
 	return new Promise(function(resolve, reject) {
 		return dbController.getAllDownloadsIn(allClipIDs)
@@ -300,7 +269,7 @@ function _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL) {
 
 			function next() {
 				var currentClip = allDownloads[count];
-				return _deleteClipFromS3NowHelper(currentClip)
+				return CronHandler.deleteFromS3NowWrapper(currentClip)
 				.then(function() {
 					return dbController.updateDownloadedFileLocation(userID, currentClip.id, youtubeVideoURL);
 				})
@@ -383,7 +352,7 @@ function _deleteVideosFromS3AfterUpload(userID, pmsID, allClipIDs, youtubeVideoU
 				.catch(function(err) {
 					return reject(err);
 				});
-			} else if () { // Don't delete
+			} else if (activeSubscriptionInfo.name == "Professional") { // Don't delete
 				return resolve();
 			} else { // Delete in 48 hours
 				return _deleteClipsIn48Hours(userID, pmsID, allClipIDs)

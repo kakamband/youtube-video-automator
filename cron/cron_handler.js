@@ -90,13 +90,65 @@ module.exports.permDeleteClips = function() {
 	});
 }
 
+module.exports.deleteFromS3NowWrapper = function(currentClip) {
+	return _deleteClipFromS3NowHelper(currentClip);
+}
+
+function _deleteClipFromS3NowHelper(currentClip) {
+	return new Promise(function(resolve, reject) {
+		if (currentClip.downloaded_file == null || currentClip.downloaded_file == undefined) {
+			// Emit this to Sentry
+			ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
+				clip: currentClip
+			});
+			ErrorHelper.emitSimpleError(new Error("Cannot find a downloaded file to delete this clip."));
+			return resolve();
+		}
+
+		var fileNameSplit = currentClip.downloaded_file.split(Attr.CDN_URL);
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
+
+		var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				// Emit this to Sentry
+				ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
+					clip: currentClip
+				});
+				ErrorHelper.emitSimpleError(new Error(stderr));
+			}
+
+			return resolve();
+		});
+	})
+}
+
 function _possiblyDeleteClip(toBeDeleted) {
 	return new Promise(function(resolve, reject) {
 		var currentDate = new Date();
 		var cantBeDeletedBefore = new Date(toBeDeleted.cant_delete_before);
+		var currentClip = null;
 
 		if (currentDate >= cantBeDeletedBefore) {
-			return 
+				return dbController.getDownloadWithVideoURL(toBeDeleted.download_id)
+				.then(function(currentClipInfo) {
+					currentClip = currentClipInfo;
+					return _deleteClipFromS3NowHelper(toBeDeleted);
+				})
+				.then(function() {
+					return dbController.updateDownloadedFileLocation(userID, currentClip.id, currentClip.youtube_link);
+				})
+				.then(function() {
+					return dbController.updateNeedToBeDeleted(toBeDeleted.id, true);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
 		} else {
 			return resolve();
 		}
