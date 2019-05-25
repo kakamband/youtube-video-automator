@@ -98,11 +98,11 @@ function _deleteClipFromS3NowHelper(currentClip) {
 	return new Promise(function(resolve, reject) {
 		if (currentClip.downloaded_file == null || currentClip.downloaded_file == undefined) {
 			// Emit this to Sentry
+			var err = new Error("Cannot find a downloaded file to delete this clip.");
 			ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
 				clip: currentClip
 			});
-			ErrorHelper.emitSimpleError(new Error("Cannot find a downloaded file to delete this clip."));
-			return resolve();
+			return reject(err);
 		}
 
 		var fileNameSplit = currentClip.downloaded_file.split(Attr.CDN_URL);
@@ -117,7 +117,7 @@ function _deleteClipFromS3NowHelper(currentClip) {
 				ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
 					clip: currentClip
 				});
-				ErrorHelper.emitSimpleError(new Error(stderr));
+				return reject(new Error(stderr));
 			}
 
 			return resolve();
@@ -135,10 +135,10 @@ function _possiblyDeleteClip(toBeDeleted) {
 				return dbController.getDownloadWithVideoURL(toBeDeleted.download_id)
 				.then(function(currentClipInfo) {
 					currentClip = currentClipInfo;
-					return _deleteClipFromS3NowHelper(toBeDeleted);
+					return _deleteClipFromS3NowHelper(currentClip);
 				})
 				.then(function() {
-					return dbController.updateDownloadedFileLocation(userID, currentClip.id, currentClip.youtube_link);
+					return dbController.updateDownloadedFileLocation(currentClip.user_id, currentClip.id, currentClip.youtube_link);
 				})
 				.then(function() {
 					return dbController.updateNeedToBeDeleted(toBeDeleted.id, true);
