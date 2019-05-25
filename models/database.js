@@ -207,6 +207,14 @@ module.exports.initialize = function(knex) {
 	        table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('need_to_be_deleted', function(table) {
+	        table.increments();
+	        table.string("download_id").notNullable();
+	        table.string("cant_delete_before").notNullable();
+	        table.boolean("deleted").notNullable().default(false);
+	        table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;

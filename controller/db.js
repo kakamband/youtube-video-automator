@@ -1636,6 +1636,25 @@ function _getDownload(userID, downloadID) {
 	});
 }
 
+module.exports.getDownloadWithVideoURL = function(downloadID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.select("*")
+		.select(knex.raw('(SELECT url FROM youtube_videos WHERE video_number=downloads.video_number AND user_id=downloads.user_id) as youtube_link'))
+		.where("id", "=", parseInt(downloadID))
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve(undefined);
+			} else {
+				return resolve(results[0]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getDownload = function(userID, downloadID) {
 	return _getDownload(userID, downloadID);
 }
@@ -2031,6 +2050,27 @@ module.exports.getAllDeleted = function() {
 		})
 		.catch(function(err) {
 			return ErrorHelper.dbError(err);
+		});
+	});
+}
+
+module.exports.getAllNeedToBeDeleted = function() {
+	return new Promise(function(resolve, reject) {
+		return knex('need_to_be_deleted')
+		.select("*")
+		.select(knex.raw("(SELECT downloaded_file FROM downloads WHERE id=NULLIF(need_to_be_deleted.download_id, '')::int) as downloaded_file"))
+		.where("deleted", false)
+		.orderBy("created_at", "ASC")
+		.limit(100)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
 		});
 	});
 }
@@ -2800,4 +2840,34 @@ module.exports.getUsersPublishedVideos = function(userID) {
 
 module.exports.getUsersUnusedClips = function(userID) {
 	return _getUsersUnusedClipsHelper(userID, 0, 10);
+}
+
+module.exports.insertIntoNeedToBeDeleted = function(row) {
+	return new Promise(function(resolve, reject) {
+		return knex('need_to_be_deleted')
+		.insert(row)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateNeedToBeDeleted = function(id, deletedVal) {
+	return new Promise(function(resolve, reject) {
+		return knex('need_to_be_deleted')
+		.where("id", "=", id)
+		.update({
+			deleted: deletedVal,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
 }

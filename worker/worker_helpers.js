@@ -236,6 +236,9 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 			}, pmsID);
 		})
 		.then(function() {
+			return _deleteVideosFromS3AfterUpload(userID, pmsID, allClipIDs, youtubeVideoURL);
+		})
+		.then(function() {
 			return resolve();
 		})
 		.catch(function(err) {
@@ -256,6 +259,116 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL) {
+	return new Promise(function(resolve, reject) {
+		return dbController.getAllDownloadsIn(allClipIDs)
+		.then(function(allDownloads) {
+			var count = 0;
+			if (!allDownloads || allDownloads.length <= 0) return resolve();
+
+			function next() {
+				var currentClip = allDownloads[count];
+				return CronHandler.deleteFromS3NowWrapper(currentClip)
+				.then(function() {
+					return dbController.updateDownloadedFileLocation(userID, currentClip.id, youtubeVideoURL);
+				})
+				.then(function() {
+					return dbController.insertIntoNeedToBeDeleted({
+						download_id: currentClip.id + "",
+						cant_delete_before: new Date(), // Doesnt matter due to attribute below
+						deleted: true,
+						created_at: new Date(),
+						updated_at: new Date()
+					});
+				})
+				.then(function() {
+					count++;
+					if (count <= allDownloads.length - 1) {
+						return next();
+					} else {
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+
+			return next();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _deleteClipsIn48Hours(userID, pmsID, allClipIDs) {
+	return new Promise(function(resolve, reject) {
+		if (allClipIDs.length == 0) return resolve();
+
+		var count = 0;
+		var earliestDeletionTime = new Date();
+		earliestDeletionTime.setDate(earliestDeletionTime.getDate() + 2); // Add 48 hours to this time
+		function next() {
+			var currentClipID = allClipIDs[count];
+			return dbController.insertIntoNeedToBeDeleted({
+				download_id: currentClipID + "",
+				cant_delete_before: earliestDeletionTime.toString(),
+				deleted: false,
+				created_at: new Date(),
+				updated_at: new Date()
+			})
+			.then(function() {
+				count++;
+				if (count <= allClipIDs.length - 1) {
+					return next();
+				} else {
+					return resolve();
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	});
+}
+
+function _deleteVideosFromS3AfterUpload(userID, pmsID, allClipIDs, youtubeVideoURL) {
+	return new Promise(function(resolve, reject) {
+		return dbController.getActiveSubscriptionWrapper(pmsID)
+		.then(function(subscriptionInfo) {
+			let activeSubscriptionID = subscriptionInfo[0];
+			let numberOfVideosLeft = subscriptionInfo[1];
+
+			var activeSubscriptionInfo = Attr.SUBSCRIPTION_VIDEO_CAPS.get(activeSubscriptionID);
+			if (activeSubscriptionInfo == undefined || activeSubscriptionInfo.name == "Basic") { // Delete immediately
+				return _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else if (activeSubscriptionInfo.name == "Professional") { // Don't delete
+				return resolve();
+			} else { // Delete in 48 hours
+				return _deleteClipsIn48Hours(userID, pmsID, allClipIDs)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
 
 function _uploadingFailedHandler(userID, pmsID, allClipIDs, err) {
 	return new Promise(function(resolve, reject) {

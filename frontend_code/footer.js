@@ -1236,33 +1236,38 @@ function createClipDataTR(state, game, clipURL, clipID) {
 // Gets all of the data that is needed for the videos page
 function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
+
+    // Display done videos if they exist
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
-      var count = 0;
+      var count = data.done_videos.length - 1;
       function displayAllVideos() {
         var currentVideoInfo = data.done_videos[count];
         var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.game, currentVideoInfo.created_at);
         $(videoDisplayData).insertAfter("#top-published-video-header");
-        count++;
-        if (count <= data.done_videos.length - 1) {
+        count--;
+        if (count >= 0) {
           displayAllVideos();
         }
       }
 
       displayAllVideos();
-    } else if (data.unused_clips && data.unused_clips.length > 0) {
+    }
+
+    // Display unused clips if they exist also
+    if (data.unused_clips && data.unused_clips.length > 0) {
       $(".no-clips-overlay").hide();
       $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
 
-      var count2 = 0;
+      var count2 = data.unused_clips.length - 1;
       function displayAllUnusedClips() {
         var currentClipInfo = data.unused_clips[count2];
         var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
         $(clipDisplayData).insertAfter("#top-unused-clips-header");
-        count2++;
-        if (count2 <= data.unused_clips.length - 1) {
+        count2--;
+        if (count2 >= 0) {
           displayAllUnusedClips();
         }
       }
@@ -2854,6 +2859,32 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
           $(".stop-clipping-button").addClass("a-tag-disabled");
             handleDeleteClipBtn($, username, ID, email, pass, clipInfo, downloadID);
+        } else if (clipInfo.state == "processing" || clipInfo.state == "uploading" || clipInfo.state == "uploaded" || clipInfo.state == "processing-failed" || clipInfo.state == "uploading-failed") {
+
+          // Update the timers to the correct time
+          var stoppedDate = new Date(clipInfo.updated_at);
+          var diff = stoppedDate.getTime() - clipStart.getTime();
+          var diffTmp = diff / 1000;
+          var clipSeconds = Math.abs(diffTmp);
+          var totalVidSeconds = clipSeconds + extraVidTime;
+          updateTimer($, clipSeconds, totalVidSeconds);
+          $(".stop-clipping-button").addClass("a-tag-disabled");
+          $(".delete-clip-button").addClass("a-tag-disabled");
+
+          $("#clip-status").removeClass("clip-status-active");
+          $("#clip-status").addClass("clip-status-done");
+
+          if (clipInfo.state == "processing") {
+            $("#clip-status").text("Processing");
+          } else if (clipInfo.state == "uploading") {
+            $("#clip-status").text("Uploading");
+          } else if (clipInfo.state == "uploaded") {
+            $("#clip-status").text("Uploaded (Clips will be deleted after 48 hours)");
+          } else if (clipInfo.state == "processing-failed") {
+            $("#clip-status").text("Processing Failed");
+          } else if (clipInfo.state == "uploading-failed") {
+            $("#clip-status").text("Uploading Failed");
+          }
         }
 
         // Set the exclusive checkbox value

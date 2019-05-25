@@ -1138,8 +1138,10 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInF
                     }
                 }
 
-                // Only include the downloaded file link if its already stored in S3
-                if (toCombineVids[i].downloaded_file == null || !toCombineVids[i].downloaded_file.startsWith(cdnURL)) {
+                // Only include the downloaded file link if its already stored in S3 or in Youtube
+                var containsCDNURL = toCombineVids[i].downloaded_file.startsWith(cdnURL);
+                var containsYoutubeURL = (toCombineVids[i].downloaded_file.indexOf("youtube.com") >= 0);
+                if (toCombineVids[i].downloaded_file == null || (!containsCDNURL && !containsYoutubeURL)) {
                     delete toCombineVids[i].downloaded_file;
                 }
             }

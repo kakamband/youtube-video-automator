@@ -30,7 +30,10 @@ module.exports.init = function() {
 module.exports.permDeleteClips = function() {
 	return new Promise(function(resolve, reject) {
 		cLogger.info("Starting permanent delete clips process.");
-		return dbController.getAllDeleted()
+		return _deleteAllFinishedVideoClips()
+		.then(function() {
+			return dbController.getAllDeleted();
+		})
 		.then(function(results) {
 
 			// Nothing to delete
@@ -77,6 +80,102 @@ module.exports.permDeleteClips = function() {
 						return next();
 					}
 				}
+			}
+
+			return next();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.deleteFromS3NowWrapper = function(currentClip) {
+	return _deleteClipFromS3NowHelper(currentClip);
+}
+
+function _deleteClipFromS3NowHelper(currentClip) {
+	return new Promise(function(resolve, reject) {
+		if (currentClip.downloaded_file == null || currentClip.downloaded_file == undefined) {
+			// Emit this to Sentry
+			var err = new Error("Cannot find a downloaded file to delete this clip.");
+			ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
+				clip: currentClip
+			});
+			return reject(err);
+		}
+
+		var fileNameSplit = currentClip.downloaded_file.split(Attr.CDN_URL);
+		var fileNameActual = fileNameSplit[fileNameSplit.length - 1];
+		fileNameActual = fileNameActual.substr(1); // Remove the leading '/'
+
+		var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				// Emit this to Sentry
+				ErrorHelper.scopeConfigure("cron_handler._deleteClipFromS3NowHelper", {
+					clip: currentClip
+				});
+				return reject(new Error(stderr));
+			}
+
+			return resolve();
+		});
+	})
+}
+
+function _possiblyDeleteClip(toBeDeleted) {
+	return new Promise(function(resolve, reject) {
+		var currentDate = new Date();
+		var cantBeDeletedBefore = new Date(toBeDeleted.cant_delete_before);
+		var currentClip = null;
+
+		if (currentDate >= cantBeDeletedBefore) {
+				return dbController.getDownloadWithVideoURL(toBeDeleted.download_id)
+				.then(function(currentClipInfo) {
+					currentClip = currentClipInfo;
+					return _deleteClipFromS3NowHelper(currentClip);
+				})
+				.then(function() {
+					return dbController.updateDownloadedFileLocation(currentClip.user_id, currentClip.id, currentClip.youtube_link);
+				})
+				.then(function() {
+					return dbController.updateNeedToBeDeleted(toBeDeleted.id, true);
+				})
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+		} else {
+			return resolve();
+		}
+	});
+}
+
+function _deleteAllFinishedVideoClips() {
+	return new Promise(function(resolve, reject) {
+		return dbController.getAllNeedToBeDeleted()
+		.then(function(results) {
+			if (!results || results.length == 0) return resolve();
+
+			var count = 0;
+			function next() {
+				var currentToBeDeleted = results[count];
+				return _possiblyDeleteClip(currentToBeDeleted)
+				.then(function() {
+					count++;
+					if (count <= results.length - 1) {
+						return next();
+					} else {
+						return resolve();
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
 			}
 
 			return next();
