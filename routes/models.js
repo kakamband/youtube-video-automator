@@ -81,6 +81,9 @@ module.exports.POLL_PROCESSING_TIME = "/user/video/processing/estimate";
 
 // Returns all the data for the videos page
 module.exports.GET_VIDEOS_DATA = "/user/videos/info";
+
+// Returns a new set of data for the videos page (through pagination)
+module.exports.GET_VIDEOS_PAGE = "/user/videos/page";
 // -------------------
 
 // Route definitions
@@ -436,6 +439,22 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
 			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.GET_VIDEOS_PAGE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("video_type", "string"),
+			nameAndType("page_number", "int")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

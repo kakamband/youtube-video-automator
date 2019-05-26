@@ -2853,6 +2853,20 @@ module.exports.getUsersPublishedVideoPageInfo = function(userID) {
 	});
 }
 
+function _getOffsetFromPageNumber(pageNumber) {
+	// The offset is the page number * number on the page
+	// The page number we subtract 1 from since we start counting with a base number of 1, counting upwards (1, 2, 3, ...)
+	// So for the first page (1) we want no offset -> 0 * PER_PAGE_ON_VIDEOS_TABLES -> (page_number - 1) * PER_PAGE_ON_VIDEOS_TABLES
+	// For the second page (2) we want offset of PER_PAGE_ON_VIDEOS_TABLES -> 1 * PER_PAGE_ON_VIDEOS_TABLES -> (page_number - 1) * PER_PAGE_ON_VIDEOS_TABLES
+	// And onwards
+	var offsetVal = (pageNumber - 1) * PER_PAGE_ON_VIDEOS_TABLES;
+	return offsetVal;
+}
+
+module.exports.getUsersPublishedVideosPage = function(userID, pageNumber) {
+	return _getUsersVideosHelper(userID, _getOffsetFromPageNumber(pageNumber), PER_PAGE_ON_VIDEOS_TABLES);
+}
+
 module.exports.getUsersPublishedVideos = function(userID) {
 	return _getUsersVideosHelper(userID, 0, PER_PAGE_ON_VIDEOS_TABLES);
 }

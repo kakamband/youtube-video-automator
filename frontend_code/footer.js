@@ -1240,6 +1240,38 @@ function createClipDataTR(state, game, clipURL, clipID) {
   return trData;
 }
 
+function _handlePublishedVideoPages($, username, ID, email, passwordHash, data) {
+  var currentVideosPage = 1;
+  var maxVideoPages = 1;
+
+  if (data.done_videos_page != undefined) {
+    currentVideosPage = parseInt(data.done_videos_page);
+  }
+  if (data.done_videos_total_pages != undefined) {
+    maxVideoPages = parseInt(data.done_videos_total_pages);
+  }
+
+  $("#published-videos-paginator-container").show();
+  $("#published-videos-current-page").text(currentVideosPage);
+  $("#published-videos-num-pages").text(maxVideoPages);
+
+  // Can't go upwards
+  if (maxVideoPages <= currentVideosPage) {
+    $("#published-videos-next-page-btn").addClass("a-tag-disabled");
+  } else {
+    $("#published-videos-next-page-btn").removeClass("a-tag-disabled");
+  }
+
+  // Can't go to the first page (already there)
+  if (currentVideosPage == 1) {
+    $("#published-videos-first-page-btn").addClass("a-tag-disabled");
+    $("#published-videos-back-page-btn").addClass("a-tag-disabled");
+  } else {
+    $("#published-videos-first-page-btn").removeClass("a-tag-disabled");
+    $("#published-videos-back-page-btn").removeClass("a-tag-disabled");
+  }
+}
+
 // Gets all of the data that is needed for the videos page
 function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
@@ -1248,7 +1280,7 @@ function getVideoPageData($, username, ID, email, passwordHash) {
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
-      $("#published-videos-paginator-container").show();
+      _handlePublishedVideoPages($, username, ID, email, passwordHash, data);
 
       var count = data.done_videos.length - 1;
       function displayAllVideos() {

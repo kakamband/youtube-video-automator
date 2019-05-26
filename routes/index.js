@@ -479,4 +479,17 @@ router.post(Models.GET_VIDEOS_DATA, function(req, res, next) {
 	});
 });
 
+router.post(Models.GET_VIDEOS_PAGE, function(req, res, next) {
+	validFirst(Models.GET_VIDEOS_PAGE, req, res, next, function() {
+		return Users.getVideosDataPage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.video_type, req.body.page_number)
+		.then(function(results) {
+			return res.json(results);
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.GET_VIDEOS_PAGE, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

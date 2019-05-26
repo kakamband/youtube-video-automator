@@ -672,11 +672,49 @@ module.exports.getVideosData = function(username, pmsID, email, password) {
     });
 }
 
+// getVideosDataPage
+// Gets another page of video data for displaying on the videos page
+module.exports.getVideosDataPage = function(username, pmsID, email, password, videoType, pageNumber) {
+    var userID = pmsID;
+    var videoDataInfo = {};
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return _getVideosPageHelper(userID, pmsID, videoType, pageNumber);
+        })
+        .then(function(newSetOfVideos) {
+            videoDataInfo.new_video_data = newSetOfVideos;
+            return resolve(videoDataInfo);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
+    return new Promise(function(resolve, reject) {
+        switch (videoType) {
+            case "published_videos":
+                return dbController.getUsersPublishedVideosPage(pageNumber)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            default:
+                return reject(Errors.invalidVideoDataPageType());
+        }
+    });
+}
 
 function _uploadFileToS3(file) {
     return new Promise(function(resolve, reject) {
