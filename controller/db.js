@@ -7,6 +7,8 @@ const stripeProd = require('stripe')(Secrets.STRIPE_PROD_SECRET);
 const stripeTest = require('stripe')(Secrets.STRIPE_TEST_SECRET);
 var Attr = require('../config/attributes');
 
+const PER_PAGE_ON_VIDEOS_TABLES = 5;
+
 module.exports.alreadyUsed = function(game, id, trackingID) {
 	return new Promise(function(resolve, reject) {
 		knex('used_content')
@@ -2834,12 +2836,29 @@ function _getUsersUnusedClipsHelper(userID, offsetVal, limitVal) {
 	});
 }
 
+module.exports.getUsersPublishedVideoPageInfo = function(userID) {
+	return new Promise(function(resolve, reject) {
+		return knex("youtube_videos")
+		.where("user_id", "=", userID)
+		.count('id as CNT')
+		.then(function(total) {
+			var totalVideosCount = parseInt(total[0].CNT);
+			var totalPages = Math.ceil(totalVideosCount / PER_PAGE_ON_VIDEOS_TABLES);
+
+			return resolve(totalPages);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getUsersPublishedVideos = function(userID) {
-	return _getUsersVideosHelper(userID, 0, 5);
+	return _getUsersVideosHelper(userID, 0, PER_PAGE_ON_VIDEOS_TABLES);
 }
 
 module.exports.getUsersUnusedClips = function(userID) {
-	return _getUsersUnusedClipsHelper(userID, 0, 5);
+	return _getUsersUnusedClipsHelper(userID, 0, PER_PAGE_ON_VIDEOS_TABLES);
 }
 
 module.exports.insertIntoNeedToBeDeleted = function(row) {
@@ -2896,5 +2915,5 @@ function _getUsersPreviousClipsHelper(userID, offsetVal, limitVal) {
 }
 
 module.exports.getUsersPreviousClips = function(userID) {
-	return _getUsersPreviousClipsHelper(userID, 0, 5);
+	return _getUsersPreviousClipsHelper(userID, 0, PER_PAGE_ON_VIDEOS_TABLES);
 }

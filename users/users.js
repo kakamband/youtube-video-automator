@@ -651,6 +651,11 @@ module.exports.getVideosData = function(username, pmsID, email, password) {
         })
         .then(function(publishedVideos) {
             videoDataInfo.done_videos = publishedVideos;
+            videoDataInfo.done_videos_page = 1;
+            return dbController.getUsersPublishedVideoPageInfo(userID);
+        })
+        .then(function(publishedVideosPageInfo) {
+            videoDataInfo.done_videos_total_pages = publishedVideosPageInfo;
             return dbController.getUsersUnusedClips(userID);
         })
         .then(function(unusedClips) {

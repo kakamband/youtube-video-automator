@@ -1181,13 +1181,25 @@ function _getVideoDataHelper($, username, ID, email, passwordHash, cb) {
     });
 }
 
-function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
-  
-  var videoDataDisplay = "<div style=\"display: inline-block; width: 100%; background-color: black; height: 100px;\">";
+function clickedToSeePublishedVideo(vidURL) {
+  window.open(vidURL, '_blank');
+}
 
-  // TODO: Need a playlist image here
-  videoDataDisplay += "<span style=\"display: inline-block; float: left; padding: 25px; background-color: gray; margin: 10px; color: white;\">IMG</span>";
-  videoDataDisplay += "<span style=\"display: inline-block; float: left; margin: 10px; color: white;\"><span style=\"display: block;\">" + title + "</span><span style=\"display: block;\">" + descr + "</span></span>";
+function createVideoTR(title, descr, vidURL, uploadDate, thumbnailIMG) {
+  
+  var videoDataDisplay = "<div class=\"published-video-info-container\" onclick=\"clickedToSeePublishedVideo('" + vidURL + "')\">";
+
+  var videoImageLink = "https://d2b3tzzd3kh620.cloudfront.net/no-vid-thumbnail-temp-image.png";
+  if (thumbnailIMG != null) {
+    videoImageLink = thumbnailIMG;
+  }
+  videoDataDisplay += "<div class=\"published-video-left-img-container\"><span class=\"published-video-thumbnail-pivot\"></span><img src=\"" + videoImageLink + "\" class=\"published-video-thumbnail-display\"></div>";
+
+  videoDataDisplay += "<div class=\"published-video-text-container\">";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + title + "</span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + descr + "</span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Uploaded On: " + formatDateNicely(new Date(uploadDate)) + "</span>";
+  videoDataDisplay += "</div>";
 
   videoDataDisplay += "</div>";
   return videoDataDisplay;
@@ -1236,11 +1248,12 @@ function getVideoPageData($, username, ID, email, passwordHash) {
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+      $("#published-videos-paginator-container").show();
 
       var count = data.done_videos.length - 1;
       function displayAllVideos() {
         var currentVideoInfo = data.done_videos[count];
-        var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.game, currentVideoInfo.created_at);
+        var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.created_at, currentVideoInfo.thumbnail);
         $(videoDisplayData).insertAfter("#top-published-video-header");
         count--;
         if (count >= 0) {
