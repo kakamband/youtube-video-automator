@@ -2871,3 +2871,30 @@ module.exports.updateNeedToBeDeleted = function(id, deletedVal) {
 		});
 	});
 }
+
+function _getUsersPreviousClipsHelper(userID, offsetVal, limitVal) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereNotIn("state", ["preparing", "started", "done", "done-need-info"])
+		.whereNotNull("downloaded_file")
+		.whereNotExists(knex.select('*').from('need_to_be_deleted').whereRaw('downloads.id = need_to_be_deleted.download_id::integer AND deleted=true'))
+		.orderBy("created_at", "DESC")
+		.offset(offsetVal)
+		.limit(limitVal)
+		.then(function(results) {
+			if (results.length == 0) {
+				return resolve([]);
+			} else {
+				return resolve(results);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getUsersPreviousClips = function(userID) {
+	return _getUsersPreviousClipsHelper(userID, 0, 10);
+}

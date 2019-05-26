@@ -655,6 +655,10 @@ module.exports.getVideosData = function(username, pmsID, email, password) {
         })
         .then(function(unusedClips) {
             videoDataInfo.unused_clips = unusedClips;
+            return dbController.getUsersPreviousClips(userID);
+        })
+        .then(function(previousClips) {
+            videoDataInfo.previous_clips = previousClips;
             return resolve(videoDataInfo);
         })
         .catch(function(err) {
