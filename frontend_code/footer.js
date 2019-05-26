@@ -1285,13 +1285,6 @@ function _handlePublishedVideoPages($, username, ID, email, passwordHash, data, 
     $("#published-videos-next-page-btn").addClass("a-tag-disabled");
   } else {
     $("#published-videos-next-page-btn").removeClass("a-tag-disabled");
-    if (watchBtns == true) {
-      $("#published-videos-next-page-btn").click(function() {
-        _getVideoDataPageHelper($, username, ID, email, passwordHash, "published_videos", currentVideosPage + 1, function(result) {
-          console.log("The result is: ", result);
-        });
-      });
-    }
   }
 
   // Can't go to the first page (already there)
@@ -1302,6 +1295,49 @@ function _handlePublishedVideoPages($, username, ID, email, passwordHash, data, 
     $("#published-videos-first-page-btn").removeClass("a-tag-disabled");
     $("#published-videos-back-page-btn").removeClass("a-tag-disabled");
   }
+
+  if (watchBtns == true) {
+    function updateHelper(videoType) {
+      _getVideoDataPageHelper($, username, ID, email, passwordHash, videoType, currentVideosPage, function(result) {
+        data.done_videos = result.new_video_data;
+        data.done_videos_page = currentVideosPage;
+        $(".published-video-info-container").remove();
+        _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, false);
+      });
+    }
+
+    $("#published-videos-next-page-btn").click(function() {
+      currentVideosPage += 1;
+      updateHelper("published_videos");
+    });
+    $("#published-videos-first-page-btn").click(function() {
+      currentVideosPage = 1;
+      updateHelper("published_videos");
+    });
+    $("#published-videos-back-page-btn").click(function() {
+      currentVideosPage -= 1;
+      updateHelper("published_videos");
+    });
+  }
+}
+
+function _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, watchBtns) {
+  $(".no-videos-overlay").hide();
+  $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+  _handlePublishedVideoPages($, username, ID, email, passwordHash, data, watchBtns);
+
+  var count = data.done_videos.length - 1;
+  function displayAllVideos() {
+    var currentVideoInfo = data.done_videos[count];
+    var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.created_at, currentVideoInfo.thumbnail);
+    $(videoDisplayData).insertAfter("#top-published-video-header");
+    count--;
+    if (count >= 0) {
+      displayAllVideos();
+    }
+  }
+
+  displayAllVideos();
 }
 
 // Gets all of the data that is needed for the videos page
@@ -1310,22 +1346,7 @@ function getVideoPageData($, username, ID, email, passwordHash) {
 
     // Display done videos if they exist
     if (data.done_videos && data.done_videos.length > 0) {
-      $(".no-videos-overlay").hide();
-      $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
-      _handlePublishedVideoPages($, username, ID, email, passwordHash, data, true);
-
-      var count = data.done_videos.length - 1;
-      function displayAllVideos() {
-        var currentVideoInfo = data.done_videos[count];
-        var videoDisplayData = createVideoTR(currentVideoInfo.title, currentVideoInfo.description, currentVideoInfo.url, currentVideoInfo.created_at, currentVideoInfo.thumbnail);
-        $(videoDisplayData).insertAfter("#top-published-video-header");
-        count--;
-        if (count >= 0) {
-          displayAllVideos();
-        }
-      }
-
-      displayAllVideos();
+      _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, true);
     }
 
     // Display unused clips if they exist also
