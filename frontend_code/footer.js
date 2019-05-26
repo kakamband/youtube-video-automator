@@ -1181,6 +1181,31 @@ function _getVideoDataHelper($, username, ID, email, passwordHash, cb) {
     });
 }
 
+// Calls the get new video data page endpoint
+function _getVideoDataPageHelper($, username, ID, email, passwordHash, videoType, pageNumber, cb) {
+    $.ajax({
+      type: "POST",
+      url: autoTuberURL + "/user/videos/page",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": passwordHash,
+        "video_type": videoType,
+        "page_number": parseInt(pageNumber)
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+        $("#err-loading-tkn-link").show();
+        stretchAWB($);
+      },
+      success: function(result,status,xhr) {
+        return cb(result);
+      },
+      dataType: "json"
+    });
+}
+
 function clickedToSeePublishedVideo(vidURL) {
   window.open(vidURL, '_blank');
 }
@@ -1240,7 +1265,7 @@ function createClipDataTR(state, game, clipURL, clipID) {
   return trData;
 }
 
-function _handlePublishedVideoPages($, username, ID, email, passwordHash, data) {
+function _handlePublishedVideoPages($, username, ID, email, passwordHash, data, watchBtns) {
   var currentVideosPage = 1;
   var maxVideoPages = 1;
 
@@ -1260,6 +1285,13 @@ function _handlePublishedVideoPages($, username, ID, email, passwordHash, data) 
     $("#published-videos-next-page-btn").addClass("a-tag-disabled");
   } else {
     $("#published-videos-next-page-btn").removeClass("a-tag-disabled");
+    if (watchBtns == true) {
+      $("#published-videos-next-page-btn").click(function() {
+        _getVideoDataPageHelper($, username, ID, email, passwordHash, "published_videos", currentVideosPage + 1, function(result) {
+          console.log("The result is: ", result);
+        });
+      });
+    }
   }
 
   // Can't go to the first page (already there)
@@ -1280,7 +1312,7 @@ function getVideoPageData($, username, ID, email, passwordHash) {
     if (data.done_videos && data.done_videos.length > 0) {
       $(".no-videos-overlay").hide();
       $("#videos-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
-      _handlePublishedVideoPages($, username, ID, email, passwordHash, data);
+      _handlePublishedVideoPages($, username, ID, email, passwordHash, data, true);
 
       var count = data.done_videos.length - 1;
       function displayAllVideos() {

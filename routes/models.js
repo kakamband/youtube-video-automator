@@ -454,7 +454,7 @@ module.exports.routes = new Map([
 			nameAndType("password", "string"),
 
 			nameAndType("video_type", "string"),
-			nameAndType("page_number", "int")
+			nameAndType("page_number", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

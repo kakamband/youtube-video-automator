@@ -701,9 +701,11 @@ module.exports.getVideosDataPage = function(username, pmsID, email, password, vi
 
 function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
     return new Promise(function(resolve, reject) {
+        var pageNumberSanitized = parseInt(pageNumber);
+
         switch (videoType) {
             case "published_videos":
-                return dbController.getUsersPublishedVideosPage(pageNumber)
+                return dbController.getUsersPublishedVideosPage(pageNumberSanitized)
                 .then(function(results) {
                     return resolve(results);
                 })
