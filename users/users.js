@@ -660,10 +660,20 @@ module.exports.getVideosData = function(username, pmsID, email, password) {
         })
         .then(function(unusedClips) {
             videoDataInfo.unused_clips = unusedClips;
+            videoDataInfo.unused_clips_page = 1;
+            return dbController.getUsersUnusedClipPageInfo(userID);
+        })
+        .then(function(unusedClipsPageInfo) {
+            videoDataInfo.unused_clips_total_pages = unusedClipsPageInfo;
             return dbController.getUsersPreviousClips(userID);
         })
         .then(function(previousClips) {
             videoDataInfo.previous_clips = previousClips;
+            videoDataInfo.previous_clips_page = 1;
+            return dbController.getUsersPreviousClipPageInfo(userID);
+        })
+        .then(function(previousClipsPageInfo) {
+            videoDataInfo.previous_clips_total_pages = previousClipsPageInfo;
             return resolve(videoDataInfo);
         })
         .catch(function(err) {

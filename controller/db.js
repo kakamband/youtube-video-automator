@@ -2853,6 +2853,48 @@ module.exports.getUsersPublishedVideoPageInfo = function(userID) {
 	});
 }
 
+module.exports.getUsersUnusedClipPageInfo = function(userID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereIn("state", ["preparing", "started", "done", "done-need-info"])
+		.where("used", false)
+		.where("deleted", false)
+		.whereNull("video_number")
+		.whereNull("deleted_at")
+		.count('id as CNT')
+		.then(function(total) {
+			var totalVideosCount = parseInt(total[0].CNT);
+			var totalPages = Math.ceil(totalVideosCount / PER_PAGE_ON_VIDEOS_TABLES);
+
+			return resolve(totalPages);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.getUsersPreviousClipPageInfo = function(userID) {
+	return new Promise(function(resolve, reject) {
+		return knex('downloads')
+		.where("user_id", "=", userID)
+		.whereNotIn("state", ["preparing", "started", "done", "done-need-info"])
+		.whereNotNull("downloaded_file")
+		.whereNotExists(knex.select('*').from('need_to_be_deleted').whereRaw('downloads.id = need_to_be_deleted.download_id::integer AND deleted=true'))
+		.count('id as CNT')
+		.then(function(total) {
+			var totalVideosCount = parseInt(total[0].CNT);
+			var totalPages = Math.ceil(totalVideosCount / PER_PAGE_ON_VIDEOS_TABLES);
+
+			return resolve(totalPages);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 function _getOffsetFromPageNumber(pageNumber) {
 	// The offset is the page number * number on the page
 	// The page number we subtract 1 from since we start counting with a base number of 1, counting upwards (1, 2, 3, ...)
