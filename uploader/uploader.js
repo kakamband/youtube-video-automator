@@ -785,6 +785,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		var usersAccessTkn = null;
 		var usersRefreshTkn = null;
 		var youtubeClient = null;
+		var savedThumbnail = null;
 
 		// Start the progress bar
 		cLogger.info("Starting upload for " + userID + " the highest clip downloadID is: " + downloadID);
@@ -852,11 +853,12 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 
 			return _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderLocation, pmsID);
 		})
-		.then(function() {
+		.then(function(addedThumbnail) {
+			savedThumbnail = addedThumbnail;
 			return _deleteProcessedVideoFolder(folderLocation);
 		})
 		.then(function() {
-			return resolve("https://www.youtube.com/watch?v=" + videoID);
+			return resolve(["https://www.youtube.com/watch?v=" + videoID, savedThumbnail]);
 		})
 		.catch(function(err) {
 			return reject(err);
@@ -972,7 +974,7 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 
 		// No thumbnail to add.
 		if (thumbnailImg == null) {
-			return resolve();
+			return resolve(null);
 		}
 
 		return _downloadThumbnailToLocal(thumbnailImg, folderPath)
@@ -984,7 +986,7 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 			return _deleteDownloadedThumbnailHelper(downloadedThumbnailLocation);
 		})
 		.then(function() {
-			return resolve();
+			return resolve(thumbnailImg);
 		})
 		.catch(function(err) {
 			cLogger.info("Have encountered an error adding a thumbnail, however not terminating since its not worth.");
@@ -994,7 +996,7 @@ function _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderP
 				folder_path: folderPath
 			});
 			ErrorHelper.emitSimpleError(err);
-			return resolve();
+			return resolve(null);
 		});
 	});
 }
@@ -1042,6 +1044,7 @@ function _attemptToLikeVideo(youtubeClient, videoID, vidInfo) {
 
 function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, folderPath, pmsID) {
 	return new Promise(function(resolve, reject) {
+		var savedThumbnail = null;
 
 		// First try to add a playlist
 		var playlistID = vidInfo.youtube_settings.playlist;
@@ -1058,14 +1061,15 @@ function _addExtraPostVideoSettings(youtubeClient, videoID, channelID, vidInfo, 
 
 			return _attemptToAddVidThumbnail(youtubeClient, videoID, thumbnailImg, folderPath);
 		})
-		.then(function() {
+		.then(function(addedThumbnail) {
+			savedThumbnail = addedThumbnail;
 			return _attemptToAddComment(youtubeClient, videoID, channelID, vidInfo.game, pmsID);
 		})
 		.then(function() {
 			return _attemptToLikeVideo(youtubeClient, videoID, vidInfo);
 		})
 		.then(function() {
-			return resolve();
+			return resolve(savedThumbnail);
 		})
 		.catch(function(err) {
 			return reject(err);

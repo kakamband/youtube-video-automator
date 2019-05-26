@@ -2835,11 +2835,11 @@ function _getUsersUnusedClipsHelper(userID, offsetVal, limitVal) {
 }
 
 module.exports.getUsersPublishedVideos = function(userID) {
-	return _getUsersVideosHelper(userID, 0, 10);
+	return _getUsersVideosHelper(userID, 0, 5);
 }
 
 module.exports.getUsersUnusedClips = function(userID) {
-	return _getUsersUnusedClipsHelper(userID, 0, 10);
+	return _getUsersUnusedClipsHelper(userID, 0, 5);
 }
 
 module.exports.insertIntoNeedToBeDeleted = function(row) {
@@ -2896,5 +2896,5 @@ function _getUsersPreviousClipsHelper(userID, offsetVal, limitVal) {
 }
 
 module.exports.getUsersPreviousClips = function(userID) {
-	return _getUsersPreviousClipsHelper(userID, 0, 10);
+	return _getUsersPreviousClipsHelper(userID, 0, 5);
 }

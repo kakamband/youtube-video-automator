@@ -1183,19 +1183,14 @@ function _getVideoDataHelper($, username, ID, email, passwordHash, cb) {
 
 function createVideoTR(title, descr, vidURL, gameName, uploadDate) {
   
-  function trDataHelper(contentVal) {
-    return "<td class=\"published-video-td\">" + contentVal + "</td>";
-  }
+  var videoDataDisplay = "<div style=\"display: inline-block; width: 100%; background-color: black; height: 100px;\">";
 
-  var trData = "<tr style=\"height: 100px; border-bottom: 1pt solid #2c2c2c;\">";
-  trData += trDataHelper(title);
-  trData += trDataHelper(descr);
-  trData += trDataHelper("<a href=\"" + vidURL + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">View</a>");
-  trData += trDataHelper(gameName);
-  trData += trDataHelper(formatDateNicely(new Date(uploadDate)));
+  // TODO: Need a playlist image here
+  videoDataDisplay += "<span style=\"display: inline-block; float: left; padding: 25px; background-color: gray; margin: 10px; color: white;\">IMG</span>";
+  videoDataDisplay += "<span style=\"display: inline-block; float: left; margin: 10px; color: white;\"><span style=\"display: block;\">" + title + "</span><span style=\"display: block;\">" + descr + "</span></span>";
 
-  trData += "</tr>";
-  return trData;
+  videoDataDisplay += "</div>";
+  return videoDataDisplay;
 }
 
 function deleteUnusedClipHelper(clipID) {

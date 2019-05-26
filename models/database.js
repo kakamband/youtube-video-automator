@@ -36,6 +36,7 @@ module.exports.initialize = function(knex) {
 			table.string("url").notNullable();
 			table.integer("video_number").notNullable();
 			table.timestamps();
+			table.string("thumbnail");
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('user_tokens', function(table) {

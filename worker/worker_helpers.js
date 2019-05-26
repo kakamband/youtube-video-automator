@@ -192,6 +192,7 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 	return new Promise(function(resolve, reject) {
 		var vidInfo = null;
 		var youtubeVideoURL = null;
+		var savedThumbnail = null;
 
 		return dbController.setNotificationsSeen(pmsID, clipFlowNotifications)
 		.then(function() {
@@ -211,8 +212,9 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 				return Uploader.uploadUsersVideo(userID, pmsID, downloadID, fileLocation, vidInfo);
 			}
 		})
-		.then(function(youtubeVidURL) {
-			youtubeVideoURL = youtubeVidURL;
+		.then(function(youtubeVidInfo) {
+			youtubeVideoURL = youtubeVidInfo[0];
+			savedThumbnail = youtubeVidInfo[1];
 
 			return dbController.setNotificationsSeen(pmsID, clipFlowNotifications);
 		})
@@ -232,7 +234,8 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 				url: youtubeVideoURL,
 				created_at: new Date(),
 				updated_at: new Date(),
-				video_number: vidInfo.video_number
+				video_number: vidInfo.video_number,
+				thumbnail: savedThumbnail
 			}, pmsID);
 		})
 		.then(function() {
