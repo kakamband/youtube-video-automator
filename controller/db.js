@@ -2864,7 +2864,8 @@ function _getOffsetFromPageNumber(pageNumber) {
 }
 
 module.exports.getUsersPublishedVideosPage = function(userID, pageNumber) {
-	return _getUsersVideosHelper(userID, _getOffsetFromPageNumber(pageNumber), PER_PAGE_ON_VIDEOS_TABLES);
+	var offsetValue = _getOffsetFromPageNumber(pageNumber);
+	return _getUsersVideosHelper(userID, offsetValue, PER_PAGE_ON_VIDEOS_TABLES);
 }
 
 module.exports.getUsersPublishedVideos = function(userID) {
