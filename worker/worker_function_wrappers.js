@@ -71,8 +71,6 @@ function handleProcessingStart(ch, msg, message, workerType) {
 }
 
 function handleProcessingCycleStart(ch, msg, message, workerType) {
-	cLogger.info("Starting cycle to check for videos to process.");
-
 	return Helpers.checkForVideosToProcess()
 	.then(function() {
 		successMsg(message);

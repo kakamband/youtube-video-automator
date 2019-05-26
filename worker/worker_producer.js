@@ -305,7 +305,6 @@ function makePost(queueName, msgOptions, taskName) {
 
 		var published = workerChannel.publish('', queueName, new Buffer(taskName), msgOptions);
 		if (published) {
-			cLogger.info("Posted " + taskName + " task!");
 			return resolve();
 		} else {
 			return reject(new Error("The queue was full!"));

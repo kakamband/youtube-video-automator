@@ -24,7 +24,7 @@ function getPermDeleteCron() {
 	var permanentDeleteCron = new CronJob(midnightCron, function() {
 		WorkerProducer.startPermDeleteCycle()
 		.then(function() {
-			cLogger.info("Done posting permanent delete cycle.");
+			// Done.
 		})
 		.catch(function(err) {
 			ErrorHelper.scopeConfigure("cron_handler.init", {job_name: "perm_delete_job"});
@@ -44,7 +44,7 @@ function kickOffProcessing() {
 	var kickOffProcessingCron = new CronJob(every5MinCron, function() {
 		WorkerProducer.startProcessingCycle()
 		.then(function() {
-			cLogger.info("Done posting processing cycle.");
+			// Done.
 		})
 		.catch(function(err) {
 			ErrorHelper.scopeConfigure("cron_handler.init", {job_name: "kick_off_processing"});
