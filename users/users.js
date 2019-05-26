@@ -705,7 +705,7 @@ function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
 
         switch (videoType) {
             case "published_videos":
-                return dbController.getUsersPublishedVideosPage(pageNumberSanitized)
+                return dbController.getUsersPublishedVideosPage(userID, pageNumberSanitized)
                 .then(function(results) {
                     return resolve(results);
                 })
