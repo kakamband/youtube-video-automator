@@ -2867,6 +2867,10 @@ module.exports.getUsersUnusedClipPageInfo = function(userID) {
 			var totalVideosCount = parseInt(total[0].CNT);
 			var totalPages = Math.ceil(totalVideosCount / PER_PAGE_ON_VIDEOS_TABLES);
 
+			if (totalPages == 0) {
+				totalPages = 1;
+			}
+
 			return resolve(totalPages);
 		})
 		.catch(function(err) {
@@ -2887,6 +2891,10 @@ module.exports.getUsersPreviousClipPageInfo = function(userID) {
 			var totalVideosCount = parseInt(total[0].CNT);
 			var totalPages = Math.ceil(totalVideosCount / PER_PAGE_ON_VIDEOS_TABLES);
 
+			if (totalPages == 0) {
+				totalPages = 1;
+			}
+
 			return resolve(totalPages);
 		})
 		.catch(function(err) {
@@ -2903,6 +2911,11 @@ function _getOffsetFromPageNumber(pageNumber) {
 	// And onwards
 	var offsetVal = (pageNumber - 1) * PER_PAGE_ON_VIDEOS_TABLES;
 	return offsetVal;
+}
+
+module.exports.getUsersUnusedClipsPage = function(userID, pageNumber) {
+	var offsetValue = _getOffsetFromPageNumber(pageNumber);
+	return _getUsersUnusedClipsHelper(userID, offsetValue, PER_PAGE_ON_VIDEOS_TABLES);
 }
 
 module.exports.getUsersPublishedVideosPage = function(userID, pageNumber) {
@@ -2969,6 +2982,11 @@ function _getUsersPreviousClipsHelper(userID, offsetVal, limitVal) {
 			return reject(err);
 		});
 	});
+}
+
+module.exports.getUsersPreviousClipsPage = function(userID, pageNumber) {
+	var offsetValue = _getOffsetFromPageNumber(pageNumber);
+	return _getUsersPreviousClipsHelper(userID, offsetValue, PER_PAGE_ON_VIDEOS_TABLES);
 }
 
 module.exports.getUsersPreviousClips = function(userID) {

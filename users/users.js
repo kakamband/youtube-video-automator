@@ -722,6 +722,22 @@ function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
                 .catch(function(err) {
                     return reject(err);
                 });
+            case "unused_clips":
+                return dbController.getUsersUnusedClipsPage(userID, pageNumberSanitized)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "previous_clips":
+                return dbController.getUsersPreviousClipsPage(userID, pageNumberSanitized)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return reject(Errors.invalidVideoDataPageType());
         }

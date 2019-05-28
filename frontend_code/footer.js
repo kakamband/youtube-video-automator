@@ -1244,81 +1244,174 @@ function deleteUnusedClipHelper(clipID) {
 
 function createClipDataTR(state, game, clipURL, clipID) {
   
-  function trDataHelper(contentVal) {
-    return "<td class=\"published-video-td\">" + contentVal + "</td>";
-  }
+  var videoDataDisplay = "<div class=\"unused-clips-info-container\" onclick=\"clickedToSeePublishedVideo('" + "test" + "')\">";
 
-  var trData = "<tr id=\"unused-clip-in-tbl-id-" + clipID + "\" style=\"height: 100px; border-bottom: 1pt solid #2c2c2c;\">";
-  trData += trDataHelper(state);
-  trData += trDataHelper(game);
+  var videoImageLink = "https://d2b3tzzd3kh620.cloudfront.net/no-vid-thumbnail-temp-image.png";
+  videoDataDisplay += "<div class=\"published-video-left-img-container\"><span class=\"published-video-thumbnail-pivot\"></span><img src=\"" + videoImageLink + "\" class=\"published-video-thumbnail-display\"></div>";
 
-  if (clipURL == undefined) {
-    trData += trDataHelper("Error Finding Clip.");
-  } else {
-    trData += trDataHelper("<a href=\"" + clipURL + "\" class=\"vp-a\" style=\"color: #6441A5; font-size: 15px; font-weight: 500;\">View</a>");
-  }
+  videoDataDisplay += "<div class=\"published-video-text-container\">";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + "TEST" + "</span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + "TEST" + "</span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Uploaded On: " + formatDateNicely(new Date()) + "</span>";
+  videoDataDisplay += "</div>";
 
-  trData += trDataHelper("<a href=\"https://twitchautomator.com/dashboard?clipping=true&download_id=" + clipID + "\" target=\"_blank\" style=\"color: #6441A5;text-decoration: none;font-size: 15px;\">Settings</a>");
-  trData += trDataHelper("<a class=\"delete-unused-clip-from-videos\" onclick=\"deleteUnusedClipHelper('" + clipID + "')\">Delete</a>");
-
-  trData += "</tr>";
-  return trData;
+  videoDataDisplay += "</div>";
+  return videoDataDisplay;
 }
 
-function _handlePublishedVideoPages($, username, ID, email, passwordHash, data, watchBtns) {
+function createPreviousClipDataTR(clipSeconds, twitchLink, gameName, downloadedFile, createdAt) {
+  
+  var twitchLinkSplit = twitchLink.split(".tv/");
+  var twitchStreamerName = twitchLinkSplit[twitchLinkSplit.length - 1];
+
+  var videoDataDisplay = "<div class=\"previous-clips-info-container\">";
+
+  var videoImageLink = "https://d2b3tzzd3kh620.cloudfront.net/previous-clips-videos-info-icon.png";
+  videoDataDisplay += "<div class=\"published-video-left-img-container\"><span class=\"published-video-thumbnail-pivot\"></span><img src=\"" + videoImageLink + "\" class=\"previous-clips-thumbnail-display\"></div>";
+
+  videoDataDisplay += "<div class=\"published-video-text-container\">";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + gameName + " <span style=\"font-size: 13px; color: #6441A5;\">(" + twitchStreamerName + ") (" + clipSeconds + " Seconds)</span></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" class=\"vp-a\" style=\"color: #6441A5;\">Watch Clip.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" style=\"color: #6441A5;\" download>Download Clip.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Clipped On: " + formatDateNicely(new Date(createdAt)) + "</span>";
+  videoDataDisplay += "</div>";
+
+  videoDataDisplay += "</div>";
+  return videoDataDisplay;
+}
+
+function _pageHandlerHelper($, username, ID, email, passwordHash, data, watchBtns, tableType) {
   var currentVideosPage = 1;
   var maxVideoPages = 1;
 
-  if (data.done_videos_page != undefined) {
-    currentVideosPage = parseInt(data.done_videos_page);
-  }
-  if (data.done_videos_total_pages != undefined) {
-    maxVideoPages = parseInt(data.done_videos_total_pages);
+  // 
+  var videosPage = undefined;
+  var totalPage = undefined;
+  var paginatorContainer = "";
+  var currentPageText = "";
+  var maxNumPageText = "";
+  var nextPageBtnID = "";
+  var firstPageBtnID = "";
+  var backPageBtnID = "";
+  var containerClass = "";
+  switch (tableType) {
+    case "published_videos":
+      videosPage = data.done_videos_page;
+      totalPage = data.done_videos_total_pages;
+      paginatorContainer = "#published-videos-paginator-container";
+      currentPageText = "#published-videos-current-page";
+      maxNumPageText = "#published-videos-num-pages";
+      nextPageBtnID = "#published-videos-next-page-btn";
+      firstPageBtnID = "#published-videos-first-page-btn";
+      backPageBtnID = "#published-videos-back-page-btn";
+      containerClass = ".published-video-info-container";
+      break;
+    case "unused_clips":
+      videosPage = data.unused_clips_page;
+      totalPage = data.unused_clips_total_pages;
+      paginatorContainer = "#unused-clips-paginator-container";
+      currentPageText = "#unused-clips-current-page";
+      maxNumPageText = "#unused-clips-num-pages";
+      firstPageBtnID = "#unused-clips-first-page-btn";
+      backPageBtnID = "#unused-clips-back-page-btn";
+      nextPageBtnID = "#unused-clips-next-page-btn";
+      containerClass = ".unused-clips-info-container";
+      break;
+    case "previous_clips":
+      videosPage = data.previous_clips_page;
+      totalPage = data.previous_clips_total_pages;
+      paginatorContainer = "#previous-clips-paginator-container";
+      currentPageText = "#previous-clips-current-page";
+      maxNumPageText = "#previous-clips-num-pages";
+      firstPageBtnID = "#previous-clips-first-page-btn";
+      backPageBtnID = "#previous-clips-back-page-btn";
+      nextPageBtnID = "#previous-clips-next-page-btn";
+      containerClass = ".previous-clips-info-container";
+      break;
+    default:
+      console.log("Invalid tabletype: " + tableType);
+      return;
   }
 
-  $("#published-videos-paginator-container").show();
-  $("#published-videos-current-page").text(currentVideosPage);
-  $("#published-videos-num-pages").text(maxVideoPages);
+  if (videosPage != undefined) {
+    currentVideosPage = parseInt(videosPage);
+  }
+  if (totalPage != undefined) {
+    maxVideoPages = parseInt(totalPage);
+  }
+
+  $(paginatorContainer).show();
+  $(currentPageText).text(currentVideosPage);
+  $(maxNumPageText).text(maxVideoPages);
 
   // Can't go upwards
   if (maxVideoPages <= currentVideosPage) {
-    $("#published-videos-next-page-btn").addClass("a-tag-disabled");
+    $(nextPageBtnID).addClass("a-tag-disabled");
   } else {
-    $("#published-videos-next-page-btn").removeClass("a-tag-disabled");
+    $(nextPageBtnID).removeClass("a-tag-disabled");
   }
 
   // Can't go to the first page (already there)
   if (currentVideosPage == 1) {
-    $("#published-videos-first-page-btn").addClass("a-tag-disabled");
-    $("#published-videos-back-page-btn").addClass("a-tag-disabled");
+    $(firstPageBtnID).addClass("a-tag-disabled");
+    $(backPageBtnID).addClass("a-tag-disabled");
   } else {
-    $("#published-videos-first-page-btn").removeClass("a-tag-disabled");
-    $("#published-videos-back-page-btn").removeClass("a-tag-disabled");
+    $(firstPageBtnID).removeClass("a-tag-disabled");
+    $(backPageBtnID).removeClass("a-tag-disabled");
   }
 
   if (watchBtns == true) {
     function updateHelper(videoType) {
       _getVideoDataPageHelper($, username, ID, email, passwordHash, videoType, currentVideosPage, function(result) {
-        data.done_videos = result.new_video_data;
-        data.done_videos_page = currentVideosPage;
-        $(".published-video-info-container").remove();
+
+        switch (tableType) {
+          case "published_videos":
+            data.done_videos = result.new_video_data;
+            data.done_videos_page = currentVideosPage;
+            break;
+          case "unused_clips":
+            data.unused_clips = result.new_video_data;
+            data.unused_clips_page = currentVideosPage;
+            break;
+          case "previous_clips":
+            data.previous_clips = result.new_video_data;
+            data.previous_clips_page = currentVideosPage;
+            break;
+          default:
+            console.log("Invalid tabletype: " + tableType);
+            return;
+        }
+
+        $(containerClass).remove();
         _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, false);
       });
     }
 
-    $("#published-videos-next-page-btn").click(function() {
+    $(nextPageBtnID).click(function() {
       currentVideosPage += 1;
-      updateHelper("published_videos");
+      updateHelper(tableType);
     });
-    $("#published-videos-first-page-btn").click(function() {
+    $(firstPageBtnID).click(function() {
       currentVideosPage = 1;
-      updateHelper("published_videos");
+      updateHelper(tableType);
     });
-    $("#published-videos-back-page-btn").click(function() {
+    $(backPageBtnID).click(function() {
       currentVideosPage -= 1;
-      updateHelper("published_videos");
+      updateHelper(tableType);
     });
   }
+}
+
+function _handlePreviousClipsPages($, username, ID, email, passwordHash, data, watchBtns) {
+  _pageHandlerHelper($, username, ID, email, passwordHash, data, watchBtns, "previous_clips");
+}
+
+function _handleUnusedClipsPages($, username, ID, email, passwordHash, data, watchBtns) {
+  _pageHandlerHelper($, username, ID, email, passwordHash, data, watchBtns, "unused_clips");
+}
+
+function _handlePublishedVideoPages($, username, ID, email, passwordHash, data, watchBtns) {
+  _pageHandlerHelper($, username, ID, email, passwordHash, data, watchBtns, "published_videos");
 }
 
 function _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, watchBtns) {
@@ -1340,6 +1433,44 @@ function _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data,
   displayAllVideos();
 }
 
+function _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data, watchBtns) {
+  $(".no-clips-overlay").hide();
+  $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+  _handleUnusedClipsPages($, username, ID, email, passwordHash, data, watchBtns);
+
+  var count2 = data.unused_clips.length - 1;
+  function displayAllUnusedClips() {
+    var currentClipInfo = data.unused_clips[count2];
+    var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
+    $(clipDisplayData).insertAfter("#top-unused-clips-header");
+    count2--;
+    if (count2 >= 0) {
+      displayAllUnusedClips();
+    }
+  }
+
+  displayAllUnusedClips();
+}
+
+function _handleDisplayingPreviousClips($, username, ID, email, passwordHash, data, watchBtns) {
+  $(".no-previous-clips-overlay").hide();
+  $("#previous-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+  _handlePreviousClipsPages($, username, ID, email, passwordHash, data, watchBtns);
+
+  var count2 = data.previous_clips.length - 1;
+  function displayAllPreviousClips() {
+    var currentClipInfo = data.previous_clips[count2];
+    var clipDisplayData = createPreviousClipDataTR(currentClipInfo.clip_seconds, currentClipInfo.twitch_link, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.created_at);
+    $(clipDisplayData).insertAfter("#top-previous-clips-header");
+    count2--;
+    if (count2 >= 0) {
+      displayAllPreviousClips();
+    }
+  }
+
+  displayAllPreviousClips();
+}
+
 // Gets all of the data that is needed for the videos page
 function getVideoPageData($, username, ID, email, passwordHash) {
   return _getVideoDataHelper($, username, ID, email, passwordHash, function(data) {
@@ -1351,21 +1482,12 @@ function getVideoPageData($, username, ID, email, passwordHash) {
 
     // Display unused clips if they exist also
     if (data.unused_clips && data.unused_clips.length > 0) {
-      $(".no-clips-overlay").hide();
-      $("#unused-tbl-overlay-id").removeClass("no-videos-tbl-overlay");
+      _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data, true);
+    }
 
-      var count2 = data.unused_clips.length - 1;
-      function displayAllUnusedClips() {
-        var currentClipInfo = data.unused_clips[count2];
-        var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
-        $(clipDisplayData).insertAfter("#top-unused-clips-header");
-        count2--;
-        if (count2 >= 0) {
-          displayAllUnusedClips();
-        }
-      }
-
-      displayAllUnusedClips();
+    // Display previous clisp if they exist also
+    if (data.previous_clips && data.previous_clips.length > 0) {
+      _handleDisplayingPreviousClips($, username, ID, email, passwordHash, data, true);
     }
 
     // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
