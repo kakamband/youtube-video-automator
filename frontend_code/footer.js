@@ -1271,8 +1271,8 @@ function createPreviousClipDataTR(clipSeconds, twitchLink, gameName, downloadedF
 
   videoDataDisplay += "<div class=\"published-video-text-container\">";
   videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + gameName + " <span style=\"font-size: 13px; color: #6441A5;\">(" + twitchStreamerName + ") (" + clipSeconds + " Seconds)</span></span>";
-  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" class=\"vp-a\" style=\"color: #6441A5;\">Watch Clip.</a></span>";
-  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" style=\"color: #6441A5;\" download>Download Clip.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" class=\"vp-a\" style=\"color: #6441A5;\" target=\"_parent\">Watch Clip.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" style=\"color: #6441A5;\" download=\"previous_clip.mp4\">Download Clip.</a></span>";
   videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Clipped On: " + formatDateNicely(new Date(createdAt)) + "</span>";
   videoDataDisplay += "</div>";
 
@@ -1364,26 +1364,28 @@ function _pageHandlerHelper($, username, ID, email, passwordHash, data, watchBtn
     function updateHelper(videoType) {
       _getVideoDataPageHelper($, username, ID, email, passwordHash, videoType, currentVideosPage, function(result) {
 
+        $(containerClass).remove();
         switch (tableType) {
           case "published_videos":
             data.done_videos = result.new_video_data;
             data.done_videos_page = currentVideosPage;
+            _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, false);
             break;
           case "unused_clips":
             data.unused_clips = result.new_video_data;
             data.unused_clips_page = currentVideosPage;
+            _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data, false);
             break;
           case "previous_clips":
             data.previous_clips = result.new_video_data;
             data.previous_clips_page = currentVideosPage;
+            _handleDisplayingPreviousClips($, username, ID, email, passwordHash, data, false);
             break;
           default:
             console.log("Invalid tabletype: " + tableType);
             return;
         }
 
-        $(containerClass).remove();
-        _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data, false);
       });
     }
 
@@ -1431,6 +1433,17 @@ function _handleDisplayingDoneVideos($, username, ID, email, passwordHash, data,
   }
 
   displayAllVideos();
+
+  // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+  // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+  // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+  $("a.vp-a").YouTubePopUp();
+  // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+  $(".vp-a").click(function() {
+    $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+    $(".VideoPopUpWrap").slice(1).remove();
+  });
 }
 
 function _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data, watchBtns) {
@@ -1450,6 +1463,17 @@ function _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data
   }
 
   displayAllUnusedClips();
+
+  // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+  // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+  // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+  $("a.vp-a").YouTubePopUp();
+  // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+  $(".vp-a").click(function() {
+    $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+    $(".VideoPopUpWrap").slice(1).remove();
+  });
 }
 
 function _handleDisplayingPreviousClips($, username, ID, email, passwordHash, data, watchBtns) {
@@ -1469,6 +1493,17 @@ function _handleDisplayingPreviousClips($, username, ID, email, passwordHash, da
   }
 
   displayAllPreviousClips();
+
+  // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+  // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+  // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+  $("a.vp-a").YouTubePopUp();
+  // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+  $(".vp-a").click(function() {
+    $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+    $(".VideoPopUpWrap").slice(1).remove();
+  });
 }
 
 // Gets all of the data that is needed for the videos page
@@ -1489,17 +1524,6 @@ function getVideoPageData($, username, ID, email, passwordHash) {
     if (data.previous_clips && data.previous_clips.length > 0) {
       _handleDisplayingPreviousClips($, username, ID, email, passwordHash, data, true);
     }
-
-    // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
-    // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
-
-    // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
-    $("a.vp-a").YouTubePopUp();
-    // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
-    $(".vp-a").click(function() {
-      $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
-      $(".VideoPopUpWrap").slice(1).remove();
-    });
   });
 }
 
