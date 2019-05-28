@@ -615,7 +615,6 @@ module.exports.pollProcessingTime = function(username, pmsID, email, password, d
                 // This is an actual expected processing time stamp
                 // Update it in the DB so that we don't have to do extra work in the next call to get clip info
 
-                console.log("The processing estimate is: ", clipInfo.processing_start_estimate);
                 savedVal = new Date(clipInfo.processing_start_estimate).toString();
                 returnedVal = clipInfo.processing_start_estimate;
             } else {
