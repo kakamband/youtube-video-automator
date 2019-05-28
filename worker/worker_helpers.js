@@ -684,12 +684,7 @@ function decrKey(key) {
 
 function _uploadFileToS3(file) {
 	return new Promise(function(resolve, reject) {
-		var metaData = {
-			"Content-Disposition": "attachment" // Allows the file to be downloaded into the browser
-		};
-		var metadataSanitized = JSON.stringify(metaData);
-
-		var cmd = "aws s3 cp " + file + " s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_BUCKET_VIDEO_PATH + " --acl public-read --metadata " + metadataSanitized;
+		var cmd = "aws s3 cp " + file + " s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_BUCKET_VIDEO_PATH + " --acl public-read --metadata '{\"Content-Disposition\":\"attachment\"}'";
 		cLogger.info("Running CMD: " + cmd);
 		return shell.exec(cmd, function(code, stdout, stderr) {
 			if (code != 0) {
