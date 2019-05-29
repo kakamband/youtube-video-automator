@@ -861,20 +861,23 @@ function uploadImageToS3(userID, imgB64) {
 
 function updateUserHelper(userData) {
     return new Promise(function(resolve, reject) {
-        let oldID = userData['old_user[data][ID]'];
-        let oldUsername = userData['old_user[data][user_login]'];
-        let oldPassword = userData['old_user[data][user_pass]'];
-        let oldEmail = userData['old_user[data][user_email]'];
+        userData = JSON.stringify(userData);
+        var userDataSanitized = JSON.parse(userData);
+
+        let oldID = userDataSanitized.old_user.data.ID;
+        let oldUsername = userDataSanitized.old_user.data.user_login;
+        let oldPassword = userDataSanitized.old_user.data.user_pass;
+        let oldEmail = userDataSanitized.old_user.data.user_email;
 
         // Need to have all the old information
         if (oldID == "" || oldUsername == "" || oldPassword == "" || oldEmail == "") {
             return reject(Errors.notAuthorized());
         }
 
-        let newID = userData['new_user[data][ID]'];
-        let newUsername = userData['new_user[data][user_login]'];
-        let newPassword = userData['new_user[data][user_pass]'];
-        let newEmail = userData['new_user[data][user_email]'];
+        let newID = userDataSanitized.new_user.data.ID;
+        let newUsername = userDataSanitized.new_user.data.user_login;
+        let newPassword = userDataSanitized.new_user.data.user_pass;
+        let newEmail = userDataSanitized.new_user.data.user_email;
 
         // Need to have all of the new information
         if (newID == "" || newUsername == "" || newPassword == "" || newEmail == "") {
