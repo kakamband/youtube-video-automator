@@ -67,33 +67,14 @@ userData:  {
 module.exports.registerUser = function(userData) {
     return new Promise(function(resolve, reject) {
 
-        function extractUserName() {
-            var rx = /user_login:\s*\'[^\']+\'/g;
-            var arr = rx.exec(userData);
-            var userLoginBlock = arr[0]; // This will look like "user_login: 'google-tester3'"
-            var userLoginBlockSplit = userLoginBlock.split("\'"); // This will look like ["user_login: ", "google-tester3", ""]
-            return userLoginBlockSplit[1];
-        }
+        userData = JSON.stringify(userData);
+        userDataSanitized = JSON.parse(userData);
 
-        function extractUserID() {
-            var rx = /ID:\s*\'[^\']+\'/g;
-            var arr = rx.exec(userData);
-            var userIDBlock = arr[0]; // This will look like "ID: '153618907'"
-            var userIDBlockSplit = userIDBlock.split("\'"); // This will look like ["ID: ", "153618907", ""]
-            return userIDBlockSplit[1];
-        }
+        let userID = userDataSanitized.content.data.ID;
+        let userName = userDataSanitized.content.data.user_login;
+        let userEmail = userDataSanitized.content.data.user_email;
 
-        function extractUserEmail() {
-            var rx = /user_email:\s*\'[^\']+\'/g;
-            var arr = rx.exec(userData);
-            var userEmailBlock = arr[0]; // This will look like "user_email: 'fiyadoyiwu@eaglemail.top'"
-            var userEmailBlockSplit = userEmailBlock.split("\'"); // This will look like ["user_email: ", "fiyadoyiwu@eaglemail.top", ""]
-            return userEmailBlockSplit[1];
-        }
-
-        let userID = extractUserID();
-        let userName = extractUserName();
-        let userEmail = extractUserEmail();
+        cLogger.info("Registering a new user with ID: " + userID + ", username: " + userName + ", and userEmail: " + userEmail);
 
         return dbController.registerUser(userName, userID, userEmail)
         .then(function() {
