@@ -1012,9 +1012,7 @@ module.exports.getActiveSubscriptionWrapper = function(pmsID) {
 	return getCurrentActiveSubscription(pmsID);
 }
 
-function getCurrentActiveSubscription(pmsID) {
-	var activeSubscriptionID = -1;
-
+function _getActiveSubscriptionIDHelper(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('payments')
 		.select("subscription_id")
@@ -1024,11 +1022,44 @@ function getCurrentActiveSubscription(pmsID) {
 		.limit(1)
 		.then(function(results) {
 			if (results.length == 0) {
-				return resolve([-1, 0]);
+				// First check if they are a basic user
+				return knex('user_subscriptions')
+				.where("pms_user_id", "=", pmsID)
+				.where("status", "=", "active")
+				.orderBy("created_at", "DESC")
+				.limit(1)
+				.then(function(subscriptionResults) {
+					if (!subscriptionResults || subscriptionResults.length == 0 || subscriptionResults[0].subscription_id != "667") {
+						return resolve(-1);
+					} else {
+						return resolve(subscriptionResults[0].subscription_id);
+					}
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				return resolve(results[0].subscription_id);
 			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
 
-			activeSubscriptionID = results[0].subscription_id;
-			return _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID);
+function getCurrentActiveSubscription(pmsID) {
+	var activeSubscriptionID = -1;
+
+	return new Promise(function(resolve, reject) {
+		return _getActiveSubscriptionIDHelper(pmsID)
+		.then(function(subscriptionID) {
+			activeSubscriptionID = subscriptionID;
+			if (activeSubscriptionID == -1) {
+				return resolve([-1, 0]);
+			} else {
+				return _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID);
+			}
 		})
 		.then(function(numVideosLeft) {
 			return resolve([activeSubscriptionID, numVideosLeft]);
