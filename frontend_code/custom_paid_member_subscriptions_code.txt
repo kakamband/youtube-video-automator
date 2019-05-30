@@ -1,0 +1,39 @@
+Fixing the Password Reset bug:
+
+1) Go to 'include/functions-member.php' and update the function pms_retrieve_activation_key.
+	- Retrieving an activation key is done with the following line: $key = $wpdb->get_var( $wpdb->prepare( "SELECT user_activation_key FROM $wpdb->users WHERE user_login = %s", $requested_user_login ) );
+	- Instead of checking if there exists one already, always create a new one.
+	- New function looks like below:
+
+	function pms_retrieve_activation_key( $requested_user_login ){
+	    global $wpdb;
+		
+		// Always generate a new activation key
+		$key = wp_generate_password( 20, false );
+		do_action('pms_retrieve_password_key', $requested_user_login, $key);
+
+		// Now insert the new md5 key into the db
+		$wpdb->update($wpdb->users, array('user_activation_key' => $key), array('user_login' => $requested_user_login));
+		
+		// No longer needed
+	    /*$key = $wpdb->get_var( $wpdb->prepare( "SELECT user_activation_key FROM $wpdb->users WHERE user_login = %s", $requested_user_login ) );
+
+	    if ( empty( $key ) ) {
+
+	        // Generate something random for a key...
+	        $key = wp_generate_password( 20, false );
+	        do_action('pms_retrieve_password_key', $requested_user_login, $key);
+
+	        // Now insert the new md5 key into the db
+	        $wpdb->update($wpdb->users, array('user_activation_key' => $key), array('user_login' => $requested_user_login));
+	    }*/
+
+	    return $key;
+	}
+
+2) Go to 'include/class-form-handler.php' and update line 1150.
+	- Call into the database to get the key
+	- Add at the top of the function 'global $wpdb;' so that we can connect to wordpress db
+	- At line 1150 add the following: '$newKey    = $wpdb->get_var( $wpdb->prepare( "SELECT user_activation_key FROM $wpdb->users WHERE user_login = %s", $loginName ) );'
+	- Update the if statement to say '$newKey == $key'.
+	- Change from 'wp_set_password' to 'reset_password' to utilize the password reset hook.

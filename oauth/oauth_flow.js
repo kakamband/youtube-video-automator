@@ -8,7 +8,7 @@ const opn = require('opn');
 var ErrorHelper = require('../errors/errors');
 
 const scopes = [
-	// Needed to upload to Youtube, to set thumbnails, add to playlists.
+	// Needed to upload to Youtube, to set thumbnails, add to playlists, get channel info.
 	"https://www.googleapis.com/auth/youtube",
 
 	// Needed to make comments to Youtube.
