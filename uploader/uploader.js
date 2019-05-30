@@ -631,6 +631,10 @@ function _createYoutubeClientForUser(accessTkn, refreshTkn) {
 	return youtubeClient;
 }
 
+module.exports.createYoutubeClientForUserWrapper = function(accessTkn, refreshTkn) {
+	return _createYoutubeClientForUser(accessTkn, refreshTkn);
+}
+
 function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fileSize) {
 	return new Promise(function(resolve, reject) {
 

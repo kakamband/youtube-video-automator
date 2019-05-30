@@ -90,7 +90,7 @@ module.exports.initDownloadStop = function(userID, twitchLink, downloadID) {
 module.exports.doesUserExist = function(username, pmsID, email, password) {
 	return new Promise(function(resolve, reject) {
 		return knex('users')
-		.select("id")
+		.select(['id', 'banned', 'banned_reason'])
 		.where('username', '=', username)
 		.where('pms_user_id', '=', pmsID)
 		.where('email', '=', email)
@@ -3022,4 +3022,61 @@ module.exports.getUsersPreviousClipsPage = function(userID, pageNumber) {
 
 module.exports.getUsersPreviousClips = function(userID) {
 	return _getUsersPreviousClipsHelper(userID, 0, PER_PAGE_ON_VIDEOS_TABLES);
+}
+
+module.exports.setUsersChannelID = function(userID, channelID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", parseInt(userID))
+		.update({
+			channel_id: channelID,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.anyOtherUsersHaveChannelID = function(userID, ytChannelID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "!=", parseInt(userID))
+		.where("banned", "=", false)
+		.where("channel_id", "=", ytChannelID)		
+		.count('id as CNT')
+		.then(function(total) {
+			var usersWithSameChannelID = parseInt(total[0].CNT);
+
+			if (usersWithSameChannelID > 0) {
+				return resolve(true);
+			} else {
+				return resolve(false);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.banUser = function(userID, banReason) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", parseInt(userID))
+		.update({
+			banned: true,
+			banned_reason: banReason,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
 }

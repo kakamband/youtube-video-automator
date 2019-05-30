@@ -2068,11 +2068,13 @@ function validateUserAndGetID(username, ID, email, password) {
             // If the user doesn't exist, reject with a not authorized.
             if (user == undefined) {
                 return reject(Errors.notAuthorized());
+            } else if (user.banned == true) {
+                return reject(Errors.userBanned(user.banned_reason));
+            } else {
+                // The user exists, return the id of the user.
+                redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
+                return resolve(user.id);
             }
-
-            // The user exists, return the id of the user.
-            redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
-            return resolve(user.id);
         })
         .catch(function(err) {
             return reject(err);

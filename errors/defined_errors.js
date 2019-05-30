@@ -104,6 +104,10 @@ module.exports.invalidCategory = function() {
     return setup400Err("Invalid Category.");
 }
 
+module.exports.userBanned = function(banReason) {
+    return setup403Err("Not Authorized. User is banned for the following reason: " + banReason);
+}
+
 module.exports.notAuthorized = function() {
     return setup403Err("Not Authorized.");
 }

@@ -118,6 +118,9 @@ module.exports.initialize = function(knex) {
 			table.string("password").notNullable();
 			table.timestamps();
 			table.boolean("currently_processing").default(false).notNullable();
+			table.string("channel_id");
+			table.boolean("banned").default(false).notNullable();
+			table.string("banned_reason");
 		});
 	}).then(function() {
 		return knex.schema.createTableIfNotExists('defined_subscriptions', function(table) {
