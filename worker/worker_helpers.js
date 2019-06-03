@@ -345,9 +345,11 @@ function _deleteVideosFromS3AfterUpload(userID, pmsID, allClipIDs, youtubeVideoU
 		.then(function(subscriptionInfo) {
 			let activeSubscriptionID = subscriptionInfo[0];
 			let numberOfVideosLeft = subscriptionInfo[1];
+			let userBanned = subscriptionInfo[2];
+			let userBannedReason = subscriptionInfo[3];
 
 			var activeSubscriptionInfo = Attr.SUBSCRIPTION_VIDEO_CAPS.get(activeSubscriptionID);
-			if (activeSubscriptionInfo == undefined || activeSubscriptionInfo.name == "Basic") { // Delete immediately
+			if (activeSubscriptionInfo == undefined || activeSubscriptionInfo.name == "Basic" || userBanned == true) { // Delete immediately
 				return _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL)
 				.then(function() {
 					return resolve();

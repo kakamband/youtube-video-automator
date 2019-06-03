@@ -157,6 +157,8 @@ router.post(Models.USER_INTRO, function(req, res, next) {
 				success: true,
 				active_subscription: results[0][0],
 				number_videos_left: results[0][1],
+				user_banned: results[0][2],
+				user_banned_reason: results[0][3],
 				notifications: results[1]
 			});
 		})

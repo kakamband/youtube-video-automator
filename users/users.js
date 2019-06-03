@@ -310,12 +310,19 @@ module.exports.startClip = function(username, pmsID, email, password, twitch_lin
         .then(function(subscriptionInfo) {
             let activeSubscriptionID = subscriptionInfo[0];
             let numberOfVideosLeft = subscriptionInfo[1];
+            let userBanned = subscriptionInfo[2];
+            let userBannedReason = subscriptionInfo[3];
 
-            if (numberOfVideosLeft > 0) {
+            if (numberOfVideosLeft > 0 && userBanned == false) {
                 return Worker.addDownloadingTask((userID + ""), twitch_link, actualGameName);
             } else {
-                cLogger.error("The user has no videos left to upload. Cannot start a clip.");
-                return resolve([false, "You do not have any more videos left for this payment period."]);
+                if (userBanned) {
+                    cLogger.error("The user is banned. Cannot start a clip.");
+                    return resolve([false, "This user is banned."]);
+                } else {
+                    cLogger.error("The user has no videos left to upload. Cannot start a clip.");
+                    return resolve([false, "You do not have any more videos left for this payment period."]);
+                }
             }
         })
         .then(function(dlID) {
@@ -2068,13 +2075,11 @@ function validateUserAndGetID(username, ID, email, password) {
             // If the user doesn't exist, reject with a not authorized.
             if (user == undefined) {
                 return reject(Errors.notAuthorized());
-            } else if (user.banned == true) {
-                return reject(Errors.userBanned(user.banned_reason));
-            } else {
-                // The user exists, return the id of the user.
-                redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
-                return resolve(user.id);
             }
+
+            // The user exists, return the id of the user.
+            redis.set(redisKey, (user.id + ""), "EX", validUserRedisTTL);
+            return resolve(user.id);
         })
         .catch(function(err) {
             return reject(err);

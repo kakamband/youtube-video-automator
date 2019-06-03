@@ -763,8 +763,10 @@ function _userHasVideosLeft(pmsID) {
 		.then(function(subscriptionInfo) {
             let activeSubscriptionID = subscriptionInfo[0];
             let numberOfVideosLeft = subscriptionInfo[1];
+            let userBanned = subscriptionInfo[2];
+            let userBannedReason = subscriptionInfo[3];
 
-            if (numberOfVideosLeft > 0) {
+            if (numberOfVideosLeft > 0 && userBanned == false) {
             	return resolve(true);
             } else {
             	return resolve(false);
@@ -821,6 +823,8 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		.then(function(subscriptionInfo) {
 			let activeSubscriptionID = subscriptionInfo[0];
 			let numberOfVideosLeft = subscriptionInfo[1];
+			let userBanned = subscriptionInfo[2];
+			let userBannedReason = subscriptionInfo[3];
 
 			// If the user has a basic subscription then add some autotuber free advertising to the description + the tags.
 			if (activeSubscriptionID == "667" || activeSubscriptionID == "-1" || activeSubscriptionID == -1) {
@@ -834,6 +838,8 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			// This should never happen. Sanity check.
 			if (numberOfVideosLeft <= 0) {
 				return reject(new Error("The number of videos left for the user is less than or equal to 0."));
+			} else if (userBanned) {
+				return reject(new Error("The user is banned, shouldn't be uploading."));
 			}
 
 			// Get the users OAuth2 Tokens
