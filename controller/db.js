@@ -1026,6 +1026,9 @@ function _getActiveSubscriptionIDHelper(pmsID) {
 			if (results.length == 0) {
 				// First check if they are a basic user
 				return knex('user_subscriptions')
+				.select("subscription_id")
+				.select(knex.raw('(SELECT banned FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned'))
+				.select(knex.raw('(SELECT banned_reason FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned_reason'))
 				.where("pms_user_id", "=", pmsID)
 				.where("status", "=", "active")
 				.orderBy("created_at", "DESC")
@@ -1034,7 +1037,7 @@ function _getActiveSubscriptionIDHelper(pmsID) {
 					if (!subscriptionResults || subscriptionResults.length == 0 || subscriptionResults[0].subscription_id != "667") {
 						return resolve([-1, false, ""]);
 					} else {
-						return resolve([subscriptionResults[0].subscription_id, results[0].banned, results[0].banned_reason]);
+						return resolve([subscriptionResults[0].subscription_id, subscriptionResults[0].banned, subscriptionResults[0].banned_reason]);
 					}
 				})
 				.catch(function(err) {
