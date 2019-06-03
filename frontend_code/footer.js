@@ -3341,9 +3341,15 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
 // What currently is being toggled: 
 // 1) The upgrade to professional prompt at the bottom of the screen.
 // 2) The info notification that you have no more videos to make.
+// 3) The user is banned notification. If this is present (2) is not.
 function toggleBasedOnSubscription($, result) {
   if (result.active_subscription == "716") { // If they are professional.
     $(".upgrade-to-professional-prompt").hide(); 
+  } 
+
+  if (result.user_banned == true) {
+    $(".user-banned-notification").show();
+    $("#user-banned-reason-text").text(result.user_banned_reason);
   } else if (result.number_videos_left <= 0) {
     $(".no-videos-left-notification").show();
   }

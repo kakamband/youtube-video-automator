@@ -28,7 +28,20 @@ module.exports.combineAllUsersClips = function(folderLocation, toCombine) {
 				let maxWidth = dimensions[0];
 				let maxHeight = dimensions[1];
 
-				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation);
+				return dbController.getActiveSubscriptionWrapper(pmsID);
+			})
+			.then(function(subscriptionInfo) {
+	            let activeSubscriptionID = subscriptionInfo[0];
+	            let numberOfVideosLeft = subscriptionInfo[1];
+	            let userBanned = subscriptionInfo[2];
+	            let userBannedReason = subscriptionInfo[3];
+
+	            var processingSpeed = "medium"; // Default is medium speed
+	            if (activeSubscriptionID == "716") {
+            		processingSpeed = "slow"; // Slow it down for professional users
+	            }
+
+				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation, processingSpeed);
 			})
 			.then(function() {
 				return resolve();
@@ -95,9 +108,9 @@ function _combineContent(content, dir) {
 	});
 }
 
-function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath) {
+function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed) {
 	return new Promise(function(resolve, reject) {
-		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath), function(code, stdout, stderr) {
+		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed), function(code, stdout, stderr) {
 			if (code != 0) {
 				cLogger.error("Error combining multiple clips: ", stderr);
 				return reject(stderr);
@@ -156,7 +169,7 @@ function getDimensionSize(count) {
 	return getDimensionSizeWithPath("", count);
 }
 
-function createCommandWithPath(count, maxWidth, maxHeight, actualPath) {
+function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed) {
 	var str = " ";
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "-i " + actualPath + "clip-" + i + ".mp4 ";
@@ -168,10 +181,10 @@ function createCommandWithPath(count, maxWidth, maxHeight, actualPath) {
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[v" + i + "][" + i + ":a]";
 	}
-	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" -preset " + Attr.ENCODING_SPEED + " " + actualPath + Attr.FINISHED_FNAME + ".mp4");
+	str += (" concat=n=" + count + ":v=1:a=1 [v][a]\" -map \"[v]\" -map \"[a]\" -preset " + processingSpeed + " " + actualPath + Attr.FINISHED_FNAME + ".mp4");
 	return str;
 }
 
 function createCommand(count, maxWidth, maxHeight) {
-	return createCommandWithPath(count, maxWidth, maxHeight, "");
+	return createCommandWithPath(count, maxWidth, maxHeight, "", "medium");
 }
