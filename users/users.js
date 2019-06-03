@@ -1194,7 +1194,7 @@ function _getClipInfoHelper(userID, pmsID, downloadID, fullCycle, getEstimateInF
                 delete info.id;
 
                 // Only include the downloaded file link if its already stored in S3
-                if (info.downloaded_file == null || !info.downloaded_file.startsWith(cdnURL)) {
+                if (info.downloaded_file == null || (!info.downloaded_file.startsWith(cdnURL) && info.downloaded_file.indexOf("youtube.com/watch") < 0)) {
                     delete info.downloaded_file;
                 }
 
