@@ -58,8 +58,10 @@ function _userHasVideosLeft(pmsID) {
 		.then(function(subscriptionInfo) {
             let activeSubscriptionID = subscriptionInfo[0];
             let numberOfVideosLeft = subscriptionInfo[1];
+            let userBanned = subscriptionInfo[2];
+            let userBannedReason = subscriptionInfo[3];
 
-            if (numberOfVideosLeft > 0) {
+            if (numberOfVideosLeft > 0 && userBanned == false) {
             	return resolve(true);
             } else {
             	return resolve(false);

@@ -6,6 +6,7 @@ const {google} = require('googleapis');
 var dbController = require('../controller/db');
 const opn = require('opn');
 var ErrorHelper = require('../errors/errors');
+var Uploader = require('../uploader/uploader');
 
 const scopes = [
 	// Needed to upload to Youtube, to set thumbnails, add to playlists, get channel info.
@@ -164,6 +165,12 @@ module.exports.initCallback = function(code, userID) {
 				return dbController.addRefreshToken(Secrets.GOOGLE_API_CLIENT_ID, tokens.refresh_token, tokens.access_token, userID)
 				.then(function() {
 					cLogger.info("Added the refresh & access token to the DB for future use.");
+					return _getAndAddChannelIDToUser(userID, tokens.access_token, tokens.refresh_token);
+				})
+				.then(function(ytChannelID) {
+					return _possiblyBanUser(userID, ytChannelID);
+				})
+				.then(function() {
 					return resolve([true, ""]);
 				})
 				.catch(function(err) {
@@ -195,3 +202,97 @@ module.exports.invalidateToken = function() {
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _banPossibilityChecker(userID, youtubeChannelID) {
+	return new Promise(function(resolve, reject) {
+		if (youtubeChannelID == undefined) {
+			return resolve([true, "Could not find a Youtube Channel linked to Google Account."]);
+		} else {
+			return dbController.anyOtherUsersHaveChannelID(userID, youtubeChannelID)
+			.then(function(alreadyExists) {
+				if (alreadyExists) {
+					return resolve([true, "The Youtube Channel has already been linked with an AutoTuber account."]);
+				} else {
+					return resolve([false, ""]);
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+	});
+}
+
+function _possiblyBanUser(userID, youtubeChannelID) {
+	return new Promise(function(resolve, reject) {
+		return _banPossibilityChecker(userID, youtubeChannelID)
+		.then(function(shouldBan) {
+			let banThisUser = shouldBan[0];
+			let banReason = shouldBan[1];
+
+			if (banThisUser) {
+				cLogger.info("The following user (" + userID + ") is being banned for: " + banReason);
+				return dbController.banUser(userID, banReason)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			} else {
+				return resolve();
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+function _getAndAddChannelIDToUser(userID, accessToken, refreshToken) {
+	return new Promise(function(resolve, reject) {
+		var youtubeClient = Uploader.createYoutubeClientForUserWrapper(accessToken, refreshToken);
+		var req = {
+			part: 'snippet,contentDetails,statistics',
+			mine: true
+		};
+
+		return youtubeClient.channels.list(req, function(err, resp) {
+			if (err) {
+				cLogger.error("Error getting channel information: " + err);
+				ErrorHelper.scopeConfigure("oauth_flow._getAndAddChannelIDToUser", {
+					message: "Unable to get channel ID",
+					response: resp,
+					user_id: userID
+				});
+				ErrorHelper.emitSimpleError(err);
+
+				return resolve(undefined);
+			} else {
+				var usersChannels = resp.data.items;
+				if (usersChannels.length == 0) {
+					cLogger.error("Error getting channel information: No User Channels have been returned.");
+					ErrorHelper.scopeConfigure("oauth_flow._getAndAddChannelIDToUser", {
+						message: "Unable to get any channels for this user, how is this possible?",
+						response: resp,
+						user_id: userID
+					});
+					ErrorHelper.emitSimpleError(new Error("Error getting channel information: No User Channels have been returned."));
+
+					return resolve(undefined);
+				} else {
+					cLogger.info("The Channel ID is: " + usersChannels[0].id);
+
+					return dbController.setUsersChannelID(userID, usersChannels[0].id + "")
+					.then(function() {
+						return resolve(usersChannels[0].id + "");
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				}
+			}
+		});
+	});
+}
+
