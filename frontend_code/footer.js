@@ -2431,6 +2431,26 @@ function _displayTagsHelper($, downloadID) {
   }
 }
 
+// Handles the privacy status area
+function handleCustomVideoPrivacyStatus($, username, ID, email, pass, downloadID, clipInfo) {
+
+  var dataOBJ = {
+    "username": username,
+    "user_id": ID,
+    "email": email,
+    "password": pass,
+
+    "download_id": downloadID,
+    "option_name": "custom_privacy"
+  };
+
+  $("#privacy-selector").change(function() {
+      dataOBJ.option_value = $("#privacy-selector").val();
+
+      _setCustomOption($, dataOBJ);
+  });
+}
+
 // Handles a custom tag area
 function handleCustomTags($, username, ID, email, pass, downloadID, clipInfo) {
   var tagsSet = false;
@@ -2988,6 +3008,9 @@ function getCurrentClipInfo($, username, ID, email, pass, downloadID) {
 
         // Handles the tags area
         handleCustomTags($, username, ID, email, pass, downloadID, clipInfo);
+
+        // Handles the privacy status area
+        handleCustomVideoPrivacyStatus($, username, ID, email, pass, downloadID, clipInfo);
 
         // The clip is still running in this state
         if (clipInfo.state == "started" || clipInfo.state == "init-stop" || clipInfo.state == "preparing") {

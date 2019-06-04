@@ -1119,6 +1119,11 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
                 info.thumbnails.default_image = gameThumbnail.image_name;
             }
 
+            // Include a default privacy status of 'public' if it doesnt exist yet
+            if (info.custom_privacy == null || info.custom_privacy == undefined) {
+                info.custom_privacy = "public";
+            }
+
             return dbController.getCustomClipThumbnail(userID, downloadID);
         })
         .then(function(customThumbnail) {
@@ -1394,6 +1399,27 @@ function forceVideoProcessing(userID, downloadID, optionValue) {
     });
 }
 
+function customPrivacyOption(userID, downloadID, optionName, optionValue) {
+    return new Promise(function(resolve, reject) {
+        var sanitizedVal = null;
+        if (optionValue == "public" || optionValue == "private" || optionValue == "unlisted") {
+            sanitizedVal = optionValue;
+        }
+
+        if (optionValue != null) {
+            return dbController.addCustomOption(userID, downloadID, optionName, sanitizedVal)
+            .then(function() {
+                return resolve();
+            })
+            .catch(function(err) {
+                return reject(err);
+            });
+        } else {
+            return reject(Errors.invalidCustomValue());
+        }
+    });
+}
+
 function customOptionHandler(userID, downloadID, optionName, optionValue) {
     return new Promise(function(resolve, reject) {
         switch (optionName) {
@@ -1458,6 +1484,14 @@ function customOptionHandler(userID, downloadID, optionName, optionValue) {
                 });
             case "force_video_processing":
                 return forceVideoProcessing(userID, downloadID, optionValue)
+                .then(function() {
+                    return resolve();
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            case "custom_privacy":
+                return customPrivacyOption(userID, downloadID, "custom_privacy", optionValue)
                 .then(function() {
                     return resolve();
                 })
