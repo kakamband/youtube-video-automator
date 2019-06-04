@@ -1012,44 +1012,65 @@ module.exports.getActiveSubscriptionWrapper = function(pmsID) {
 	return getCurrentActiveSubscription(pmsID);
 }
 
+function userHasHardcodedSubscription(pmsID) {
+	var hardcodedSubscriptions = Attr.HARDCODED_SUBSCRIPTIONS;
+	var hardcodedSubscriptionID = undefined;
+
+	// Check if its hardcoded
+	for (var i = 0; i < hardcodedSubscriptions.length; i++) {
+		if (hardcodedSubscriptions[i].pms_id == parseInt(pmsID)) {
+			hardcodedSubscriptionID = hardcodedSubscriptions[i].subscription_id;
+			break;
+		}
+	}
+
+	return hardcodedSubscriptionID;
+}
+
 function _getActiveSubscriptionIDHelper(pmsID) {
 	return new Promise(function(resolve, reject) {
-		return knex('payments')
-		.select("subscription_id")
-		.select(knex.raw('(SELECT banned FROM users WHERE pms_user_id=payments.pms_user_id) as banned'))
-		.select(knex.raw('(SELECT banned_reason FROM users WHERE pms_user_id=payments.pms_user_id) as banned_reason'))
-		.where("pms_user_id", "=", pmsID)
-		.whereRaw("updated_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
-		.orderBy("subscription_id", "DESC")
-		.limit(1)
-		.then(function(results) {
-			if (results.length == 0) {
-				// First check if they are a basic user
-				return knex('user_subscriptions')
-				.select("subscription_id")
-				.select(knex.raw('(SELECT banned FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned'))
-				.select(knex.raw('(SELECT banned_reason FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned_reason'))
-				.where("pms_user_id", "=", pmsID)
-				.where("status", "=", "active")
-				.orderBy("created_at", "DESC")
-				.limit(1)
-				.then(function(subscriptionResults) {
-					if (!subscriptionResults || subscriptionResults.length == 0 || subscriptionResults[0].subscription_id != "667") {
-						return resolve([-1, false, ""]);
-					} else {
-						return resolve([subscriptionResults[0].subscription_id, subscriptionResults[0].banned, subscriptionResults[0].banned_reason]);
-					}
-				})
-				.catch(function(err) {
-					return reject(err);
-				});
-			} else {
-				return resolve([results[0].subscription_id, results[0].banned, results[0].banned_reason]);
-			}
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
+		var hardcodedSubscriptionID = userHasHardcodedSubscription(pmsID);
+
+		if (hardcodedSubscriptionID != undefined) {
+			return resolve([hardcodedSubscriptionID, false, ""]);
+		} else {
+			return knex('payments')
+			.select("subscription_id")
+			.select(knex.raw('(SELECT banned FROM users WHERE pms_user_id=payments.pms_user_id) as banned'))
+			.select(knex.raw('(SELECT banned_reason FROM users WHERE pms_user_id=payments.pms_user_id) as banned_reason'))
+			.where("pms_user_id", "=", pmsID)
+			.whereRaw("updated_at >= (select date_trunc(\'day\', NOW() - interval \'1 month\'))")
+			.orderBy("subscription_id", "DESC")
+			.limit(1)
+			.then(function(results) {
+				if (results.length == 0) {
+					// First check if they are a basic user
+					return knex('user_subscriptions')
+					.select("subscription_id")
+					.select(knex.raw('(SELECT banned FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned'))
+					.select(knex.raw('(SELECT banned_reason FROM users WHERE pms_user_id=user_subscriptions.pms_user_id) as banned_reason'))
+					.where("pms_user_id", "=", pmsID)
+					.where("status", "=", "active")
+					.orderBy("created_at", "DESC")
+					.limit(1)
+					.then(function(subscriptionResults) {
+						if (!subscriptionResults || subscriptionResults.length == 0 || subscriptionResults[0].subscription_id != "667") {
+							return resolve([-1, false, ""]);
+						} else {
+							return resolve([subscriptionResults[0].subscription_id, subscriptionResults[0].banned, subscriptionResults[0].banned_reason]);
+						}
+					})
+					.catch(function(err) {
+						return reject(err);
+					});
+				} else {
+					return resolve([results[0].subscription_id, results[0].banned, results[0].banned_reason]);
+				}
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
 	});
 }
 
@@ -1065,7 +1086,7 @@ function getCurrentActiveSubscription(pmsID) {
 			userBanned = subscriptionIDAndBanned[1];
 			userBannedReason = subscriptionIDAndBanned[2];
 
-			if (activeSubscriptionID == -1) {
+			if (activeSubscriptionID == -1 || activeSubscriptionID == undefined) {
 				return resolve([-1, 0, false, ""]);
 			} else {
 				return _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID);

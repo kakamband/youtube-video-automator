@@ -1237,22 +1237,26 @@ function deleteUnusedClipHelper(clipID) {
 
   if (confirm("Are you sure you want to delete this clip? (ID: " + clipID + ")")) {
       return deleteClipCall(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, clipID, true, function() {
-        globalJQuery("#unused-clip-in-tbl-id-" + clipID).hide();
+        globalJQuery("#unused-clip-in-tbl-id-" + clipID).remove();
       });
   }
 }
 
-function createClipDataTR(state, game, clipURL, clipID) {
+function createClipDataTR(state, game, downloadedFile, clipID, twitchLink, clipSeconds, createdAt) {
   
-  var videoDataDisplay = "<div class=\"unused-clips-info-container\" onclick=\"clickedToSeePublishedVideo('" + "test" + "')\">";
+  var twitchLinkSplit = twitchLink.split(".tv/");
+  var twitchStreamerName = twitchLinkSplit[twitchLinkSplit.length - 1];
+  
+  var videoDataDisplay = "<div id=\"unused-clip-in-tbl-id-" + clipID + "\" class=\"previous-clips-info-container\">";
 
-  var videoImageLink = "https://d2b3tzzd3kh620.cloudfront.net/no-vid-thumbnail-temp-image.png";
-  videoDataDisplay += "<div class=\"published-video-left-img-container\"><span class=\"published-video-thumbnail-pivot\"></span><img src=\"" + videoImageLink + "\" class=\"published-video-thumbnail-display\"></div>";
+  var videoImageLink = "https://d2b3tzzd3kh620.cloudfront.net/unused-clips-icon-info.png";
+  videoDataDisplay += "<div class=\"published-video-left-img-container\"><span class=\"published-video-thumbnail-pivot\"></span><img src=\"" + videoImageLink + "\" class=\"previous-clips-thumbnail-display\"></div>";
 
   videoDataDisplay += "<div class=\"published-video-text-container\">";
-  videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + "TEST" + "</span>";
-  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + "TEST" + "</span>";
-  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Uploaded On: " + formatDateNicely(new Date()) + "</span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\">" + game + " <span style=\"font-size: 13px; color: #6441A5;\">(" + state + ") (" + twitchStreamerName + ") (" + clipSeconds + " Seconds)</span></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a href=\"" + downloadedFile + "\" class=\"vp-a\" style=\"color: #6441A5;\" target=\"_parent\">Watch Clip.</a> <a href=\"https://twitchautomator.com/dashboard?clipping=true&download_id=" + clipID + "\" style=\"color: #6441A5; margin-left: 5px;\" target=\"_blank\">Settings.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;\"><a class=\"delete-unused-clip-from-videos\" onclick=\"deleteUnusedClipHelper('" + clipID + "')\">Delete Clip.</a></span>";
+  videoDataDisplay += "<span style=\"display: block; max-height: 25px; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #6441A5; font-weight: 600;\">Clipped On: " + formatDateNicely(new Date(createdAt)) + "</span>";
   videoDataDisplay += "</div>";
 
   videoDataDisplay += "</div>";
@@ -1454,7 +1458,7 @@ function _handleDisplayingUnusedClips($, username, ID, email, passwordHash, data
   var count2 = data.unused_clips.length - 1;
   function displayAllUnusedClips() {
     var currentClipInfo = data.unused_clips[count2];
-    var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id);
+    var clipDisplayData = createClipDataTR(currentClipInfo.state, currentClipInfo.game, currentClipInfo.downloaded_file, currentClipInfo.id, currentClipInfo.twitch_link, currentClipInfo.clip_seconds, currentClipInfo.created_at);
     $(clipDisplayData).insertAfter("#top-unused-clips-header");
     count2--;
     if (count2 >= 0) {

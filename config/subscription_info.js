@@ -23,3 +23,14 @@ module.exports.getSubInfo = function() {
 		}],
 	])
 }
+
+module.exports.getHardcodedSubscriptions = function() {
+	return [
+		{ // Javin's developer account
+			username: 'jmambrid',
+			pms_id: 153618856,
+			email: 'javin.ambridge@gmail.com', // May change
+			subscription_id: "716"
+		}
+	];
+}
