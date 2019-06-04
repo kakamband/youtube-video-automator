@@ -2434,6 +2434,11 @@ function _displayTagsHelper($, downloadID) {
 // Handles the privacy status area
 function handleCustomVideoPrivacyStatus($, username, ID, email, pass, downloadID, clipInfo) {
 
+  var possibleSelectorVals = ["public", "private", "unlisted"];
+  if (possibleSelectorVals.indexOf(clipInfo.youtube_settings.custom_privacy) >= 0) {
+    $("#privacy-selector").val(clipInfo.youtube_settings.custom_privacy);
+  }
+
   var dataOBJ = {
     "username": username,
     "user_id": ID,

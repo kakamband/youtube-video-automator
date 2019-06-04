@@ -635,7 +635,7 @@ module.exports.createYoutubeClientForUserWrapper = function(accessTkn, refreshTk
 	return _createYoutubeClientForUser(accessTkn, refreshTkn);
 }
 
-function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fileSize) {
+function _uploadToYoutubeHelper(videoObject, privacyVal, fileName, accessTkn, refreshTkn, fileSize) {
 	return new Promise(function(resolve, reject) {
 
 		// Create the google api client for this user
@@ -658,7 +658,7 @@ function _uploadToYoutubeHelper(videoObject, fileName, accessTkn, refreshTkn, fi
 			requestBody: {
 				snippet: videoObject,
 				status: {
-					privacyStatus: "public", // TODO: Possibly change this to be a configurable value.
+					privacyStatus: privacyVal,
 				},
 			},
 			media: {
@@ -809,6 +809,11 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 		if (vidInfo.youtube_settings.signature != null) {
 			descriptionVal += "\n\n" + vidInfo.youtube_settings.signature;
 		}
+		var privacyVal = "public";
+		if (vidInfo.youtube_settings.custom_privacy != null) {
+			privacyVal = vidInfo.youtube_settings.custom_privacy;
+		}
+
 
 		// Build the video object
 		var videoObject = {
@@ -854,7 +859,7 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			usersRefreshTkn = userTokens.refresh_token;
 
 			// Start uploading to Youtube
-			return _uploadToYoutubeHelper(videoObject, fileName, usersAccessTkn, usersRefreshTkn, fileSize);
+			return _uploadToYoutubeHelper(videoObject, privacyVal, fileName, usersAccessTkn, usersRefreshTkn, fileSize);
 		})
 		.then(function(postedVidInfo) {
 			videoID = postedVidInfo[0];
