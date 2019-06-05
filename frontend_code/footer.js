@@ -372,11 +372,14 @@ function getAndPopulateGames($) {
 
           $(".game-selector-base").append("<option value=\"" + games[i] + "\">" + games[i] + "</option>");
           $("#ugc-input-select-game").append("<option value=\"" + games[i] + "\">" + games[i] + "</option>");
+          $("#ugc-input-select-game-intro-outro").append("<option value=\"" + games[i] + "\">" + games[i] + "</option>");
         }
         $("#ugc-input-select-game").append("<option value=\"other\">Other</option>");
         $(".game-selector-base").append("<option value=\"other\">Other</option>");
+        $("#ugc-input-select-game-intro-outro").append("<option value=\"other\">Other</option>");
         $("#ugc-input-select-game").val(initialVal);
         $(".game-selector-base").val(initialVal);
+        $("#ugc-input-select-game-intro-outro").val(initialVal);
         alreadyPopulatedGames = true;
       },
       dataType: "json"
@@ -415,6 +418,11 @@ function contentAlreadyExists(arr, gameName, playlistID) {
     }
   }
   return false;
+}
+
+// Calls the server for the intro and outro items, and then once returned updates the view
+function getAndUpdateIntrosOutros($, username, ID, email, pass) {
+  getAndPopulateGames($);
 }
 
 // Calls the server for the thumbnail items, and then once returned updates the view
@@ -933,6 +941,75 @@ function uploadThumbnailImg($, username, ID, email, pass, extraData, imgData, sc
   });  
 }
 
+// Uploads an intro or outro to the server
+function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro) {
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "user/intro-outro/upload",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "game_name": gameName,
+      "intro_or_outro": introOrOutro,
+      "video_data": dataURL
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+    },
+    success: function(result,status,xhr) {
+
+    },
+    dataType: "json"
+  });
+}
+
+// Handles the intros and outros settings
+function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID) {
+  if (activeSubscriptionID != "716") return;
+
+  var dataURL = null;
+  $("#intro-outro-container").click(function() {
+    getAndUpdateIntrosOutros($, username, ID, email, pass);
+
+    $("#intros-outros-default-subsection").toggle();
+  });
+
+  $("#ugc-input-select-game-intro-outro").change(function() {
+    toggleOtherGameInput($, "ugc-input-select-game-intro-outro", "intros-outros-other-game-input");
+  });
+
+  $("#my-intro-outro-submission").change(function() {
+    var file = document.getElementById('my-intro-outro-submission').files[0];
+    var reader  = new FileReader();
+
+    reader.addEventListener("load", function () {
+      dataURL = reader.result;
+    }, false);
+
+    if (file) {
+      reader.readAsDataURL(file);
+    }
+  });
+
+  $("#upload-intro-outro-btn").click(function() {
+    if (dataURL != null) {
+      var gameName = $("#ugc-input-select-game-intro-outro").val();
+      var introOrOutro = $("#select-intros-outros-type").val();
+
+      // If they chose a game not in the list
+      if (gameName == "other") {
+        gameName = $("#intros-outros-other-game-input").val();
+      }
+
+      console.log("The DataURL is: ", dataURL);
+      uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro);
+    }
+  });
+}
+
 // Handles the thumbnail settings
 function thumbnailSettings($, username, ID, email, pass) {
   var dataURL = null;
@@ -965,7 +1042,7 @@ function thumbnailSettings($, username, ID, email, pass) {
 
       // If they chose a game not in the list
       if (gameName == "other") {
-        $("#images-other-game-input").val();
+        gameName = $("#images-other-game-input").val();
       }
 
       uploadThumbnailImg($, username, ID, email, pass, gameName, dataURL, "default-thumbnail");
@@ -1119,9 +1196,10 @@ function languageSettings($, username, ID, email, pass) {
 }
 
 // Watches the default settings for changes
-function defaultSettings($, username, ID, email, pass) {
+function defaultSettings($, username, ID, email, pass, activeSubscriptionID) {
   minVideoSettings($, username, ID, email, pass);
-  maxVideoSettings($, username, ID, email, pass);
+  introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID);
+  //maxVideoSettings($, username, ID, email, pass);
   playlistSettings($, username, ID, email, pass);
   commentsSettings($, username, ID, email, pass);
   likeSettings($, username, ID, email, pass);
@@ -3357,6 +3435,7 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
               toggleAccountNotification($, result, username, ID, email, passwordHash);
               break;
             case "defaults":
+              defaultSettings($, username, ID, email, passwordHash, result.active_subscription);
               toggleDefaultsNotification($, result, username, ID, email, passwordHash);
               toggleDefaultSavedValues($, username, ID, email, passwordHash);
               break;
@@ -3369,15 +3448,27 @@ function notificationsAuth($, username, ID, email, subscriptions, passwordHash, 
     });
 }
 
+// Disables intro outro options
+function _disableIntroOutroOption($) {
+  // Defaults page
+  $("#intro-outro-container").addClass("intro-outro-container-disabled");
+  $("#intros-outros-count-container").hide();
+  $("#intros-outros-count-disabled-container").show();
+  $("#intro-outro-title-disabled-text").show();
+}
+
 // Toggles anything based on what the subscription level for the user is
 // What currently is being toggled: 
 // 1) The upgrade to professional prompt at the bottom of the screen.
 // 2) The info notification that you have no more videos to make.
 // 3) The user is banned notification. If this is present (2) is not.
+// 4) Disable and Enable the ability to upload intros/outros
 function toggleBasedOnSubscription($, result) {
   if (result.active_subscription == "716") { // If they are professional.
     $(".upgrade-to-professional-prompt").hide(); 
-  } 
+  } else { // Everything else
+    _disableIntroOutroOption($);
+  }
 
   if (result.user_banned == true) {
     $(".user-banned-notification").show();
@@ -3541,7 +3632,6 @@ jQuery(document).ready(function( $ ){
         }
 
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
-        defaultSettings($, theUser.username, theUser.id, theUser.email, theUser.unique_identifier);
     } else {
       if (canAuth) {
       	authenticateWithAutoTuberHost($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);

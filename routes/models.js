@@ -84,6 +84,9 @@ module.exports.GET_VIDEOS_DATA = "/user/videos/info";
 
 // Returns a new set of data for the videos page (through pagination)
 module.exports.GET_VIDEOS_PAGE = "/user/videos/page";
+
+// Uploads a intro or outro to the server
+module.exports.UPLOAD_INTRO_OUTRO = "/user/intro-outro/upload";
 // -------------------
 
 // Route definitions
@@ -455,6 +458,23 @@ module.exports.routes = new Map([
 
 			nameAndType("video_type", "string"),
 			nameAndType("page_number", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.UPLOAD_INTRO_OUTRO, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("game_name", "string"),
+			nameAndType("intro_or_outro", "string"),
+			nameAndType("video_data", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

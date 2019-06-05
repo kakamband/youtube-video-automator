@@ -494,4 +494,19 @@ router.post(Models.GET_VIDEOS_PAGE, function(req, res, next) {
 	});
 });
 
+router.post(Models.UPLOAD_INTRO_OUTRO, function(req, res, next) {
+	validFirst(Models.UPLOAD_INTRO_OUTRO, req, res, next, function() {
+		console.log("Made it here!!");
+		return res.json({success: true});
+		/*return Users.getVideosDataPage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.video_type, req.body.page_number)
+		.then(function(results) {
+			return res.json(results);
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});*/
+	});
+});
+
 module.exports = router;
