@@ -8,12 +8,14 @@ node_modules/
 video_data/*
 video_data_saved/*
 video_data_hijacks/*
+intros_or_outros/*
 tmp_ad_content/*
 tmp_img_files/*.png
 tmp_img_files/*.jpg
 tmp_img_files/*.jpeg
 test_helper/helpers_tester.js
 
+!intros_or_outros/readme.md
 !video_data_hijacks/readme.md
 !video_data_saved/readme.md
 !video_data/readme.md

@@ -48,6 +48,10 @@ module.exports.alreadyClippingErr = function() {
     return setup400Err("The user already has a clip running.");
 }
 
+module.exports.invalidIntroOutroType = function() {
+    return setup400Err("Invalid intro or outro type passed. Unsure where to include this video.");
+}
+
 module.exports.invalidVideoDataPageType = function() {
     return setup400Err("Invalid video data type. Cannot find a new page of this type.");
 }

@@ -496,16 +496,16 @@ router.post(Models.GET_VIDEOS_PAGE, function(req, res, next) {
 
 router.post(Models.UPLOAD_INTRO_OUTRO, function(req, res, next) {
 	validFirst(Models.UPLOAD_INTRO_OUTRO, req, res, next, function() {
-		console.log("Made it here!!");
-		return res.json({success: true});
-		/*return Users.getVideosDataPage(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.video_type, req.body.page_number)
+		return Users.uploadIntroOrOutro(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game_name, req.body.intro_or_outro, req.body.file_name, req.body.video_data)
 		.then(function(results) {
-			return res.json(results);
+			return res.json({
+				success: results
+			});
 		})
 		.catch(function(err) {
 			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO, req.body);
 			return ErrorHelper.errorHelper(next, err);
-		});*/
+		});
 	});
 });
 

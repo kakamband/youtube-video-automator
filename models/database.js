@@ -219,6 +219,17 @@ module.exports.initialize = function(knex) {
 	        table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('intros_or_outros', function(table) {
+	        table.increments();
+	        table.string("user_id").notNullable();
+	        table.string("pms_user_id").notNullable();
+	        table.string("game").notNullable();
+	        table.string("intro_or_outro").notNullable();
+	        table.string("file_location").notNullable();
+	        table.integer("uses").unsigned().notNullable().default(0);
+	        table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;
