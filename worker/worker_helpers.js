@@ -66,6 +66,34 @@ module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 	});
 }
 
+// transferIntroOutroToS3
+// Transfers an intro or outro video to the S3 bucket
+module.exports.transferIntroOutroToS3 = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+	return new Promise(function(resolve, reject) {
+		return _uploadFileToS3IntroOutro(newFileName)
+        .then(function() {
+            return dbController.insertIntroOrOutro({
+                user_id: userID,
+                pms_user_id: pmsID,
+                game: gameName,
+                intro_or_outro: introOrOutro,
+                file_location: fileLocation,
+                created_at: new Date(),
+                updated_at: new Date()
+            });
+        })
+        .then(function() {
+            return _deleteFileHelper(newFileName);
+        })
+        .then(function() {
+            return resolve();
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+	});
+}
+
 // decrementMsgCount
 // Decrements the msg count in redis
 module.exports.decrementMsgCount = function(workerName) {
@@ -262,6 +290,39 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _deleteFileHelper(filepath) {
+    return new Promise(function(resolve, reject) {
+        var rmCMD = "rm " + filepath;
+        cLogger.info("Running CMD: " + rmCMD);
+        return shell.exec(rmCMD, function(code, stdout, stderr) {
+            if (code != 0) {
+                return reject(stderr);
+            }
+
+            return resolve();
+        });
+    });
+}
+
+function _uploadFileToS3Helper(file, filePath) {
+    return new Promise(function(resolve, reject) {
+        var cmd = "aws s3 cp " + file + " s3://" + filePath + " --acl public-read";
+        cLogger.info("Running CMD: " + cmd);
+        return shell.exec(cmd, function(code, stdout, stderr) {
+            if (code != 0) {
+                return reject(stderr);
+            }
+
+            return resolve();
+        });
+    });
+}
+
+function _uploadFileToS3IntroOutro(file) {
+    var filePath = Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH;
+    return _uploadFileToS3Helper(file, filePath);
+}
 
 function _deleteClipsFromS3Now(userID, pmsID, allClipIDs, youtubeVideoURL) {
 	return new Promise(function(resolve, reject) {

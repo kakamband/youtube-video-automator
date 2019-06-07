@@ -62,7 +62,43 @@ module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID
 		})
 		.catch(function(err) {
 			return reject(err);
+		});
+	});
+}
+
+// addTransferIntroOutroToS3Task
+// Transfers an intro or outro video file to a S3 bucket, then updates the db, then deletes the file.
+module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+	return new Promise(function(resolve, reject) {
+		var extraDataString = JSON.stringify({
+			game: gameName,
+			intro_or_outro: introOrOutro,
+			new_file_name: newFileName,
+			file_location: fileLocation
+		});
+
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID,
+			contentEncoding: extraDataString,
+			messageId: (pmsID + "")
+		};
+
+		// Returns an unactive queue that can be consumed right away
+		// Also sets the queue to now be working
+		return getQueueMeta()
+		.then(function(queueChoice) {
+			return makeTransferIntroOutroToS3Post(queueChoice, msgOptions)
 		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
 	});
 }
 
@@ -310,6 +346,10 @@ function makePost(queueName, msgOptions, taskName) {
 			return reject(new Error("The queue was full!"));
 		}
 	});
+}
+
+function makeTransferIntroOutroToS3Post(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "transfer_intro_outro_task");
 }
 
 function makeTransferToS3Post(queueName, msgOptions) {

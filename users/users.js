@@ -772,21 +772,8 @@ function _uploadIntroOrOutroHelper(userID, pmsID, gameName, introOrOutro, fileNa
             if (err) {
                 return resolve(false);
             } else {
-                return _uploadFileToS3IntroOutro(newFileName)
-                .then(function() {
-                    return dbController.insertIntroOrOutro({
-                        user_id: userID,
-                        pms_user_id: pmsID,
-                        game: gameName,
-                        intro_or_outro: introOrOutro,
-                        file_location: cdnURL + "/" + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameWithoutFolder,
-                        created_at: new Date(),
-                        updated_at: new Date()
-                    });
-                })
-                .then(function() {
-                    return _deleteFileHelper(newFileName);
-                })
+                var fileLocation = cdnURL + "/" + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameWithoutFolder;
+                return Worker.addTransferIntroOutroToS3Task(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation)
                 .then(function() {
                     return resolve(true);
                 })
@@ -845,11 +832,6 @@ function _uploadFileToS3Helper(file, filePath) {
             return resolve();
         });
     });
-}
-
-function _uploadFileToS3IntroOutro(file) {
-    var filePath = Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH;
-    return _uploadFileToS3Helper(file, filePath);
 }
 
 function _uploadFileToS3(file) {
