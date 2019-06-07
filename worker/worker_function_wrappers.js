@@ -132,12 +132,11 @@ function handleDownloadingTask(ch, msg, message, workerType) {
 
 function handleTransferIntroOutro(ch, msg, message, workerType) {
 	var userID = msg.properties.correlationId;
-	var pmsID = msg.properties.messageId;
-	var extraData = JSON.parse(msg.properties.contentEncoding);
-	var gameName = extraData.game;
-	var introOrOutro = extraData.intro_or_outro;
-	var newFileName = extraData.new_file_name;
-	var fileLocation = extraData.file_location;
+	var pmsID = msg.properties.contentEncoding;
+	var gameName = msg.properties.headers.game;
+	var introOrOutro = msg.properties.headers.intro_or_outro;
+	var newFileName = msg.properties.headers.new_file_name;
+	var fileLocation = msg.properties.headers.file_location;
 	cLogger.info("Starting a transfer an intro to outro to S3 task.");
 
 	return Helpers.transferIntroOutroToS3(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation)
