@@ -3,6 +3,7 @@ var Helpers = require('./worker_helpers');
 const Sentry = require('@sentry/node');
 var cLogger = require('color-log');
 var Attr = require('../config/attributes');
+var DefinedErrors = require('../errors/defined_errors');
 
 module.exports.handleMessage = function(ch, message, msg, workerType) {
 	switch (message) {
@@ -18,6 +19,18 @@ module.exports.handleMessage = function(ch, message, msg, workerType) {
 		return handleProcessingStart(ch, msg, message, workerType);
     case "permanent_delete_task":
     	return handlePermDeleteTask(ch, msg, message, workerType);
+	case "transfer_intro_outro_task":
+		return handleTransferIntroOutro(ch, msg, message, workerType);
+	default:
+		Sentry.withScope(scope => {
+			scope.setTag("scope", "server-worker-" + workerType);
+			scope.setTag("environment", Attr.ENV);
+			scope.setExtra("msg", msg);
+
+			cLogger.error(DefinedErrors.unidentifiedWorkerMessage());
+			Sentry.captureException(DefinedErrors.unidentifiedWorkerMessage());
+		});
+		return;
   }
 }
 
@@ -103,6 +116,35 @@ function handleDownloadingTask(ch, msg, message, workerType) {
 		successMsg(message);
 		return Helpers.decrementMsgCount(workerType);
 	}).then(function() {
+		ch.ack(msg);
+	}).catch(function(err) {
+		errMsg(message, msg, message, err, workerType);
+		return Helpers.decrementMsgCount(workerType)
+		.then(function() {
+			ch.ack(msg);
+		})
+		.catch(function(err) {
+			Sentry.captureException(err);
+			ch.ack(msg);
+		});
+	});
+}
+
+function handleTransferIntroOutro(ch, msg, message, workerType) {
+	var userID = msg.properties.correlationId;
+	var pmsID = msg.properties.contentEncoding;
+	var gameName = msg.properties.headers.game;
+	var introOrOutro = msg.properties.headers.intro_or_outro;
+	var newFileName = msg.properties.headers.new_file_name;
+	var fileLocation = msg.properties.headers.file_location;
+	cLogger.info("Starting a transfer an intro to outro to S3 task.");
+
+	return Helpers.transferIntroOutroToS3(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation)
+	.then(function() {
+		successMsg(message);
+		return Helpers.decrementMsgCount(workerType);
+	})
+	.then(function() {
 		ch.ack(msg);
 	}).catch(function(err) {
 		errMsg(message, msg, message, err, workerType);

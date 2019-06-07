@@ -24,6 +24,10 @@ function setup501Err(errorValue) {
     return setupErr(501, errorValue);
 }
 
+module.exports.unidentifiedWorkerMessage = function() {
+    return setup400Err("Unidentified message for worker.");
+}
+
 module.exports.clipsCannotBeSwapped = function() {
     return setup400Err("The clips cannot be swapped. This can result from any of the following reasons: Not belonging to user, being deleted, being exclusive, clips not being done or active.");
 }
@@ -46,6 +50,10 @@ module.exports.clipDoesntExist = function() {
 
 module.exports.alreadyClippingErr = function() {
     return setup400Err("The user already has a clip running.");
+}
+
+module.exports.invalidIntroOutroType = function() {
+    return setup400Err("Invalid intro or outro type passed. Unsure where to include this video.");
 }
 
 module.exports.invalidVideoDataPageType = function() {

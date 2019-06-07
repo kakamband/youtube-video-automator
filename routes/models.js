@@ -474,6 +474,7 @@ module.exports.routes = new Map([
 
 			nameAndType("game_name", "string"),
 			nameAndType("intro_or_outro", "string"),
+			nameAndType("file_name", "string"),
 			nameAndType("video_data", "string")
 		],
 		validateParams: function(body, params) {

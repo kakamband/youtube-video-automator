@@ -3112,3 +3112,16 @@ module.exports.banUser = function(userID, banReason) {
 		});
 	});
 }
+
+module.exports.insertIntroOrOutro = function(introOutroObj) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.insert(introOutroObj)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}

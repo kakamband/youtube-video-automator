@@ -77,9 +77,6 @@ Helpers.setupWorkerChannels()
   amqp.connect(Attr.RABBITMQ_CONNECTION_STR, function(err, conn) {
     conn.createChannel(function(err, ch) {
 
-      // Initialize sentry
-      //Sentry.init({ dsn: Secrets.sentry_dsn });
-
       ch.assertQueue(Attr.ENCODING_AMQP_CHANNEL_NAME, {durable: true, maxPriority: 10});
       ch.prefetch(1);
       console.log("[*] Waiting for messages in %s. To exit press CTRL+C", Attr.ENCODING_AMQP_CHANNEL_NAME);

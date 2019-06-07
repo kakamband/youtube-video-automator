@@ -1,0 +1,1 @@
+# This folder will temporarily contain the intros and outros that users are uploading.

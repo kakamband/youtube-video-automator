@@ -9,6 +9,7 @@ var ErrorHelper = require('../errors/errors');
 var Errors = require('../errors/defined_errors');
 var Attr = require('../config/attributes');
 var shell = require('shelljs');
+var fs = require('fs');
 
 // --------------------------------------------
 // Constants below.
@@ -715,11 +716,60 @@ module.exports.getVideosDataPage = function(username, pmsID, email, password, vi
     });
 }
 
+// uploadIntroOrOutro
+// Uploads an intro or outro for a user
+module.exports.uploadIntroOrOutro = function(username, pmsID, email, password, gameName, introOrOutro, fileName, fileData) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return _uploadIntroOrOutroHelper(userID, pmsID, gameName, introOrOutro, fileName, fileData);
+        })
+        .then(function(successfull) {
+            return resolve(successfull);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _uploadIntroOrOutroHelper(userID, pmsID, gameName, introOrOutro, fileName, fileData) {
+    return new Promise(function(resolve, reject) {
+        if (introOrOutro != "intro" && introOrOutro != "outro") {
+            return reject(Errors.invalidIntroOutroType());
+        }
+
+        fileData = fileData.replace(/^data:(.*?);base64,/, "");
+        fileData = fileData.replace(/ /g, '+');
+
+        var currentDate = new Date();
+        var fileNameWithoutFolder = userID + "-" + currentDate.getTime() + "-" + fileName;
+        var newFileName = ORIGIN_PATH + "intros_or_outros/" + fileNameWithoutFolder;
+
+        return fs.writeFile(newFileName, fileData, 'base64', function(err) {
+            if (err) {
+                return resolve(false);
+            } else {
+                var fileLocation = cdnURL + "/" + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameWithoutFolder;
+                return Worker.addTransferIntroOutroToS3Task(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation)
+                .then(function() {
+                    return resolve(true);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            }
+        });
+    });
+}
 
 function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
     return new Promise(function(resolve, reject) {
@@ -756,9 +806,9 @@ function _getVideosPageHelper(userID, pmsID, videoType, pageNumber) {
     });
 }
 
-function _uploadFileToS3(file) {
+function _uploadFileToS3Helper(file, filePath) {
     return new Promise(function(resolve, reject) {
-        var cmd = "aws s3 cp " + file + " s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_THUMBNAIL_PATH + " --acl public-read";
+        var cmd = "aws s3 cp " + file + " s3://" + filePath + " --acl public-read";
         cLogger.info("Running CMD: " + cmd);
         return shell.exec(cmd, function(code, stdout, stderr) {
             if (code != 0) {
@@ -768,6 +818,11 @@ function _uploadFileToS3(file) {
             return resolve();
         });
     });
+}
+
+function _uploadFileToS3(file) {
+    var filePath = Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_THUMBNAIL_PATH;
+    return _uploadFileToS3Helper(file, filePath);
 }
 
 function deleteThumbnailFromS3(image) {

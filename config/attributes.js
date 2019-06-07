@@ -2,7 +2,7 @@ var LocalAttr = require('./local_attributes.js'); // Fill out this file with you
 var SubscriptionInfo = require('./subscription_info');
 
 module.exports = {
-	RELEASE_VERSION: "0.1.4",
+	RELEASE_VERSION: "0.1.5",
 	MINIMUM_VIDEO_PROCESSING_DELAY_MINUTES: 5,
 	ENCODING_AMQP_CHANNEL_NAME: "ENCODING_CHANNEL_NO_EXP",
 	UPLOADING_AMQP_CHANNEL_NAME: "UPLOADING_CHANNEL_NO_EXP",
@@ -36,6 +36,7 @@ module.exports = {
 	AWS_S3_BUCKET_NAME: LocalAttr.AWS_S3_BUCKET_NAME || "tmp/",
 	AWS_S3_BUCKET_VIDEO_PATH: LocalAttr.AWS_S3_BUCKET_VIDEO_PATH || "tmp/",
 	AWS_S3_THUMBNAIL_PATH: LocalAttr.AWS_S3_THUMBNAIL_PATH || "thumbnails/",
+	AWS_S3_INTROS_OUTROS_PATH: LocalAttr.AWS_S3_INTROS_OUTROS_PATH || "intros_outros/",
 	STREAMLINK_EXECUTABLE_LOC: LocalAttr.STREAMLINK_LOCATION || "streamlink",
 	CDN_URL: "https://d2b3tzzd3kh620.cloudfront.net",
 	SUBSCRIPTION_VIDEO_CAPS: SubscriptionInfo.getSubInfo(),

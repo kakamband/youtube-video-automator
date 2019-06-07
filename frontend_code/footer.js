@@ -951,9 +951,8 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       "user_id": ID,
       "email": email,
       "password": pass,
-
-      "game_name": gameName,
       "intro_or_outro": introOrOutro,
+      "game_name": gameName,
       "video_data": dataURL
     },
     error: function(xhr,status,error) {
@@ -997,14 +996,21 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
   $("#upload-intro-outro-btn").click(function() {
     if (dataURL != null) {
       var gameName = $("#ugc-input-select-game-intro-outro").val();
-      var introOrOutro = $("#select-intros-outros-type").val();
+      var introOrOutro = $(".select-intros-outros-type").val();
 
       // If they chose a game not in the list
       if (gameName == "other") {
         gameName = $("#intros-outros-other-game-input").val();
       }
 
-      console.log("The DataURL is: ", dataURL);
+      // Sanitize the intro or outro text
+      if (introOrOutro.indexOf("outro") >= 0) {
+        introOrOutro = "outro";
+      } else {
+        introOrOutro = "intro";
+      }
+
+      console.log(dataURL);
       uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro);
     }
   });
