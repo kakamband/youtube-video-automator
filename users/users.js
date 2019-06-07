@@ -741,20 +741,6 @@ module.exports.uploadIntroOrOutro = function(username, pmsID, email, password, g
 // Helper functions below.
 // --------------------------------------------
 
-function _deleteFileHelper(filepath) {
-    return new Promise(function(resolve, reject) {
-        var rmCMD = "rm " + filepath;
-        cLogger.info("Running CMD: " + rmCMD);
-        return shell.exec(rmCMD, function(code, stdout, stderr) {
-            if (code != 0) {
-                return reject(stderr);
-            }
-
-            return resolve();
-        });
-    });
-}
-
 function _uploadIntroOrOutroHelper(userID, pmsID, gameName, introOrOutro, fileName, fileData) {
     return new Promise(function(resolve, reject) {
         if (introOrOutro != "intro" && introOrOutro != "outro") {
