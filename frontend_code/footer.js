@@ -19,6 +19,7 @@ End of comment */
 // -----------------------------------------
 
 const maxNumberOfThumbnails = 10;
+const maxNumberOfIntrosOutros = 10;
 const maxNumberOfPlaylists = 15;
 const maxNumberOfComments = 45;
 const maxNumberOfSignatures = 10;
@@ -31,6 +32,7 @@ var gameCommentsCombo = [];
 var gameDescriptionsCombo = [];
 var gameTagsCombo = [];
 var gameThumbnailsCombo = [];
+var gameIntroOutroCombo = [];
 var videoTagsList = [];
 var definedCategory = "20";
 var definedLanguage = "en";
@@ -62,6 +64,11 @@ function toggleBtnHelper($, arr, id, amount) {
   } else {
     $("#" + id).removeClass("a-tag-disabled");
   }
+}
+
+// Toggles the intro outro btn to disabled if needed
+function toggleIntroOutroBtnDisable($) {
+  toggleInputHelper($, gameIntroOutroCombo, "upload-intro-outro-btn", maxNumberOfIntrosOutros);
 }
 
 // Toggles the thumbnails btn to disabled if needed
@@ -252,6 +259,20 @@ function deleteAddedSetting(name, index) {
   }
  }
 
+function drawIntroOutros($, anchor) {
+  for (var i = 0; i < gameIntroOutroCombo.length; i++) {
+    if (!gameIntroOutroCombo[i].drawn) {
+      var uniqueName = "intros-outros-" + i;
+
+      var introLink = gameIntroOutroCombo[i].playlistID;
+      var watchUploadedLink = "<a href=\"" + introLink + "\" class=\"vp-a\">Watch</a>"
+
+      $(anchor).append("<tr id=\"" + "intros-outros-" + i + "\"><td class=\"defaults-td\">" + gameIntroOutroCombo[i].gameName + "</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].typeOf + "</td><td class=\"defaults-td\">" + watchUploadedLink + "</td><td class=\"defaults-td\">Delete</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].uses + "</td></tr>");
+      gameIntroOutroCombo[i].drawn = true;
+    }
+  }
+}
+
 // draws the playlists that are in the gamePlaylistsCombo box
 function drawOptions($, arr, anchor, name) {
   for (var i = 0; i < arr.length; i++) {
@@ -420,11 +441,25 @@ function contentAlreadyExists(arr, gameName, playlistID) {
   return false;
 }
 
+
+
 // Calls the server for the intro and outro items, and then once returned updates the view
 function getAndUpdateIntrosOutros($, username, ID, email, pass) {
   return getAndUpdateHelper($, username, ID, email, pass, "intros-outros", function(result) {
     getAndPopulateGames($);
-    console.log("the result is: ", result);
+    for (var i = 0; i < result.results.length; i++) {
+        if (contentAlreadyExists(gameIntroOutroCombo, result.results[i].game, result.results[i].file_location)) continue;
+        gameIntroOutroCombo.push({gameName: result.results[i].game, playlistID: result.results[i].file_location, typeOf: result.results[i].intro_or_outro, uses: result.results[i].uses, drawn: false, hardSaved: true, userDeleted: false});
+    }
+
+    if (gameIntroOutroCombo.length == 0) return;
+
+    toggleIntroOutroBtnDisable($);
+
+    drawIntroOutros($, "#intros-outros-saved-table-body");
+
+    // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+    // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
   });
 }
 
@@ -1365,6 +1400,17 @@ function defaultSettings($, username, ID, email, pass, activeSubscriptionID) {
   signatureSettings($, username, ID, email, pass);
   tagSettings($, username, ID, email, pass);
   languageSettings($, username, ID, email, pass);
+
+  // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+  // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+  // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+  $("a.vp-a").YouTubePopUp();
+  // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+  $(".vp-a").click(function() {
+    $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+    $(".VideoPopUpWrap").slice(1).remove();
+  });
 }
 
 // -----------------------------------------

@@ -243,6 +243,8 @@ module.exports.settingsOverview = function(pmsID) {
 		.select(knex.raw('(select count(*) from signatures where pms_user_id=\'' + pmsID + '\') as signatures_count'))
 		.select(knex.raw('(select count(*) from tags where pms_user_id=\'' + pmsID + '\') as tags_count'))
 		.select(knex.raw('(select count(*) from thumbnails where pms_user_id=\'' + pmsID + '\') as thumbnails_count'))
+		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'intro\') as intros_count'), [pmsID])
+		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'outro\') as outros_count'), [pmsID])
 		.then(function(results) {
 			if (results.length > 0) {
 				return resolve(results[0]);
@@ -264,6 +266,7 @@ module.exports.getIntrosOutros = function(pmsID) {
 		.whereNull("nonce")
 		.where("finished_uploading", "=", true)
 		.where("upload_failed", "=", false)
+		.orderBy("created_at", "DESC")
 		.then(function(results) {
 			return resolve(results);
 		})
