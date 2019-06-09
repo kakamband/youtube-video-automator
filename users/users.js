@@ -832,7 +832,13 @@ function _uploadIntroOrOutroDoneHelper(userID, pmsID, nonce) {
                 
                 return dbController.setIntroOutroDoneDownloading(userID, pmsID, nonce)
                 .then(function() {
-                    return Worker.addTransferIntroOutroToS3Task(userID, pmsID, introOutroObj.game, introOutroObj.intro_or_outro, introOutroObj.file_location, fileLocation, nonce);
+                    return _uploadIntroOutroToS3(introOutroObj.file_location);
+                })
+                .then(function() {
+                    return dbController.updateIntroOutroFileLocationDeleteNonce(userID, pmsID, nonce, fileLocation);
+                })
+                .then(function() {
+                    return _deleteFileHelper(introOutroObj.file_location);
                 })
                 .then(function() {
                     return resolve(true);
@@ -856,6 +862,20 @@ function _addNewIntroOutroChunk(fileLocation, fileData) {
             } else {
                 return resolve();
             }
+        });
+    });
+}
+
+function _deleteFileHelper(filepath) {
+    return new Promise(function(resolve, reject) {
+        var rmCMD = "rm " + filepath;
+        cLogger.info("Running CMD: " + rmCMD);
+        return shell.exec(rmCMD, function(code, stdout, stderr) {
+            if (code != 0) {
+                return reject(stderr);
+            }
+
+            return resolve();
         });
     });
 }
@@ -935,6 +955,11 @@ function _uploadFileToS3Helper(file, filePath) {
             return resolve();
         });
     });
+}
+
+function _uploadIntroOutroToS3(file) {
+    var filePath = Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH;
+    return _uploadFileToS3Helper(file, filePath);
 }
 
 function _uploadFileToS3(file) {

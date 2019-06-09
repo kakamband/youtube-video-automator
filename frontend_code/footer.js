@@ -984,6 +984,9 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
   }
 
   function doneUploadingFileCall() {
+    $(".bar-intro-upload").css("width", "90%");
+    $("#intro-up-progress-perc-num").text("90");
+    $("#intro-up-progress-text").text("Currently Processing ");
     return $.ajax({
       type: "POST",
       url: autoTuberURL + "user/intro-outro/upload/done",
@@ -1001,12 +1004,42 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       success: function(result,status,xhr) {
         if (result && result.success == true) {
           console.log("Intro/Outro marked as done uploading.");
+          $(".bar-intro-upload").css("width", "100%");
+          $("#intro-up-progress-perc-num").text("100");
+          $("#intro-up-progress-text").text("Done ");
+          return setTimeout(function() {
+            $("#currently-uploading-intro-outro-progress").hide();
+            $("#upload-intro-outro-btn").show();
+          }, 2000); // Delay for two seconds then allow another upload if desired
         } else {
           console.log("Marking intro/outro as done uploading has failed: ", result);
         }
       },
-      dataType: "json"
+      dataType: "json",
+      timeout: 120000, // two minutes, this file needs to be transfered to a S3 bucket
     });
+  }
+
+  function updateProgressBarView(nextSlice, percentDone) {
+
+    // Make the progress bar look a bit smoother
+    // Leave a 10% leway for the video to be uploaded to S3 and be ready
+    var actualPercentDone = percentDone * 0.90;
+    if (actualPercentDone < 5) {
+      actualPercentDone = 5;
+    }
+    // Sanity check below, should never go off.
+    if (actualPercentDone > 90) {
+      actualPercentDone = 90;
+    }
+
+    // Update the progress bar first
+    $(".bar-intro-upload").css("width", actualPercentDone + "%");
+
+    // Update the progress percent number
+    $("#intro-up-progress-perc-num").text(actualPercentDone + "");
+
+    return uploadFileChunk(nextSlice);
   }
 
   function uploadFileChunk(start) {
@@ -1027,8 +1060,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
         var percentDone = Math.floor((sizeDone / file.size) * 100);
 
         if (nextSlice < file.size) {
-          console.log("We are " + percentDone + "% done.");
-          return uploadFileChunk(nextSlice);
+          return updateProgressBarView(nextSlice, percentDone);
         } else {
           console.log("We are done.");
           return doneUploadingFileCall();
@@ -1069,6 +1101,9 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
     });
   }
 
+  $(".bar-intro-upload").css("width", "5%");
+  $("#intro-up-progress-perc-num").text("5");
+  $("#currently-uploading-intro-outro-progress").show();
   return startMulitpartUpload();
 }
 
@@ -1111,6 +1146,7 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
         introOrOutro = "intro";
       }
       
+      $("#upload-intro-outro-btn").hide();
       uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName);
     }
   });
