@@ -942,19 +942,64 @@ function uploadThumbnailImg($, username, ID, email, pass, extraData, imgData, sc
 }
 
 // Uploads an intro or outro to the server
-function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro) {
+function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName) {
+
+  // Sourced heavily from: https://deliciousbrains.com/using-javascript-file-api-to-avoid-file-upload-limits/
+  // However changed slightly.
+
+  var reader = new FileReader();
+  var file = dataURL;
+
+  // Keep the slice size to 1Mb per upload request.
+  // 1024 (bytes in a kilobyte) * 1000 (kilobytes in a mb) = mb
+  var sliceSize = 1000 * 1024;
+
+  function uploadFileChunk(start) {
+    var nextSlice = start + sliceSize + 1;
+    var blob = file.slice(start, nextSlice); // Get the current blob we want to upload
+
+    reader.onloadend = function(event) {
+      if ( event.target.readyState !== FileReader.DONE ) {
+          return;
+      }
+
+      // TODO: Actually upload this to the server
+      console.log("Chunk #" + start + ": ", event.target.result);
+
+      // Keep uploading chunks if they exist
+      var sizeDone = start + sliceSize;
+      var percentDone = Math.floor((sizeDone / file.size) * 100);
+
+      if (nextSlice < file.size) {
+        console.log("We are " + percentDone + "% done.");
+        return uploadFileChunk(nextSlice);
+      } else {
+        console.log("We are done.");
+      }
+    };
+
+    // Start reading the blob into Base64 text
+    reader.readAsDataURL(blob);
+  }
+
+  return uploadFileChunk(0);
+  /*var formData = new FormData();
+  formData.append("username", username);
+  formData.append("user_id", ID);
+  formData.append("email", email);
+  formData.append("password", pass);
+  formData.append("intro_or_outro", introOrOutro);
+  formData.append("game_name", gameName);
+  formData.append("video_data", dataURL);
+  formData.append("file_name", dataFileName);
+
   $.ajax({
     type: "POST",
     url: autoTuberURL + "user/intro-outro/upload",
-    data: {
-      "username": username,
-      "user_id": ID,
-      "email": email,
-      "password": pass,
-      "intro_or_outro": introOrOutro,
-      "game_name": gameName,
-      "video_data": dataURL
-    },
+    data: formData,
+    cache: false,
+    processData: false,
+    contentType: false,
     error: function(xhr,status,error) {
       console.log("Error: ", error);
     },
@@ -962,7 +1007,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
 
     },
     dataType: "json"
-  });
+  });*/
 }
 
 // Handles the intros and outros settings
@@ -970,6 +1015,7 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
   if (activeSubscriptionID != "716") return;
 
   var dataURL = null;
+  var dataFileName = "";
   $("#intro-outro-container").click(function() {
     getAndUpdateIntrosOutros($, username, ID, email, pass);
 
@@ -982,15 +1028,8 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
 
   $("#my-intro-outro-submission").change(function() {
     var file = document.getElementById('my-intro-outro-submission').files[0];
-    var reader  = new FileReader();
-
-    reader.addEventListener("load", function () {
-      dataURL = reader.result;
-    }, false);
-
-    if (file) {
-      reader.readAsDataURL(file);
-    }
+    dataFileName = file.name;
+    dataURL = file;
   });
 
   $("#upload-intro-outro-btn").click(function() {
@@ -1009,9 +1048,8 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
       } else {
         introOrOutro = "intro";
       }
-
-      console.log(dataURL);
-      uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro);
+      
+      uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName);
     }
   });
 }

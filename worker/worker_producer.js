@@ -68,7 +68,7 @@ module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID
 
 // addTransferIntroOutroToS3Task
 // Transfers an intro or outro video file to a S3 bucket, then updates the db, then deletes the file.
-module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation, nonce) {
 	return new Promise(function(resolve, reject) {
 
 		var msgOptions = {
@@ -81,7 +81,8 @@ module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName,
 				game: gameName,
 				intro_or_outro: introOrOutro,
 				new_file_name: newFileName,
-				file_location: fileLocation
+				file_location: fileLocation,
+				nonce: nonce
 			},
 			contentEncoding: (pmsID + "")
 		};

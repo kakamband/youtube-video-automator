@@ -68,19 +68,11 @@ module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 
 // transferIntroOutroToS3
 // Transfers an intro or outro video to the S3 bucket
-module.exports.transferIntroOutroToS3 = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+module.exports.transferIntroOutroToS3 = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation, nonce) {
 	return new Promise(function(resolve, reject) {
 		return _uploadFileToS3IntroOutro(newFileName)
         .then(function() {
-            return dbController.insertIntroOrOutro({
-                user_id: userID,
-                pms_user_id: pmsID,
-                game: gameName,
-                intro_or_outro: introOrOutro,
-                file_location: fileLocation,
-                created_at: new Date(),
-                updated_at: new Date()
-            });
+            return dbController.updateIntroOutroFileLocationDeleteNonce(userID, pmsID, nonce, fileLocation);
         })
         .then(function() {
             return _deleteFileHelper(newFileName);

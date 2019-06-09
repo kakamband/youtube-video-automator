@@ -3113,12 +3113,90 @@ module.exports.banUser = function(userID, banReason) {
 	});
 }
 
+module.exports.updateIntroOutroFileLocationDeleteNonce = function(userID, pmsID, nonce, newFileLocation) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where("nonce", "=", nonce)
+		.update({
+			nonce: null,
+			file_location: newFileLocation,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.insertIntroOrOutro = function(introOutroObj) {
 	return new Promise(function(resolve, reject) {
 		return knex('intros_or_outros')
 		.insert(introOutroObj)
 		.then(function(results) {
 			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.setIntroOutroDoneDownloading = function(userID, pmsID, nonce) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where("nonce", "=", nonce)
+		.where("finished_uploading", "=", false)
+		.update({
+			finished_uploading: true,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateIntroOutroLastUpdated = function(userID, pmsID, nonce) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where("nonce", "=", nonce)
+		.update({
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.doesActiveIntroOutroExist = function(userID, pmsID, nonce) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where("nonce", "=", nonce)
+		.where("finished_uploading", "=", false)
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(results[0]);
+			} else {
+				return resolve(undefined);
+			}
 		})
 		.catch(function(err) {
 			return reject(err);

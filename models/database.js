@@ -227,6 +227,8 @@ module.exports.initialize = function(knex) {
 	        table.string("intro_or_outro").notNullable();
 	        table.string("file_location").notNullable();
 	        table.integer("uses").unsigned().notNullable().default(0);
+	        table.boolean("finished_uploading").notNullable().default(false);
+	        table.string("nonce");
 	        table.timestamps();
 		});
 	}).then(function() {

@@ -137,9 +137,10 @@ function handleTransferIntroOutro(ch, msg, message, workerType) {
 	var introOrOutro = msg.properties.headers.intro_or_outro;
 	var newFileName = msg.properties.headers.new_file_name;
 	var fileLocation = msg.properties.headers.file_location;
+	var nonce = msg.properties.headers.nonce;
 	cLogger.info("Starting a transfer an intro to outro to S3 task.");
 
-	return Helpers.transferIntroOutroToS3(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation)
+	return Helpers.transferIntroOutroToS3(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation, nonce)
 	.then(function() {
 		successMsg(message);
 		return Helpers.decrementMsgCount(workerType);
