@@ -1773,6 +1773,14 @@ function getSettingsHelper(pmsID, scope) {
                 .catch(function(err) {
                     return reject(err);
                 });
+            case "intros-outros":
+                return dbController.getIntrosOutros(pmsID)
+                .then(function(results) {
+                    return resolve(results);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
             default:
                 return reject(Errors.invalidScope());
         }

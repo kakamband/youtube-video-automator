@@ -256,6 +256,31 @@ module.exports.settingsOverview = function(pmsID) {
 	});
 }
 
+module.exports.getIntrosOutros = function(pmsID) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("pms_user_id", "=", pmsID)
+		.whereNull("nonce")
+		.where("finished_uploading", "=", true)
+		.where("upload_failed", "=", false)
+		.then(function(results) {
+			for (var i = 0; i < results.length; i++) {
+				delete results[i].id;
+				delete results[i].updated_at;
+				delete results[i].pms_user_id;
+				delete results[i].user_id;
+				delete results[i].finished_uploading;
+				delete results[i].upload_failed;
+			}
+
+			return resolve(results);
+		})
+		.catch(function(err) {
+			return reject(ErrorHelper.dbError(err));
+		});
+	});
+}
+
 module.exports.getThumbnails = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')

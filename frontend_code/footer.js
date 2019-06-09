@@ -942,7 +942,7 @@ function uploadThumbnailImg($, username, ID, email, pass, extraData, imgData, sc
 }
 
 // Uploads an intro or outro to the server
-function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName) {
+function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName, doneCB) {
 
   // Sourced heavily from: https://deliciousbrains.com/using-javascript-file-api-to-avoid-file-upload-limits/
   // However changed slightly.
@@ -1004,12 +1004,14 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       success: function(result,status,xhr) {
         if (result && result.success == true) {
           console.log("Intro/Outro marked as done uploading.");
+          $("#my-intro-outro-submission").val("");
           $(".bar-intro-upload").css("width", "100%");
           $("#intro-up-progress-perc-num").text("100");
           $("#intro-up-progress-text").text("Done ");
           return setTimeout(function() {
             $("#currently-uploading-intro-outro-progress").hide();
             $("#upload-intro-outro-btn").show();
+            return doneCB();
           }, 2000); // Delay for two seconds then allow another upload if desired
         } else {
           console.log("Marking intro/outro as done uploading has failed: ", result);
@@ -1024,7 +1026,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
 
     // Make the progress bar look a bit smoother
     // Leave a 10% leway for the video to be uploaded to S3 and be ready
-    var actualPercentDone = percentDone * 0.90;
+    var actualPercentDone = Math.round(percentDone * 0.90);
     if (actualPercentDone < 5) {
       actualPercentDone = 5;
     }
@@ -1113,6 +1115,7 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
 
   var dataURL = null;
   var dataFileName = "";
+  var validFileSize = true;
   $("#intro-outro-container").click(function() {
     getAndUpdateIntrosOutros($, username, ID, email, pass);
 
@@ -1127,10 +1130,16 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
     var file = document.getElementById('my-intro-outro-submission').files[0];
     dataFileName = file.name;
     dataURL = file;
+    var sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+    if (sizeInMB > 50) {
+      validFileSize = false;
+    } else {
+      validFileSize = true;
+    }
   });
 
   $("#upload-intro-outro-btn").click(function() {
-    if (dataURL != null) {
+    if (dataURL != null && validFileSize) {
       var gameName = $("#ugc-input-select-game-intro-outro").val();
       var introOrOutro = $(".select-intros-outros-type").val();
 
@@ -1147,7 +1156,10 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
       }
       
       $("#upload-intro-outro-btn").hide();
-      uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName);
+      uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName, function() {
+        dataURL = null;
+        dataFileName = "";
+      });
     }
   });
 }
