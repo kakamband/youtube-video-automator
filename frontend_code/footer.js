@@ -422,7 +422,10 @@ function contentAlreadyExists(arr, gameName, playlistID) {
 
 // Calls the server for the intro and outro items, and then once returned updates the view
 function getAndUpdateIntrosOutros($, username, ID, email, pass) {
-  getAndPopulateGames($);
+  return getAndUpdateHelper($, username, ID, email, pass, "intros-outros", function(result) {
+    getAndPopulateGames($);
+    console.log("the result is: ", result);
+  });
 }
 
 // Calls the server for the thumbnail items, and then once returned updates the view
