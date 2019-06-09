@@ -776,11 +776,55 @@ module.exports.uploadIntroOrOutroDone = function(username, pmsID, email, passwor
     });
 }
 
+// deleteIntroOutro
+// Deletes an intro or outro from S3
+module.exports.deleteIntroOutro = function(username, pmsID, email, password, gameName, linkURL) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return _deleteIntroOutroHelper(userID, pmsID, gameName, linkURL);
+        })
+        .then(function(successfull) {
+            return resolve(successfull);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _deleteIntroOutroHelper(userID, pmsID, gameName, linkURL) {
+    return new Promise(function(resolve, reject) {
+        return dbController.getSpecificIntroOutro(userID, pmsID, gameName, linkURL)
+        .then(function(introOutroObj) {
+            if (introOutroObj == undefined) {
+                return reject(Errors.introOutroDoesNotExist());
+            } else {
+                return deleteIntroOutroFromS3(introOutroObj.file_location)
+                .then(function() {
+                    return dbController.deleteIntroOutroEntity(introOutroObj.id);
+                })
+                .then(function() {
+                    return resolve(true);
+                })
+                .catch(function(err) {
+                    return reject(err);
+                });
+            }
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
 
 function _uploadIntroOrOutroInitHelper(userID, pmsID, gameName, introOrOutro, fileName) {
     return new Promise(function(resolve, reject) {
@@ -967,6 +1011,25 @@ function _uploadFileToS3(file) {
     return _uploadFileToS3Helper(file, filePath);
 }
 
+function deleteIntroOutroFromS3(fileLocation) {
+    return new Promise(function(resolve, reject) {
+        var fileLocationSplit = fileLocation.split(Attr.AWS_S3_INTROS_OUTROS_PATH);
+        var fileNameActual = fileLocationSplit[fileLocationSplit.length - 1];
+
+        var cmd = "aws s3 rm s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameActual;
+        cLogger.info("Running cmd: " + cmd);
+        return shell.exec(cmd, function(code, stdout, stderr) {
+            if (code != 0) {
+                // If this errors just report to sentry and continue
+                ErrorHelper.scopeConfigure("users.deleteIntroOutroFromS3", {error: stderr, fileLocation: fileLocation});
+                ErrorHelper.emitSimpleError(new Error("Failed to delete from s3."));
+            }
+
+            return resolve();
+        });
+    });
+}
+
 function deleteThumbnailFromS3(image) {
     return new Promise(function(resolve, reject) {
         var imageSplit = image.split("/");
@@ -977,7 +1040,7 @@ function deleteThumbnailFromS3(image) {
         return shell.exec(cmd, function(code, stdout, stderr) {
             if (code != 0) {
                 // If this errors just report to sentry and continue
-                ErrorHelper.scopeConfigure("users.deleteThumbnailFromS3", {error: stderr});
+                ErrorHelper.scopeConfigure("users.deleteThumbnailFromS3", {error: stderr, image: image});
                 ErrorHelper.emitSimpleError(new Error("Failed to delete from s3."));
             }
 

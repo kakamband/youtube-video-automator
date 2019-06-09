@@ -93,6 +93,9 @@ module.exports.UPLOAD_INTRO_OUTRO = "/user/intro-outro/upload";
 
 // Ends a intro and outro multipart upload
 module.exports.UPLOAD_INTRO_OUTRO_DONE = "/user/intro-outro/upload/done";
+
+// Deletes an intro or outro
+module.exports.DELETE_INTRO_OUTRO = "/user/intro-outro/delete";
 // -------------------
 
 // Route definitions
@@ -512,6 +515,22 @@ module.exports.routes = new Map([
 			nameAndType("password", "string"),
 
 			nameAndType("nonce", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.DELETE_INTRO_OUTRO, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("game", "string"),
+			nameAndType("link_url", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

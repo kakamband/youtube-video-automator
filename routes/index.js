@@ -537,4 +537,19 @@ router.post(Models.UPLOAD_INTRO_OUTRO_DONE, function(req, res, next) {
 	});
 });
 
+router.post(Models.DELETE_INTRO_OUTRO, function(req, res, next) {
+	validFirst(Models.DELETE_INTRO_OUTRO, req, res, next, function() {
+		return Users.deleteIntroOutro(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game, req.body.link_url)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.DELETE_INTRO_OUTRO, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

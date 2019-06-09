@@ -258,6 +258,26 @@ module.exports.settingsOverview = function(pmsID) {
 	});
 }
 
+module.exports.getSpecificIntroOutro = function(userID, pmsID, gameName, linkURL) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where("game", "=", gameName)
+		.where("file_location", "=", linkURL)
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(results[0]);
+			} else {
+				return resolve(undefined);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.getIntrosOutros = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex('intros_or_outros')
@@ -3218,6 +3238,20 @@ module.exports.updateIntroOutroLastUpdated = function(userID, pmsID, nonce) {
 		.update({
 			updated_at: new Date()
 		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.deleteIntroOutroEntity = function(ID) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("id", "=", ID)
+		.del()
 		.then(function(results) {
 			return resolve();
 		})

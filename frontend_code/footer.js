@@ -265,10 +265,21 @@ function drawIntroOutros($, anchor) {
       var uniqueName = "intros-outros-" + i;
 
       var introLink = gameIntroOutroCombo[i].playlistID;
-      var watchUploadedLink = "<a href=\"" + introLink + "\" class=\"vp-a\">Watch</a>"
+      var watchUploadedLink = "<a href=\"" + introLink + "\" class=\"vp-a intro-outro-watch-clip intro-outro-watch-clip-decoration\">Watch</a>"
 
-      $(anchor).append("<tr id=\"" + "intros-outros-" + i + "\"><td class=\"defaults-td\">" + gameIntroOutroCombo[i].gameName + "</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].typeOf + "</td><td class=\"defaults-td\">" + watchUploadedLink + "</td><td class=\"defaults-td\">Delete</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].uses + "</td></tr>");
+      $(anchor).append("<tr id=\"" + "intros-outros-" + i + "\"><td class=\"defaults-td\">" + gameIntroOutroCombo[i].gameName + "</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].typeOf + "</td><td class=\"defaults-td\">" + watchUploadedLink + "</td><td class=\"defaults-td delete-unused-clip-from-videos\">Delete</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].uses + "</td></tr>");
       gameIntroOutroCombo[i].drawn = true;
+
+      // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
+      // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
+
+      // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
+      $(".intro-outro-watch-clip").YouTubePopUp();
+      // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
+      $(".intro-outro-watch-clip").click(function() {
+        $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
+        $(".VideoPopUpWrap").slice(1).remove();
+      });
     }
   }
 }
@@ -331,6 +342,10 @@ function updateDefaultValues($, values) {
   } else {
     $("#default-language-value").text(values.default_language);
   }
+
+  // Update the intros and outros count numbers
+  $("#intro-count").text(values.intros_count);
+  $("#outro-count").text(values.outros_count);
 }
 
 // Tells the backend server about a thumbnail image
@@ -457,9 +472,6 @@ function getAndUpdateIntrosOutros($, username, ID, email, pass) {
     toggleIntroOutroBtnDisable($);
 
     drawIntroOutros($, "#intros-outros-saved-table-body");
-
-    // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
-    // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
   });
 }
 
@@ -1400,17 +1412,6 @@ function defaultSettings($, username, ID, email, pass, activeSubscriptionID) {
   signatureSettings($, username, ID, email, pass);
   tagSettings($, username, ID, email, pass);
   languageSettings($, username, ID, email, pass);
-
-  // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
-  // However I need to do the first action or the extra clips don't show up. So for now these both seem necessary.
-
-  // Re enable to video popup (this needs to be done since we are dynamically creating the links above)
-  $("a.vp-a").YouTubePopUp();
-  // Start watching for the Youtube item dom to be added (to fix a bug with the plugin)
-  $(".vp-a").click(function() {
-    $(".VideoPopUpWrap .Video-PopUp-Content").slice(1).remove();
-    $(".VideoPopUpWrap").slice(1).remove();
-  });
 }
 
 // -----------------------------------------
