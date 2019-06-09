@@ -1001,12 +1001,36 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       success: function(result,status,xhr) {
         if (result && result.success == true) {
           console.log("Intro/Outro marked as done uploading.");
+          $("#currently-uploading-intro-outro-progress").hide();
+          $("#upload-intro-outro-btn").show();
         } else {
           console.log("Marking intro/outro as done uploading has failed: ", result);
         }
       },
       dataType: "json"
     });
+  }
+
+  function updateProgressBarView(nextSlice, percentDone) {
+
+    // Make the progress bar look a bit smoother
+    // Leave a 25% leway for the video to be uploaded to S3 and be ready
+    var actualPercentDone = percentDone * 0.75;
+    if (actualPercentDone < 5) {
+      actualPercentDone = 5;
+    }
+    // Sanity check below, should never go off.
+    if (actualPercentDone > 75) {
+      actualPercentDone = 75;
+    }
+
+    // Update the progress bar first
+    $(".bar-intro-upload").css("width", actualPercentDone + "%");
+
+    // Update the progress percent number
+    $("#intro-up-progress-perc-num").text(actualPercentDone + "");
+
+    return uploadFileChunk(nextSlice);
   }
 
   function uploadFileChunk(start) {
@@ -1027,8 +1051,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
         var percentDone = Math.floor((sizeDone / file.size) * 100);
 
         if (nextSlice < file.size) {
-          console.log("We are " + percentDone + "% done.");
-          return uploadFileChunk(nextSlice);
+          return updateProgressBarView(nextSlice, percentDone);
         } else {
           console.log("We are done.");
           return doneUploadingFileCall();
@@ -1069,6 +1092,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
     });
   }
 
+  $("#currently-uploading-intro-outro-progress").show();
   return startMulitpartUpload();
 }
 
@@ -1111,6 +1135,7 @@ function introsOutrosSettings($, username, ID, email, pass, activeSubscriptionID
         introOrOutro = "intro";
       }
       
+      $("#upload-intro-outro-btn").hide();
       uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, introOrOutro, dataFileName);
     }
   });
