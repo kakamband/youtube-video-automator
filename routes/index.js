@@ -494,9 +494,22 @@ router.post(Models.GET_VIDEOS_PAGE, function(req, res, next) {
 	});
 });
 
+router.post(Models.UPLOAD_INTRO_OUTRO_INIT, function(req, res, next) {
+	validFirst(Models.UPLOAD_INTRO_OUTRO_INIT, req, res, next, function() {
+		return Users.uploadIntroOrOutroInit(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game_name, req.body.intro_or_outro, req.body.file_name)
+		.then(function(results) {
+			return res.json(results);
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO_INIT, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 router.post(Models.UPLOAD_INTRO_OUTRO, function(req, res, next) {
 	validFirst(Models.UPLOAD_INTRO_OUTRO, req, res, next, function() {
-		return Users.uploadIntroOrOutro(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.game_name, req.body.intro_or_outro, req.body.file_name, req.body.video_data)
+		return Users.uploadIntroOrOutro(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.nonce, req.body.video_data)
 		.then(function(results) {
 			return res.json({
 				success: results
@@ -504,6 +517,21 @@ router.post(Models.UPLOAD_INTRO_OUTRO, function(req, res, next) {
 		})
 		.catch(function(err) {
 			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
+router.post(Models.UPLOAD_INTRO_OUTRO_DONE, function(req, res, next) {
+	validFirst(Models.UPLOAD_INTRO_OUTRO_DONE, req, res, next, function() {
+		return Users.uploadIntroOrOutroDone(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.nonce)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO_DONE, req.body);
 			return ErrorHelper.errorHelper(next, err);
 		});
 	});

@@ -68,19 +68,11 @@ module.exports.transferToS3 = function(userID, twitchStream, downloadID) {
 
 // transferIntroOutroToS3
 // Transfers an intro or outro video to the S3 bucket
-module.exports.transferIntroOutroToS3 = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+module.exports.transferIntroOutroToS3 = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation, nonce) {
 	return new Promise(function(resolve, reject) {
 		return _uploadFileToS3IntroOutro(newFileName)
         .then(function() {
-            return dbController.insertIntroOrOutro({
-                user_id: userID,
-                pms_user_id: pmsID,
-                game: gameName,
-                intro_or_outro: introOrOutro,
-                file_location: fileLocation,
-                created_at: new Date(),
-                updated_at: new Date()
-            });
+            return dbController.updateIntroOutroFileLocationDeleteNonce(userID, pmsID, nonce, fileLocation);
         })
         .then(function() {
             return _deleteFileHelper(newFileName);
@@ -148,6 +140,23 @@ module.exports.checkForVideosToProcess = function() {
 		return dbController.getAllProcessingReadyVideos()
 		.then(function(possibleVideos) {
 			return queueVideosToProcess(possibleVideos);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// introOutroDeleteTask
+// Starts deleting any intros or outros that have failed to be uploaded (ie. 10min since last update)
+module.exports.introOutroDeleteTask = function() {
+	return new Promise(function(resolve, reject) {
+		return dbController.getAllIntroOutrosToDelete()
+		.then(function(staleUploads) {
+			return deleteAllStaleIntrosOutros(staleUploads);
 		})
 		.then(function() {
 			return resolve();
@@ -488,6 +497,41 @@ function _processingFailedHandler(userID, pmsID, allClipIDs, err) {
 			return reject(err);
 		});
 	});
+}
+
+function deleteAllStaleIntrosOutros(staleUploads) {
+	return new Promise(function(resolve, reject) {
+		var count = 0;
+		if (staleUploads <= 0) return resolve();
+
+		function nextPossibleHelper() {
+			count++;
+			if (count <= staleUploads.length - 1) {
+				return next();
+			} else {
+				return resolve();
+			}
+		}
+
+		function next() {
+			var currentStaleUpload = staleUploads[count];
+			var originalFileLocation = currentStaleUpload.file_location;
+
+			cLogger.info("Deleting failed intro/outro upload of ID: " + currentStaleUpload.id);
+			return dbController.setIntroOutroFailed(currentStaleUpload.id)
+			.then(function() {
+				return _deleteFileHelper(originalFileLocation);
+			})
+			.then(function() {
+				return nextPossibleHelper();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	})
 }
 
 function queueVideosToProcess(possibleVideos) {

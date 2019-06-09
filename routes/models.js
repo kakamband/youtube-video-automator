@@ -85,8 +85,14 @@ module.exports.GET_VIDEOS_DATA = "/user/videos/info";
 // Returns a new set of data for the videos page (through pagination)
 module.exports.GET_VIDEOS_PAGE = "/user/videos/page";
 
+// Starts a intro and outro multipart upload
+module.exports.UPLOAD_INTRO_OUTRO_INIT = "/user/intro-outro/upload/init";
+
 // Uploads a intro or outro to the server
 module.exports.UPLOAD_INTRO_OUTRO = "/user/intro-outro/upload";
+
+// Ends a intro and outro multipart upload
+module.exports.UPLOAD_INTRO_OUTRO_DONE = "/user/intro-outro/upload/done";
 // -------------------
 
 // Route definitions
@@ -472,10 +478,40 @@ module.exports.routes = new Map([
 			nameAndType("email", "string"),
 			nameAndType("password", "string"),
 
+			nameAndType("nonce", "string"),
+			nameAndType("video_data", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.UPLOAD_INTRO_OUTRO_INIT, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
 			nameAndType("game_name", "string"),
 			nameAndType("intro_or_outro", "string"),
-			nameAndType("file_name", "string"),
-			nameAndType("video_data", "string")
+			nameAndType("file_name", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.UPLOAD_INTRO_OUTRO_DONE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string"),
+
+			nameAndType("nonce", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);

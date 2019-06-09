@@ -68,7 +68,7 @@ module.exports.addTransferFileToS3Task = function(userID, twitchLink, downloadID
 
 // addTransferIntroOutroToS3Task
 // Transfers an intro or outro video file to a S3 bucket, then updates the db, then deletes the file.
-module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation) {
+module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName, introOrOutro, newFileName, fileLocation, nonce) {
 	return new Promise(function(resolve, reject) {
 
 		var msgOptions = {
@@ -81,7 +81,8 @@ module.exports.addTransferIntroOutroToS3Task = function(userID, pmsID, gameName,
 				game: gameName,
 				intro_or_outro: introOrOutro,
 				new_file_name: newFileName,
-				file_location: fileLocation
+				file_location: fileLocation,
+				nonce: nonce
 			},
 			contentEncoding: (pmsID + "")
 		};
@@ -185,6 +186,30 @@ module.exports.startProcessingCycle = function() {
 		return getQueueMeta()
 		.then(function(queueChoice) {
 			return makeProcessingCyclePost(queueChoice, msgOptions)
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+// startIntrosOutrosDeleteCycle
+// Checks to see if there are any failed intro/outro uploads that we can delete
+module.exports.startIntrosOutrosDeleteCycle = function() {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime()
+		};
+
+		return workerStartingWork("fallback")
+		.then(function() {
+			return makeIntroOutroDeletePost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions);
 		})
 		.then(function() {
 			return resolve();
@@ -357,6 +382,10 @@ function makeTransferToS3Post(queueName, msgOptions) {
 
 function makeDownloadPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "downloading_task");
+}
+
+function makeIntroOutroDeletePost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "intro_outro_delete_task");
 }
 
 function makePermDeletePost(queueName, msgOptions) {
