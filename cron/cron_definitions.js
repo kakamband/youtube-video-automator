@@ -44,6 +44,9 @@ function kickOffProcessing() {
 	var kickOffProcessingCron = new CronJob(every5MinCron, function() {
 		WorkerProducer.startProcessingCycle()
 		.then(function() {
+			WorkerProducer.startIntrosOutrosDeleteCycle()
+		})
+		.then(function() {
 			// Done.
 		})
 		.catch(function(err) {

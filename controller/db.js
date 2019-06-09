@@ -2711,6 +2711,27 @@ module.exports.getAllProcessingReadyVideos = function() {
 	});
 }
 
+module.exports.getAllIntroOutrosToDelete = function() {
+	return new Promise(function(resolve, reject) {
+		return knex.raw(
+			"SELECT " +
+				"* " +
+			"FROM " +
+				"intros_or_outros " +
+			"WHERE " +
+				"finished_uploading=false AND " +
+				"nonce IS NOT null AND " +
+				"updated_at <= NOW() - interval '10 minutes'"
+		)
+		.then(function(results) {
+			return resolve(results.rows);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 function _setUserVidProcessingValue(userID, pmsID, processingVal) {
 	return new Promise(function(resolve, reject) {
 		return knex('users')
@@ -3152,6 +3173,7 @@ module.exports.setIntroOutroDoneDownloading = function(userID, pmsID, nonce) {
 		.where("user_id", "=", userID)
 		.where("pms_user_id", "=", pmsID)
 		.where("nonce", "=", nonce)
+		.where("upload_failed", "=", false)
 		.where("finished_uploading", "=", false)
 		.update({
 			finished_uploading: true,
@@ -3184,12 +3206,33 @@ module.exports.updateIntroOutroLastUpdated = function(userID, pmsID, nonce) {
 	});
 }
 
+module.exports.setIntroOutroFailed = function(ID) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.where("id", "=", ID)
+		.update({
+			finished_uploading: true,
+			upload_failed: true,
+			file_location: "DELETED",
+			nonce: null,
+			updated_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.doesActiveIntroOutroExist = function(userID, pmsID, nonce) {
 	return new Promise(function(resolve, reject) {
 		return knex('intros_or_outros')
 		.where("user_id", "=", userID)
 		.where("pms_user_id", "=", pmsID)
 		.where("nonce", "=", nonce)
+		.where("upload_failed", "=", false)
 		.where("finished_uploading", "=", false)
 		.then(function(results) {
 			if (results.length > 0) {

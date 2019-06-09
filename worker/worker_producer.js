@@ -196,6 +196,30 @@ module.exports.startProcessingCycle = function() {
 	});
 }
 
+// startIntrosOutrosDeleteCycle
+// Checks to see if there are any failed intro/outro uploads that we can delete
+module.exports.startIntrosOutrosDeleteCycle = function() {
+	return new Promise(function(resolve, reject) {
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime()
+		};
+
+		return workerStartingWork("fallback")
+		.then(function() {
+			return makeIntroOutroDeletePost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // queueVideoToProcess
 // Queues a video to begin being processed.
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs) {
@@ -358,6 +382,10 @@ function makeTransferToS3Post(queueName, msgOptions) {
 
 function makeDownloadPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "downloading_task");
+}
+
+function makeIntroOutroDeletePost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "intro_outro_delete_task");
 }
 
 function makePermDeletePost(queueName, msgOptions) {

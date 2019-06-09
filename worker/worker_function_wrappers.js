@@ -21,6 +21,8 @@ module.exports.handleMessage = function(ch, message, msg, workerType) {
     	return handlePermDeleteTask(ch, msg, message, workerType);
 	case "transfer_intro_outro_task":
 		return handleTransferIntroOutro(ch, msg, message, workerType);
+	case "intro_outro_delete_task":
+		return handleIntroOutroDeleteTask(ch, msg, message, workerType);
 	default:
 		Sentry.withScope(scope => {
 			scope.setTag("scope", "server-worker-" + workerType);
@@ -32,6 +34,28 @@ module.exports.handleMessage = function(ch, message, msg, workerType) {
 		});
 		return;
   }
+}
+
+function handleIntroOutroDeleteTask(ch, msg, message, workerType) {
+	return Helpers.introOutroDeleteTask()
+	.then(function() {
+		successMsg(message);
+		return Helpers.decrementMsgCount(workerType);
+	})
+	.then(function() {
+		ch.ack(msg);
+	})
+	.catch(function(err) {
+		errMsg(message, msg, message, err, workerType);
+		return Helpers.decrementMsgCount(workerType)
+		.then(function() {
+			ch.ack(msg);
+		})
+		.catch(function(err) {
+			Sentry.captureException(err);
+			ch.ack(msg);
+		});
+	});
 }
 
 function handlePermDeleteTask(ch, msg, message, workerType) {

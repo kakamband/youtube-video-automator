@@ -150,6 +150,23 @@ module.exports.checkForVideosToProcess = function() {
 	});
 }
 
+// introOutroDeleteTask
+// Starts deleting any intros or outros that have failed to be uploaded (ie. 10min since last update)
+module.exports.introOutroDeleteTask = function() {
+	return new Promise(function(resolve, reject) {
+		return dbController.getAllIntroOutrosToDelete()
+		.then(function(staleUploads) {
+			return deleteAllStaleIntrosOutros(staleUploads);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // startVideoProcessing
 // Starts processing a video, and then kicks off the upload of the video.
 module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs) {
@@ -480,6 +497,41 @@ function _processingFailedHandler(userID, pmsID, allClipIDs, err) {
 			return reject(err);
 		});
 	});
+}
+
+function deleteAllStaleIntrosOutros(staleUploads) {
+	return new Promise(function(resolve, reject) {
+		var count = 0;
+		if (staleUploads <= 0) return resolve();
+
+		function nextPossibleHelper() {
+			count++;
+			if (count <= staleUploads.length - 1) {
+				return next();
+			} else {
+				return resolve();
+			}
+		}
+
+		function next() {
+			var currentStaleUpload = staleUploads[count];
+			var originalFileLocation = currentStaleUpload.file_location;
+
+			cLogger.info("Deleting failed intro/outro upload of ID: " + currentStaleUpload.id);
+			return dbController.setIntroOutroFailed(currentStaleUpload.id)
+			.then(function() {
+				return _deleteFileHelper(originalFileLocation);
+			})
+			.then(function() {
+				return nextPossibleHelper();
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+
+		return next();
+	})
 }
 
 function queueVideosToProcess(possibleVideos) {
