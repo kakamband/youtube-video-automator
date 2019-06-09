@@ -984,6 +984,9 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
   }
 
   function doneUploadingFileCall() {
+    $(".bar-intro-upload").css("width", "90%");
+    $("#intro-up-progress-perc-num").text("90");
+    $("#intro-up-progress-text").text("Currently Processing ");
     return $.ajax({
       type: "POST",
       url: autoTuberURL + "user/intro-outro/upload/done",
@@ -1001,27 +1004,33 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       success: function(result,status,xhr) {
         if (result && result.success == true) {
           console.log("Intro/Outro marked as done uploading.");
-          $("#currently-uploading-intro-outro-progress").hide();
-          $("#upload-intro-outro-btn").show();
+          $(".bar-intro-upload").css("width", "100%");
+          $("#intro-up-progress-perc-num").text("100");
+          $("#intro-up-progress-text").text("Done ");
+          return setTimeout(function() {
+            $("#currently-uploading-intro-outro-progress").hide();
+            $("#upload-intro-outro-btn").show();
+          }, 2000); // Delay for two seconds then allow another upload if desired
         } else {
           console.log("Marking intro/outro as done uploading has failed: ", result);
         }
       },
-      dataType: "json"
+      dataType: "json",
+      timeout: 120000, // two minutes, this file needs to be transfered to a S3 bucket
     });
   }
 
   function updateProgressBarView(nextSlice, percentDone) {
 
     // Make the progress bar look a bit smoother
-    // Leave a 25% leway for the video to be uploaded to S3 and be ready
-    var actualPercentDone = percentDone * 0.75;
+    // Leave a 10% leway for the video to be uploaded to S3 and be ready
+    var actualPercentDone = percentDone * 0.90;
     if (actualPercentDone < 5) {
       actualPercentDone = 5;
     }
     // Sanity check below, should never go off.
-    if (actualPercentDone > 75) {
-      actualPercentDone = 75;
+    if (actualPercentDone > 90) {
+      actualPercentDone = 90;
     }
 
     // Update the progress bar first
