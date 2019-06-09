@@ -233,18 +233,18 @@ module.exports.getDefaultsNotifications = function(pmsID) {
 module.exports.settingsOverview = function(pmsID) {
 	return new Promise(function(resolve, reject) {
 		return knex
-		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'minimum-length\') as min_vid_length'))
-		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'maximum-length\') as max_vid_length'))
-		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-like\') as default_like'))
-		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-category\') as default_category'))
-		.select(knex.raw('(select value from simple_default where pms_user_id=\'' + pmsID + '\' AND setting_name=\'default-language\') as default_language'))
-		.select(knex.raw('(select count(*) from playlists where pms_user_id=\'' + pmsID + '\') as playlists_count'))
-		.select(knex.raw('(select count(*) from comments where pms_user_id=\'' + pmsID + '\' AND comment_id is NULL) as comments_count'))
-		.select(knex.raw('(select count(*) from signatures where pms_user_id=\'' + pmsID + '\') as signatures_count'))
-		.select(knex.raw('(select count(*) from tags where pms_user_id=\'' + pmsID + '\') as tags_count'))
-		.select(knex.raw('(select count(*) from thumbnails where pms_user_id=\'' + pmsID + '\') as thumbnails_count'))
-		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'intro\') as intros_count'), [pmsID])
-		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'outro\') as outros_count'), [pmsID])
+		.select(knex.raw('(select value from simple_default where pms_user_id=? AND setting_name=\'minimum-length\') as min_vid_length', [pmsID]))
+		.select(knex.raw('(select value from simple_default where pms_user_id=? AND setting_name=\'maximum-length\') as max_vid_length', [pmsID]))
+		.select(knex.raw('(select value from simple_default where pms_user_id=? AND setting_name=\'default-like\') as default_like', [pmsID]))
+		.select(knex.raw('(select value from simple_default where pms_user_id=? AND setting_name=\'default-category\') as default_category', [pmsID]))
+		.select(knex.raw('(select value from simple_default where pms_user_id=? AND setting_name=\'default-language\') as default_language', [pmsID]))
+		.select(knex.raw('(select count(*) from playlists where pms_user_id=?) as playlists_count', [pmsID]))
+		.select(knex.raw('(select count(*) from comments where pms_user_id=? AND comment_id is NULL) as comments_count', [pmsID]))
+		.select(knex.raw('(select count(*) from signatures where pms_user_id=?) as signatures_count', [pmsID]))
+		.select(knex.raw('(select count(*) from tags where pms_user_id=?) as tags_count', [pmsID]))
+		.select(knex.raw('(select count(*) from thumbnails where pms_user_id=?) as thumbnails_count', [pmsID]))
+		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'intro\') as intros_count', [pmsID]))
+		.select(knex.raw('(select count(*) from intros_or_outros where pms_user_id=? AND finished_uploading=true AND upload_failed=false AND intro_or_outro=\'outro\') as outros_count', [pmsID]))
 		.then(function(results) {
 			if (results.length > 0) {
 				return resolve(results[0]);
