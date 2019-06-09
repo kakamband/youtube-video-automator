@@ -767,8 +767,8 @@ module.exports.uploadIntroOrOutroDone = function(username, pmsID, email, passwor
             userID = id;
             return _uploadIntroOrOutroDoneHelper(userID, pmsID, nonce);
         })
-        .then(function(successfull) {
-            return resolve(successfull);
+        .then(function(response) {
+            return resolve(response);
         })
         .catch(function(err) {
             return reject(err);
@@ -884,10 +884,17 @@ function _uploadIntroOrOutroDoneHelper(userID, pmsID, nonce) {
                     return dbController.updateIntroOutroFileLocationDeleteNonce(userID, pmsID, nonce, fileLocation);
                 })
                 .then(function() {
+                    // Clear the defaults overview cache since there is a new count item now
+                    var redisKey = userDefaultsOverviewKey + (pmsID + "");
+                    redis.del(redisKey);
+
                     return _deleteFileHelper(introOutroObj.file_location);
                 })
                 .then(function() {
-                    return resolve(true);
+                    return resolve({
+                        success: true,
+                        file_location: fileLocation
+                    });
                 })
                 .catch(function(err) {
                     return reject(err);

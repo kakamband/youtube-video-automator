@@ -525,10 +525,8 @@ router.post(Models.UPLOAD_INTRO_OUTRO, function(req, res, next) {
 router.post(Models.UPLOAD_INTRO_OUTRO_DONE, function(req, res, next) {
 	validFirst(Models.UPLOAD_INTRO_OUTRO_DONE, req, res, next, function() {
 		return Users.uploadIntroOrOutroDone(req.body.username, req.body.user_id, req.body.email, req.body.password, req.body.nonce)
-		.then(function(results) {
-			return res.json({
-				success: results
-			});
+		.then(function(resp) {
+			return res.json(resp);
 		})
 		.catch(function(err) {
 			ErrorHelper.scopeConfigure(Models.UPLOAD_INTRO_OUTRO_DONE, req.body);

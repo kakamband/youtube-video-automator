@@ -306,7 +306,9 @@ function deleteIntroOutroHelper(gameName, linkURL, clipID, introOrOutro) {
   }
 }
 
-function drawIntroOutros($, anchor) {
+function drawIntroOutros($) {
+  anchor = "#intros-outros-saved-table-body";
+
   for (var i = 0; i < gameIntroOutroCombo.length; i++) {
     if (!gameIntroOutroCombo[i].drawn) {
       var uniqueName = "intros-outros-" + i;
@@ -516,7 +518,7 @@ function getAndUpdateIntrosOutros($, username, ID, email, pass) {
 
     toggleIntroOutroBtnDisable($);
 
-    drawIntroOutros($, "#intros-outros-saved-table-body");
+    drawIntroOutros($);
   });
 }
 
@@ -1049,7 +1051,7 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
   // Keep the slice size to 1/2Mb per upload request.
   // 1024 (bytes in a kilobyte) * 500 (kilobytes in a mb) = 1/2mb
   // This will be good enough since base64 a file will roughly add 1.37x the size + 1kb for headers.
-  var sliceSize = 500 * 1024;
+  var sliceSize = 700 * 1024;
 
   function uploadFileChunkCall(videoData, cb) {
     return $.ajax({
@@ -1099,6 +1101,8 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
       success: function(result,status,xhr) {
         if (result && result.success == true) {
           console.log("Intro/Outro marked as done uploading.");
+          gameIntroOutroCombo.push({gameName: gameName, playlistID: result.file_location, typeOf: introOrOutro, uses: 0, drawn: false, hardSaved: true, userDeleted: false});
+          drawIntroOutros($);
           $("#my-intro-outro-submission").val("");
           $(".bar-intro-upload").css("width", "100%");
           $("#intro-up-progress-perc-num").text("100");
