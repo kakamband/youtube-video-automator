@@ -1101,6 +1101,8 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
     });
   }
 
+  $(".bar-intro-upload").css("width", "5%");
+  $("#intro-up-progress-perc-num").text("5");
   $("#currently-uploading-intro-outro-progress").show();
   return startMulitpartUpload();
 }
