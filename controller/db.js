@@ -2721,6 +2721,7 @@ module.exports.getAllIntroOutrosToDelete = function() {
 			"WHERE " +
 				"finished_uploading=false AND " +
 				"nonce IS NOT null AND " +
+				"upload_failed=false AND " +
 				"updated_at <= NOW() - interval '10 minutes'"
 		)
 		.then(function(results) {
