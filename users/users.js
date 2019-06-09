@@ -810,6 +810,8 @@ function _deleteIntroOutroHelper(userID, pmsID, gameName, linkURL) {
             } else {
                 return deleteIntroOutroFromS3(introOutroObj.file_location)
                 .then(function() {
+                    var redisKey = userDefaultsOverviewKey + (pmsID + "");
+                    redis.del(redisKey);
                     return dbController.deleteIntroOutroEntity(introOutroObj.id);
                 })
                 .then(function() {

@@ -259,6 +259,53 @@ function deleteAddedSetting(name, index) {
   }
  }
 
+function _deleteIntroOutroCall($, username, ID, email, pass, gameName, linkURL, cb) {
+  return $.ajax({
+    type: "POST",
+    url: autoTuberURL + "user/intro-outro/delete",
+    data: {
+      "username": username,
+      "user_id": ID,
+      "email": email,
+      "password": pass,
+
+      "game": gameName,
+      "link_url": linkURL
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+    },
+    success: function(result,status,xhr) {
+      if (result && result.success == true) {
+        return cb();
+      } else {
+        console.log("Deleting the intro/outro has failed: ", result);
+      }
+    },
+    dataType: "json"
+  });
+} 
+
+function deleteIntroOutroHelper(gameName, linkURL, clipID, introOrOutro) {
+  var canAuth = (theUser.username != "" && theUser.id != 0 && theUser.email != "" && theUser.unique_identifier != "");
+  if (globalJQuery == null) return;
+  if (!canAuth) return;
+
+  if (confirm("Are you sure you want to delete this intro? (Link: " + linkURL + ")")) {
+    return _deleteIntroOutroCall(globalJQuery, theUser.username, theUser.id, theUser.email, theUser.unique_identifier, gameName, linkURL, function() {
+      globalJQuery("#intros-outros-" + clipID).remove();
+
+      if (introOrOutro == "outro") {
+        var outroCount = parseInt(globalJQuery("#outro-count").text());
+        globalJQuery("#outro-count").text(outroCount - 1);
+      } else {
+        var introCount = parseInt(globalJQuery("#intro-count").text());
+        globalJQuery("#intro-count").text(introCount - 1);
+      }
+    });
+  }
+}
+
 function drawIntroOutros($, anchor) {
   for (var i = 0; i < gameIntroOutroCombo.length; i++) {
     if (!gameIntroOutroCombo[i].drawn) {
@@ -267,7 +314,7 @@ function drawIntroOutros($, anchor) {
       var introLink = gameIntroOutroCombo[i].playlistID;
       var watchUploadedLink = "<a href=\"" + introLink + "\" class=\"vp-a intro-outro-watch-clip intro-outro-watch-clip-decoration\">Watch</a>"
 
-      $(anchor).append("<tr id=\"" + "intros-outros-" + i + "\"><td class=\"defaults-td\">" + gameIntroOutroCombo[i].gameName + "</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].typeOf + "</td><td class=\"defaults-td\">" + watchUploadedLink + "</td><td class=\"defaults-td delete-unused-clip-from-videos\">Delete</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].uses + "</td></tr>");
+      $(anchor).append("<tr id=\"" + uniqueName + "\"><td class=\"defaults-td\">" + gameIntroOutroCombo[i].gameName + "</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].typeOf + "</td><td class=\"defaults-td\">" + watchUploadedLink + "</td><td class=\"defaults-td delete-unused-clip-from-videos\" onclick=\"deleteIntroOutroHelper(\'" + gameIntroOutroCombo[i].gameName + "\', \'" + introLink + "\', \'" + i + "\', \'" + gameIntroOutroCombo[i].typeOf + "\')\">Delete</td><td class=\"defaults-td\">" + gameIntroOutroCombo[i].uses + "</td></tr>");
       gameIntroOutroCombo[i].drawn = true;
 
       // From what I can tell the action of calling "a.vp-a".YouTubePopUp() is causing the error I am fixing below that.
@@ -455,8 +502,6 @@ function contentAlreadyExists(arr, gameName, playlistID) {
   }
   return false;
 }
-
-
 
 // Calls the server for the intro and outro items, and then once returned updates the view
 function getAndUpdateIntrosOutros($, username, ID, email, pass) {
