@@ -949,10 +949,65 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
 
   var reader = new FileReader();
   var file = dataURL;
+  var nonce = "";
 
-  // Keep the slice size to 1Mb per upload request.
-  // 1024 (bytes in a kilobyte) * 1000 (kilobytes in a mb) = mb
-  var sliceSize = 1000 * 1024;
+  // Keep the slice size to 1/2Mb per upload request.
+  // 1024 (bytes in a kilobyte) * 500 (kilobytes in a mb) = 1/2mb
+  // This will be good enough since base64 a file will roughly add 1.37x the size + 1kb for headers.
+  var sliceSize = 500 * 1024;
+
+  function uploadFileChunkCall(videoData, cb) {
+    return $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/intro-outro/upload",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+
+        "nonce": nonce,
+        "video_data": videoData
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        if (result && result.success == true) {
+          return cb();
+        } else {
+          console.log("Uploading this chunk of video has failed: ", result);
+        }
+      },
+      dataType: "json"
+    });
+  }
+
+  function doneUploadingFileCall() {
+    return $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/intro-outro/upload/done",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
+
+        "nonce": nonce
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        if (result && result.success == true) {
+          console.log("Intro/Outro marked as done uploading.");
+        } else {
+          console.log("Marking intro/outro as done uploading has failed: ", result);
+        }
+      },
+      dataType: "json"
+    });
+  }
 
   function uploadFileChunk(start) {
     var nextSlice = start + sliceSize + 1;
@@ -963,51 +1018,58 @@ function uploadIntroOrOutro($, username, ID, email, pass, gameName, dataURL, int
           return;
       }
 
-      // TODO: Actually upload this to the server
-      console.log("Chunk #" + start + ": ", event.target.result);
+      console.log("Starting chunk upload.");
+      return uploadFileChunkCall(event.target.result, function() {
+        console.log("Done chunk upload.");
 
-      // Keep uploading chunks if they exist
-      var sizeDone = start + sliceSize;
-      var percentDone = Math.floor((sizeDone / file.size) * 100);
+        // Keep uploading chunks if they exist
+        var sizeDone = start + sliceSize;
+        var percentDone = Math.floor((sizeDone / file.size) * 100);
 
-      if (nextSlice < file.size) {
-        console.log("We are " + percentDone + "% done.");
-        return uploadFileChunk(nextSlice);
-      } else {
-        console.log("We are done.");
-      }
+        if (nextSlice < file.size) {
+          console.log("We are " + percentDone + "% done.");
+          return uploadFileChunk(nextSlice);
+        } else {
+          console.log("We are done.");
+          return doneUploadingFileCall();
+        }
+      });
     };
 
     // Start reading the blob into Base64 text
     reader.readAsDataURL(blob);
   }
 
-  return uploadFileChunk(0);
-  /*var formData = new FormData();
-  formData.append("username", username);
-  formData.append("user_id", ID);
-  formData.append("email", email);
-  formData.append("password", pass);
-  formData.append("intro_or_outro", introOrOutro);
-  formData.append("game_name", gameName);
-  formData.append("video_data", dataURL);
-  formData.append("file_name", dataFileName);
+  function startMulitpartUpload() {
+    return $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/intro-outro/upload/init",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass,
 
-  $.ajax({
-    type: "POST",
-    url: autoTuberURL + "user/intro-outro/upload",
-    data: formData,
-    cache: false,
-    processData: false,
-    contentType: false,
-    error: function(xhr,status,error) {
-      console.log("Error: ", error);
-    },
-    success: function(result,status,xhr) {
+        "game_name": gameName,
+        "intro_or_outro": introOrOutro,
+        "file_name": dataFileName
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        if (result && result.nonce != undefined) {
+          nonce = result.nonce;
+          return uploadFileChunk(0);
+        } else {
+          console.log("Could not find the nonce for this upload: ", result);
+        }
+      },
+      dataType: "json"
+    });
+  }
 
-    },
-    dataType: "json"
-  });*/
+  return startMulitpartUpload();
 }
 
 // Handles the intros and outros settings
