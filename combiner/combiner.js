@@ -6,6 +6,7 @@ var Attr = require("../config/attributes");
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 var ffprobe = require('ffprobe');
 ffprobeStatic = require('ffprobe-static');
+var dbController = require('../controller/db');
 
 module.exports.combineAllUsersClips = function(folderLocation, toCombine, intro, outro) {
 	return new Promise(function(resolve, reject) {
@@ -150,8 +151,12 @@ function extractWidthHeightFromVideo(pathToClip) {
 			if (err) {
 				return reject(err);
 			} else {
-				console.log("The info is: ", info);
-				return resolve([info.streams[0].width, info.streams[0].height]);
+
+				if (!info || info.streams.length <= 0) {
+					return resolve([0, 0]);
+				} else {
+					return resolve([info.streams[0].width, info.streams[0].height]);
+				}
 			}
 		});
 	});
@@ -176,7 +181,11 @@ function getDimensionSizeWithPath(actualPath, count) {
 				if (countIndex <= count - 1) {
 					return next();
 				} else {
-					return resolve([maxWidth, maxHeight]);
+					if (maxWidth == 0 || maxHeight == 0) {
+						return reject(new Error("Couldn't find a single max width or height..."));
+					} else {
+						return resolve([maxWidth, maxHeight]);
+					}
 				}
 			});
 		}
