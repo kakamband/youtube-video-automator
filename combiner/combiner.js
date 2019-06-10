@@ -4,6 +4,8 @@ var cLogger = require('color-log');
 var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+var ffprobe = require('ffprobe');
+ffprobeStatic = require('ffprobe-static');
 
 module.exports.combineAllUsersClips = function(folderLocation, toCombine, intro, outro) {
 	return new Promise(function(resolve, reject) {
@@ -140,6 +142,21 @@ function executeCombining(count, maxWidth, maxHeight) {
 	});
 }
 
+function extractWidthHeightFromVideo(pathToClip) {
+	return new Promise(function(resolve, reject) {
+		return ffprobe(pathToClip, {
+			path: ffprobeStatic.path
+		}, function(err, info) {
+			if (err) {
+				return reject(err);
+			} else {
+				console.log("The info is: ", info);
+				return resolve([info.streams[0].width, info.streams[0].height]);
+			}
+		});
+	});
+}
+
 function getDimensionSizeWithPath(actualPath, count) {
 	return new Promise(function(resolve, reject) {
 		var maxWidth = 0;
@@ -149,10 +166,10 @@ function getDimensionSizeWithPath(actualPath, count) {
 		if (countIndex >= count) return reject(new Error("No files to get sizes from."));
 
 		function next() {
-			return	getDimensions(actualPath + 'clip-' + countIndex + '.mp4').then(function(dimensions) {
-				if (parseInt(dimensions.width) >= maxWidth) {
-					maxWidth = parseInt(dimensions.width);
-					maxHeight = parseInt(dimensions.height);
+			return extractWidthHeightFromVideo(actualPath + 'clip-' + countIndex + '.mp4').then(function(dimensions) {
+				if (parseInt(dimensions[0]) >= maxWidth) {
+					maxWidth = parseInt(dimensions[0]);
+					maxHeight = parseInt(dimensions[1]);
 				}
 
 				countIndex++;
