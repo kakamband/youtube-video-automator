@@ -149,7 +149,7 @@ function getDimensionSizeWithPath(actualPath, count) {
 		if (countIndex >= count) return reject(new Error("No files to get sizes from."));
 
 		function next() {
-			return	getDimensions(actualPath + 'clip-' + index + '.mp4').then(function(dimensions) {
+			return	getDimensions(actualPath + 'clip-' + countIndex + '.mp4').then(function(dimensions) {
 				if (parseInt(dimensions.width) >= maxWidth) {
 					maxWidth = parseInt(dimensions.width);
 					maxHeight = parseInt(dimensions.height);
