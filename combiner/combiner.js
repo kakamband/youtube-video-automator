@@ -26,10 +26,12 @@ module.exports.combineAllUsersClips = function(pmsID, folderLocation, toCombine,
 				return resolve();
 			});
 		} else {
+			var maxWidth = 0;
+			var maxHeight = 0;
 			return getDimensionSizeWithPath(folderLocation, toCombine.length)
 			.then(function(dimensions) {
-				let maxWidth = dimensions[0];
-				let maxHeight = dimensions[1];
+				maxWidth = dimensions[0];
+				maxHeight = dimensions[1];
 
 				return dbController.getActiveSubscriptionWrapper(pmsID);
 			})
