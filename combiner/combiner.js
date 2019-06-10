@@ -5,7 +5,7 @@ var getDimensions = require('get-video-dimensions');
 var Attr = require("../config/attributes");
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
-module.exports.combineAllUsersClips = function(folderLocation, toCombine) {
+module.exports.combineAllUsersClips = function(folderLocation, toCombine, intro, outro) {
 	return new Promise(function(resolve, reject) {
 
 		if (toCombine.length == 0) return reject(new Error("There are no clips to combine."));
@@ -41,7 +41,7 @@ module.exports.combineAllUsersClips = function(folderLocation, toCombine) {
             		processingSpeed = "slow"; // Slow it down for professional users
 	            }
 
-				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation, processingSpeed);
+				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation, processingSpeed, intro, outro);
 			})
 			.then(function() {
 				return resolve();
@@ -108,9 +108,9 @@ function _combineContent(content, dir) {
 	});
 }
 
-function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed) {
+function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro) {
 	return new Promise(function(resolve, reject) {
-		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed), function(code, stdout, stderr) {
+		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro), function(code, stdout, stderr) {
 			if (code != 0) {
 				cLogger.error("Error combining multiple clips: ", stderr);
 				return reject(stderr);
@@ -169,11 +169,27 @@ function getDimensionSize(count) {
 	return getDimensionSizeWithPath("", count);
 }
 
-function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed) {
+function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro) {
 	var str = " ";
+
+	var extraCountFromIntro = 0;
+	// Include the intro at the start if it exists
+	if (intro != null) {
+		str += "-i " + actualPath + intro + " ";
+		extraCountFromIntro = 1;
+	}
+
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "-i " + actualPath + "clip-" + i + ".mp4 ";
 	}
+
+	// Include the outro at the end if it exists
+	if (outro != null) {
+		str += "-i " + actualPath + outro + " ";
+		count++;
+	}
+	count += extraCountFromIntro;
+
 	str += "-filter_complex \""
 	for (var i = 0; i < parseInt(count); i++) {
 		str += "[" + i + ":v]scale=" + maxWidth + "x" + maxHeight + ",setpts=PTS-STARTPTS[v" + i + "];";
@@ -186,5 +202,5 @@ function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processin
 }
 
 function createCommand(count, maxWidth, maxHeight) {
-	return createCommandWithPath(count, maxWidth, maxHeight, "", "medium");
+	return createCommandWithPath(count, maxWidth, maxHeight, "", "medium", null, null);
 }

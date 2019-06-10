@@ -186,7 +186,7 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 
 // queueVideoToProcess
 // Queues a video to begin being processed.
-module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs) {
+module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro) {
 	return new Promise(function(resolve, reject) {
 		var msgOptions = {
 			persistent: true,
@@ -196,7 +196,11 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 			correlationId: userID,
 			contentType: pmsID,
 			contentEncoding: JSON.stringify(toCombineIDs),
-			messageId: downloadID + ""
+			messageId: downloadID + "",
+			headers: {
+				intro: intro,
+				outro: outro
+			}
 		};
 
 		return workerStartingWork("encoder")
