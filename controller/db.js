@@ -2268,6 +2268,39 @@ module.exports.getCustomClipThumbnail = function(userID, downloadID) {
 	});
 }
 
+function _getVideoIntroOrOutroHelper(userID, pmsID, gameName, introOrOutro) {
+	return new Promise(function(resolve, reject) {
+		return knex('intros_or_outros')
+		.select(["id", "file_location"])
+		.where("user_id", "=", userID)
+		.where("pms_user_id", "=", pmsID)
+		.where(knex.raw('LOWER(game) = :gameNAME', {
+	    	gameNAME: gameName.toLowerCase()
+	    }))
+	    .where("intro_or_outro", "=", introOrOutro)
+		.orderBy("created_at", "DESC")
+		.limit(1)
+		.then(function(results) {
+			if (results.length <= 0) {
+				return resolve(null);
+			} else {
+				return resolve(results[0]);
+			}
+		})
+		.catch(function(err) {
+			return reject(ErrorHelper.dbError(err));
+		})
+	});
+}
+
+module.exports.getVideoIntro = function(userID, pmsID, gameName) {
+	return _getVideoIntroOrOutroHelper(userID, pmsID, gameName, "intro");
+}
+
+module.exports.getVideoOutro = function(userID, pmsID, gameName) {
+	return _getVideoIntroOrOutroHelper(userID, pmsID, gameName, "outro");
+}
+
 module.exports.getGameThumbnail = function(pmsID, gameName) {
 	return new Promise(function(resolve, reject) {
 		return knex('thumbnails')

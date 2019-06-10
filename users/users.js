@@ -1398,6 +1398,16 @@ function getClipYoutubeSettings(userID, pmsID, downloadID, gameName) {
         .then(function(customThumbnail) {
             info.thumbnails.specific_image = customThumbnail;
 
+            return dbController.getVideoIntro(userID, pmsID, gameName);
+        })
+        .then(function(videoIntro) {
+            info.video_intro = videoIntro;
+
+            return dbController.getVideoOutro(userID, pmsID, gameName);
+        })
+        .then(function(videoOutro) {
+            info.video_outro = videoOutro;
+
             return resolve(info);
         })
         .catch(function(err) {
