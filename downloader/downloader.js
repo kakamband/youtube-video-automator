@@ -124,7 +124,6 @@ module.exports.possiblyDownloadIntroOutro = function(finalFileLocation, intro, o
 		} else if (intro != null) {
 			return downloadIntroOutroVideo(finalFileLocation, intro.file_location)
 			.then(function(introFileName) {
-				console.log("Now inside here.");
 				return resolve([introFileName, null]);
 			})
 			.catch(function(err) {

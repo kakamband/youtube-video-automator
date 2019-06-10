@@ -144,24 +144,27 @@ function getDimensionSizeWithPath(actualPath, count) {
 	return new Promise(function(resolve, reject) {
 		var maxWidth = 0;
 		var maxHeight = 0;
-		return new Promise.mapSeries(new Array(count), function(item, index, len) {
-			return new Promise(function(res, rej) {
-				getDimensions(actualPath + 'clip-' + index + '.mp4').then(function(dimensions) {
-					if (parseInt(dimensions.width) >= maxWidth) {
-						maxWidth = parseInt(dimensions.width);
-						maxHeight = parseInt(dimensions.height);
-					}
-					return res();
-				});
+
+		var countIndex = 0;
+		if (countIndex >= count) return reject(new Error("No files to get sizes from."));
+
+		function next() {
+			return	getDimensions(actualPath + 'clip-' + index + '.mp4').then(function(dimensions) {
+				if (parseInt(dimensions.width) >= maxWidth) {
+					maxWidth = parseInt(dimensions.width);
+					maxHeight = parseInt(dimensions.height);
+				}
+
+				countIndex++;
+				if (countIndex <= count - 1) {
+					return next();
+				} else {
+					return resolve([maxWidth, maxHeight]);
+				}
 			});
-		})
-		.then(function() {
-			cLogger.info("Found a maxWidth of: " + maxWidth + " and a maxHeight of: " + maxHeight);
-			return resolve([maxWidth, maxHeight]);
-		})
-		.catch(function(err) {
-			return reject(err);
-		});
+		}
+
+		return next();
 	});
 }
 
