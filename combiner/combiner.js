@@ -10,7 +10,7 @@ module.exports.combineAllUsersClips = function(folderLocation, toCombine, intro,
 
 		if (toCombine.length == 0) return reject(new Error("There are no clips to combine."));
 		
-		if (toCombine.length == 1) {
+		if (toCombine.length == 1 && intro == null && outro == null) {
 			// There is nothing to combine, so just rename it and continue
 			var cmd = "mv " + folderLocation + "clip-0.mp4 " + folderLocation + Attr.FINISHED_FNAME + ".mp4";
 			cLogger.info("Running CMD: " + cmd);
