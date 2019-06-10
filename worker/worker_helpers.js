@@ -149,7 +149,7 @@ module.exports.introOutroDeleteTask = function() {
 
 // startVideoProcessing
 // Starts processing a video, and then kicks off the upload of the video.
-module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs) {
+module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs, intro, outro) {
 	return new Promise(function(resolve, reject) {
 		var combinedVideos = [];
 		var finalFileLocation = null;
@@ -179,7 +179,12 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 		})
 		.then(function(downloadLocation) {
 			finalFileLocation = downloadLocation;
-			return Combiner.combineAllUsersClips(downloadLocation, combinedVideos);
+			return Downloader.possiblyDownloadIntroOutro(finalFileLocation, intro, outro);
+		})
+		.then(function(updatedValues) {
+			intro = updatedValues[0];
+			outro = updatedValues[1];
+			return Combiner.combineAllUsersClips(finalFileLocation, combinedVideos, intro, outro);
 		})
 		.then(function() {
 			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
@@ -550,7 +555,7 @@ function queueVideosToProcess(possibleVideos) {
 
 							// Queue this video up for processing.
 							cLogger.mark("The video can, and will being processing.");
-							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs);
+							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs, currentVid.youtube_settings.video_intro, currentVid.youtube_settings.video_outro);
 						})
 						.then(function() {
 							return nextPossibleHelper();

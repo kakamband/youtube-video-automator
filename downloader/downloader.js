@@ -104,6 +104,60 @@ module.exports.downloadEachAWSClip = function(userID, toDownload) {
 	});
 }
 
+module.exports.possiblyDownloadIntroOutro = function(finalFileLocation, intro, outro) {
+	return new Promise(function(resolve, reject) {
+		if (intro == null && outro == null) {
+			return resolve([null, null]);
+		} else if (intro != null && outro != null) {
+			var introTmp = null;
+			return downloadIntroOutroVideo(finalFileLocation, intro.file_location)
+			.then(function(introFileName) {
+				introTmp = introFileName;
+				return downloadIntroOutroVideo(finalFileLocation, outro.file_location);
+			})
+			.then(function(outroFileName) {
+				return resolve([introTmp, outroFileName]);
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		} else if (intro != null) {
+			return downloadIntroOutroVideo(finalFileLocation, intro.file_location)
+			.then(function(introFileName) {
+				return resolve([introFileName, null]);
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		} else { // outro != null
+			return downloadIntroOutroVideo(finalFileLocation, outro.file_location)
+			.then(function(outroFileName) {
+				return resolve([null, outroFileName]);
+			})
+			.catch(function(err) {
+				return reject(err);
+			});
+		}
+	});
+}
+
+function downloadIntroOutroVideo(folderPath, downloadedFile) {
+	return new Promise(function(resolve, reject) {
+		var downloadedFileSplit = downloadedFile.split(Attr.AWS_S3_INTROS_OUTROS_PATH);
+		var fileNameActual = downloadedFileSplit[downloadedFileSplit.length - 1];
+
+		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + fileNameActual + " " + folderPath;
+		cLogger.info("Running CMD: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+			if (code != 0) {
+				return reject(stderr);
+			}
+
+			return resolve(fileNameActual);
+		});
+	});
+}
+
 function downloadClip(clipInfo, folderPath, clipNumber) {
 	return new Promise(function(resolve, reject) {
 		if (clipInfo.downloaded_file == null || clipInfo.downloaded_file == undefined) {

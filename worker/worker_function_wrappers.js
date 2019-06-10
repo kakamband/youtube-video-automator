@@ -83,9 +83,11 @@ function handleProcessingStart(ch, msg, message, workerType) {
 	var pmsID = msg.properties.contentType;
 	var allClipIDs = JSON.parse(msg.properties.contentEncoding);
 	var downloadID = parseInt(msg.properties.messageId);
+	var intro = msg.properties.headers.intro;
+	var outro = msg.properties.headers.outro;
 	cLogger.info("Starting to process a video (DownloadID: " + downloadID + ").");
 
-	return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipIDs)
+	return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipIDs, intro, outro)
 	.then(function() {
 		successMsg(message);
 		return Helpers.decrementMsgCount(workerType);
