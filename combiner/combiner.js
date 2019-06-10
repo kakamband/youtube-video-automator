@@ -28,10 +28,12 @@ module.exports.combineAllUsersClips = function(pmsID, folderLocation, toCombine,
 		} else {
 			var maxWidth = 0;
 			var maxHeight = 0;
+			var maxFPS = 0;
 			return getDimensionSizeWithPath(folderLocation, toCombine.length)
 			.then(function(dimensions) {
 				maxWidth = dimensions[0];
 				maxHeight = dimensions[1];
+				maxFPS = dimensions[2];
 
 				return dbController.getActiveSubscriptionWrapper(pmsID);
 			})
@@ -46,7 +48,7 @@ module.exports.combineAllUsersClips = function(pmsID, folderLocation, toCombine,
             		processingSpeed = "slow"; // Slow it down for professional users
 	            }
 
-				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, folderLocation, processingSpeed, intro, outro);
+				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, maxFPS, folderLocation, processingSpeed, intro, outro);
 			})
 			.then(function() {
 				return resolve();
@@ -113,9 +115,9 @@ function _combineContent(content, dir) {
 	});
 }
 
-function executeCombiningWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro) {
+function executeCombiningWithPath(count, maxWidth, maxHeight, maxFPS, actualPath, processingSpeed, intro, outro) {
 	return new Promise(function(resolve, reject) {
-		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro), function(code, stdout, stderr) {
+		return shell.exec(ffmpegPath + createCommandWithPath(count, maxWidth, maxHeight, maxFPS, actualPath, processingSpeed, intro, outro), function(code, stdout, stderr) {
 			if (code != 0) {
 				cLogger.error("Error combining multiple clips: ", stderr);
 				return reject(stderr);
@@ -155,9 +157,9 @@ function extractWidthHeightFromVideo(pathToClip) {
 			} else {
 
 				if (!info || info.streams.length <= 0) {
-					return resolve([0, 0]);
+					return resolve([0, 0, 0]);
 				} else {
-					return resolve([info.streams[0].width, info.streams[0].height]);
+					return resolve([info.streams[0].width, info.streams[0].height, info.streams[0].avg_frame_rate]);
 				}
 			}
 		});
@@ -168,25 +170,33 @@ function getDimensionSizeWithPath(actualPath, count) {
 	return new Promise(function(resolve, reject) {
 		var maxWidth = 0;
 		var maxHeight = 0;
+		var maxFrameRate = 0;
 
 		var countIndex = 0;
 		if (countIndex >= count) return reject(new Error("No files to get sizes from."));
 
 		function next() {
 			return extractWidthHeightFromVideo(actualPath + 'clip-' + countIndex + '.mp4').then(function(dimensions) {
-				if (parseInt(dimensions[0]) >= maxWidth) {
-					maxWidth = parseInt(dimensions[0]);
-					maxHeight = parseInt(dimensions[1]);
+				let currentWidth = parseInt(dimensions[0]);
+				let currentHeight = parseInt(dimensions[1]);
+				let currentFPS = parseInt(eval(dimensions[3]));
+
+				if (currentWidth >= maxWidth) {
+					maxWidth = currentWidth;
+					maxHeight = currentHeight;
+				}
+				if (currentFPS >= maxFrameRate) {
+					maxFrameRate = currentFPS;
 				}
 
 				countIndex++;
 				if (countIndex <= count - 1) {
 					return next();
 				} else {
-					if (maxWidth == 0 || maxHeight == 0) {
+					if (maxWidth == 0 || maxHeight == 0 || maxFrameRate == 0) {
 						return reject(new Error("Couldn't find a single max width or height..."));
 					} else {
-						return resolve([maxWidth, maxHeight]);
+						return resolve([maxWidth, maxHeight, maxFrameRate]);
 					}
 				}
 			});
@@ -200,23 +210,23 @@ function getDimensionSize(count) {
 	return getDimensionSizeWithPath("", count);
 }
 
-function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processingSpeed, intro, outro) {
+function createCommandWithPath(count, maxWidth, maxHeight, maxFPS, actualPath, processingSpeed, intro, outro) {
 	var str = " ";
 
 	var extraCountFromIntro = 0;
 	// Include the intro at the start if it exists
 	if (intro != null) {
-		str += "-i " + actualPath + intro + " ";
+		str += "-r " + maxFPS + " -i " + actualPath + intro + " ";
 		extraCountFromIntro = 1;
 	}
 
 	for (var i = 0; i < parseInt(count); i++) {
-		str += "-i " + actualPath + "clip-" + i + ".mp4 ";
+		str += "-r " + maxFPS + " -i " + actualPath + "clip-" + i + ".mp4 ";
 	}
 
 	// Include the outro at the end if it exists
 	if (outro != null) {
-		str += "-i " + actualPath + outro + " ";
+		str += "-r " + maxFPS + " -i " + actualPath + outro + " ";
 		count++;
 	}
 	count += extraCountFromIntro;
@@ -233,5 +243,5 @@ function createCommandWithPath(count, maxWidth, maxHeight, actualPath, processin
 }
 
 function createCommand(count, maxWidth, maxHeight) {
-	return createCommandWithPath(count, maxWidth, maxHeight, "", "medium", null, null);
+	return createCommandWithPath(count, maxWidth, maxHeight, 24, "", "medium", null, null);
 }
