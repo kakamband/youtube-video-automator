@@ -124,6 +124,7 @@ module.exports.possiblyDownloadIntroOutro = function(finalFileLocation, intro, o
 		} else if (intro != null) {
 			return downloadIntroOutroVideo(finalFileLocation, intro.file_location)
 			.then(function(introFileName) {
+				console.log("Now inside here.");
 				return resolve([introFileName, null]);
 			})
 			.catch(function(err) {
@@ -146,7 +147,7 @@ function downloadIntroOutroVideo(folderPath, downloadedFile) {
 		var downloadedFileSplit = downloadedFile.split(Attr.AWS_S3_INTROS_OUTROS_PATH);
 		var fileNameActual = downloadedFileSplit[downloadedFileSplit.length - 1];
 
-		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameActual + " " + folderPath;
+		var cmd = "aws s3 cp s3://" + Attr.AWS_S3_BUCKET_NAME + Attr.AWS_S3_INTROS_OUTROS_PATH + fileNameActual + " " + folderPath + fileNameActual;
 		cLogger.info("Running CMD: " + cmd);
 		return shell.exec(cmd, function(code, stdout, stderr) {
 			if (code != 0) {
