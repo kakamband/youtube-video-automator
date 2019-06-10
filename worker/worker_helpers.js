@@ -184,7 +184,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 		.then(function(updatedValues) {
 			intro = updatedValues[0];
 			outro = updatedValues[1];
-			return Combiner.combineAllUsersClips(finalFileLocation, combinedVideos, intro, outro);
+			return Combiner.combineAllUsersClips(pmsID, finalFileLocation, combinedVideos, intro, outro);
 		})
 		.then(function() {
 			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);

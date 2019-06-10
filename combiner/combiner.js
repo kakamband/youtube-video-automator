@@ -8,7 +8,7 @@ var ffprobe = require('ffprobe');
 ffprobeStatic = require('ffprobe-static');
 var dbController = require('../controller/db');
 
-module.exports.combineAllUsersClips = function(folderLocation, toCombine, intro, outro) {
+module.exports.combineAllUsersClips = function(pmsID, folderLocation, toCombine, intro, outro) {
 	return new Promise(function(resolve, reject) {
 
 		if (toCombine.length == 0) return reject(new Error("There are no clips to combine."));
