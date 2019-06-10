@@ -159,7 +159,7 @@ function extractWidthHeightFromVideo(pathToClip) {
 				if (!info || info.streams.length <= 0) {
 					return resolve([0, 0, 0]);
 				} else {
-					return resolve([info.streams[0].width, info.streams[0].height, info.streams[0].avg_frame_rate]);
+					return resolve([info.streams[0].width, info.streams[0].height, info.streams[0].r_frame_rate]);
 				}
 			}
 		});
@@ -179,7 +179,7 @@ function getDimensionSizeWithPath(actualPath, count) {
 			return extractWidthHeightFromVideo(actualPath + 'clip-' + countIndex + '.mp4').then(function(dimensions) {
 				let currentWidth = parseInt(dimensions[0]);
 				let currentHeight = parseInt(dimensions[1]);
-				let currentFPS = parseInt(eval(dimensions[3]));
+				let currentFPS = parseInt(eval(dimensions[2]));
 
 				if (currentWidth >= maxWidth) {
 					maxWidth = currentWidth;
