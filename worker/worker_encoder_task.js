@@ -8,6 +8,7 @@ var shell = require('shelljs');
 const Sentry = require('@sentry/node');
 var MessageHandler = require('./worker_function_wrappers');
 var Promise = require('bluebird');
+var ErrorHelper = require('../errors/errors');
 
 // Make sure we can connect to the database.
 function knexConnection(cb) {
@@ -73,13 +74,14 @@ Sentry.init({
 
 // Global Sentry init
 Sentry.configureScope((scope) => {
-  scope.setTag("scope", "server-worker");
-  scope.setTag("environment", Attr.SERVER_ENVIRONMENT);
+  scope.setTag("scope", "batch-job");
+  scope.setTag("environment", "encoding-batch-job");
 });
 global.Sentry = Sentry;
 
 return knexConnection(function(validKnex) {
   if (validKnex == undefined) {
+    Sentry.captureException(new Error("Cannot connect to DB."));
     process.exit(1);
   }
 
@@ -87,6 +89,10 @@ return knexConnection(function(validKnex) {
 
   return parseAndValidateArguments(function(validParameters) {
     if (validParameters == undefined) {
+      ErrorHelper.scopeConfigure("batch-job.parseAndValidateArguments", {
+        arguments: JSON.stringify(process.argv)
+      });
+      Sentry.captureException(new Error("Invalid Parameters passed to batch job."));
       process.exit(1);
     }
 
@@ -108,6 +114,7 @@ return knexConnection(function(validKnex) {
       process.exit(0);
     })
     .catch(function(err) {
+      Sentry.captureException(err);
       cLogger.error(err);
       process.exit(1);
     });
