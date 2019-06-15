@@ -3831,6 +3831,7 @@ jQuery(document).ready(function( $ ){
   $(".currently-clipping-container").hide();
   $(".clipping-need-info-notification").hide();
   $(".currently-clipping-notification").hide();
+  $(".dashboard-into-notification").hide();
   $(".videos-notification-container").hide();
   $(".account-notification-container").hide();
   $(".defaults-intro-notification").hide();

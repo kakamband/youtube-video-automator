@@ -45,7 +45,8 @@ module.exports.combineAllUsersClips = function(pmsID, folderLocation, toCombine,
 
 	            var processingSpeed = "medium"; // Default is medium speed
 	            if (activeSubscriptionID == "716") {
-            		processingSpeed = "slow"; // Slow it down for professional users
+            		// For now just leave it on medium.
+            		//processingSpeed = "slow"; // Slow it down for professional users
 	            }
 
 				return executeCombiningWithPath(toCombine.length, maxWidth, maxHeight, maxFPS, folderLocation, processingSpeed, intro, outro);
