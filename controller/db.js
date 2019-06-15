@@ -3314,6 +3314,23 @@ module.exports.setIntroOutroFailed = function(ID) {
 	});
 }
 
+module.exports.getUserFromUserID = function(ID) {
+	return new Promise(function(resolve, reject) {
+		return knex('users')
+		.where("id", "=", ID)
+		.then(function(results) {
+			if (results.length <= 0) {
+				return resolve(undefined);
+			} else {
+				return resolve(results[0]);
+			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 module.exports.doesActiveIntroOutroExist = function(userID, pmsID, nonce) {
 	return new Promise(function(resolve, reject) {
 		return knex('intros_or_outros')

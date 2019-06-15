@@ -147,6 +147,31 @@ module.exports.introOutroDeleteTask = function() {
 	});
 }
 
+// initVideoProcessingBatchJob
+// Gets all the information needed to start the 'startVideoProcessing' task next.
+// This gets run in an AWS Batch job prior to encoding. To reduce the number of paramters needed to be sent in the job.
+module.exports.initVideoProcessingBatchJob = function(userID, downloadID) {
+	var pmsID = "";
+
+	return new Promise(function(resolve, reject) {
+		return dbController.getUserFromUserID(userID)
+		.then(function(userObject) {
+			if (userObject == undefined) {
+				return reject(new Error("Could not find a user with this user ID."));
+			} else {
+				pmsID = userObject.pms_user_id;
+				return Users.getClipInfoWrapper(userID, pmsID, downloadID);
+			}
+		})
+		.then(function(clipInfo) {
+			return resolve([pmsID, clipInfo.youtube_settings.video_intro, clipInfo.youtube_settings.video_outro]);
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // startVideoProcessing
 // Starts processing a video, and then kicks off the upload of the video.
 module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allClipIDs, intro, outro) {
