@@ -135,6 +135,12 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 12) Start production services: pm2 start my-production-apps.json
 13) Monitor which services are up: pm2 list
 
+### Building a Docker Image
+1) First Log in `$(aws ecr get-login --no-include-email --region us-east-2)`
+2) Build the image `docker build -t encoding-batch-image .`
+3) Tag the image as latest `docker tag encoding-batch-image:latest 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
+4) Push the image to the ECR repo `docker push 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
+
 ### Previous Problems and Solutions
 1) Updating the Security group inbound rules, and deleting the TCP Port 80 - 0.0.0.0/0, ::/0 rule.
 	- This rule is needed to allow outside connections, without this the server won't be able to be contacted.
