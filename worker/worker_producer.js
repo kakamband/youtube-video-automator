@@ -7,6 +7,7 @@ var dbController = require('../controller/db');
 var shell = require('shelljs');
 var ErrorHelper = require('../errors/errors');
 var DefinedErrors = require('../errors/defined_errors');
+var base64url = require('base64url');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -189,7 +190,7 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro) {
 	return new Promise(function(resolve, reject) {
 		
-		return queueEncodingBatchJob((userID + ""), JSON.stringify(toCombineIDs), (downloadID + ""))
+		return queueEncodingBatchJob((userID + ""), base64url(JSON.stringify(toCombineIDs)), (downloadID + ""))
 		.then(function(jobInfo) {
 			let jobName = jobInfo[0];
 			let jobID = jobInfo[1];

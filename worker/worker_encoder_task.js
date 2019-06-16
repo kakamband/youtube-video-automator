@@ -9,6 +9,7 @@ const Sentry = require('@sentry/node');
 var MessageHandler = require('./worker_function_wrappers');
 var Promise = require('bluebird');
 var ErrorHelper = require('../errors/errors');
+var base64url = require('base64url');
 
 // Make sure we can connect to the database.
 function knexConnection(cb) {
@@ -50,7 +51,7 @@ function parseAndValidateArguments(cb) {
     return cb(undefined);
   } else {
     var userID = parseInt(process.argv[2]);
-    var allClipIDs = JSON.parse(process.argv[3]);
+    var allClipIDs = JSON.parse(base64url.decode(process.argv[3]));
     var downloadID = parseInt(process.argv[4]);
 
     return cb([userID, allClipIDs, downloadID]);
