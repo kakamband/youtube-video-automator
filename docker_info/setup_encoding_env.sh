@@ -9,14 +9,14 @@ eval ". ~/.nvm/nvm.sh"
 eval "nvm install 8.10"
 
 # Create the Documents directory
-mkdir Documents/
+mkdir -p Documents/youtube-video-automator/
 
 # Make sure that we have the github fingerprint into the knownhosts area
 eval "mkdir -p ~/.ssh/"
 eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
 # Clone the github repository
-git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents/
+git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents/youtube-video-automator/
 
 # Display what is in the documents area
 eval "ls ~/Documents/"
