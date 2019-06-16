@@ -13,12 +13,11 @@ RUN yum -y install git
 RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
 RUN yum clean all
 
+# Copy over the local attributes production attributes file
+ADD config/local_attributes.js ~/local_attributes.js
+
 # Copy over the setup encoding environment script
 ADD docker_info/setup_encoding_env.sh ~/setup_encoding_env.sh
-
-# Copy over the local attributes production attributes file
-RUN mkdir -p ~/ExtraContent
-ADD config/local_attributes.js ~/ExtraContent/local_attributes.js
 
 # Authorize SSH Host
 RUN mkdir -p ~/.ssh && \
