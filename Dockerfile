@@ -17,7 +17,8 @@ RUN yum clean all
 ADD docker_info/setup_encoding_env.sh ~/setup_encoding_env.sh
 
 # Copy over the local attributes production attributes file
-ADD config/local_attributes.js ~/local_attributes.js
+RUN mkdir -p ~/ExtraContent
+ADD config/local_attributes.js ~/ExtraContent/local_attributes.js
 
 # Authorize SSH Host
 RUN mkdir -p ~/.ssh && \
