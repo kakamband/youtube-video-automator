@@ -12,7 +12,7 @@ RUN yum -y install tar.x86_64
 RUN yum -y install git
 RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
 RUN yum -y install tree
-RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm --skip-broken
 RUN yum -y install python36u python36u-devel python36u-pip
 RUN yum clean all
 
