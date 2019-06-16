@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Create a bash profile file
+echo "" > ~/.bash_profile
+
 # Install Nodejs
 eval "curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash"
 eval ". ~/.nvm/nvm.sh"
