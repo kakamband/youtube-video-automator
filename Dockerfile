@@ -30,4 +30,4 @@ RUN echo "$ssh_prv_key" > ~/.ssh/id_rsa && \
     chmod 600 ~/.ssh/id_rsa && \
     chmod 600 ~/.ssh/id_rsa.pub
 
-RUN ~/setup_encoding_env.sh
+ENTRYPOINT ["~/setup_encoding_env.sh"]
