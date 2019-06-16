@@ -8,7 +8,7 @@ ARG ssh_pub_key
 ADD docker_info/setup_encoding_env.sh /home/ec2-user/setup_encoding_env.sh
 
 # Copy over the local attributes production attributes file
-ADD config/local_attributes_prod.js /home/ec2-user/local_attributes.js
+ADD config/local_attributes.js /home/ec2-user/local_attributes.js
 
 # Authorize SSH Host
 RUN mkdir -p /home/ec2-user/.ssh && \

@@ -116,6 +116,7 @@ sudo rabbitmqctl list_queues
 7) [Redis Local Server](https://medium.com/@andrewcbass/install-redis-v3-2-on-aws-ec2-instance-93259d40a3ce)
 8) [HomeBrew](https://docs.brew.sh/Homebrew-on-Linux)
 9) [StreamLink](https://streamlink.github.io/install.html#macos)
+10) [Docker](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker)
 
 ### PM2 Cheatsheat
 http://pm2.keymetrics.io/docs/usage/quick-start/
