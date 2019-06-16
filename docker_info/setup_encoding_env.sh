@@ -16,7 +16,7 @@ eval "mkdir -p ~/.ssh/"
 eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
 # Clone the github repository
-git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents
+git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents/
 
 # Display what is in the documents area
 eval "ls ~/Documents/"
