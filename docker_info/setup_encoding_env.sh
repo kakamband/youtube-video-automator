@@ -8,13 +8,6 @@ eval "curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install
 eval ". ~/.nvm/nvm.sh"
 eval "nvm install 8.10"
 
-# Install Git
-eval "sudo yum install -y git"
-
-# Install PostgreSQL
-eval "sudo yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs"
-eval "sudo service postgresql initdb"
-
 # Create the Documents directory
 mkdir Documents/
 

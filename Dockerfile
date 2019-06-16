@@ -9,7 +9,12 @@ RUN yum -y update
 RUN yum -y install openssh-server openssh-clients
 RUN yum -y install wget
 RUN yum -y install tar.x86_64
+RUN yum -y install git
+RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
 RUN yum clean all
+
+# Start up the postgresql server
+RUN service postgresql initdb
 
 # Copy over the setup encoding environment script
 ADD docker_info/setup_encoding_env.sh /home/ec2-user/setup_encoding_env.sh
