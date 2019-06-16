@@ -5,8 +5,8 @@ ARG ssh_prv_key
 ARG ssh_pub_key
 
 # Download the ssh clients needed
-RUN sudo yum update
-RUN sudo yum -y install openssh-server openssh-clients
+RUN yum update
+RUN yum -y install openssh-server openssh-clients
 
 # Copy over the setup encoding environment script
 ADD docker_info/setup_encoding_env.sh /home/ec2-user/setup_encoding_env.sh
