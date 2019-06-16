@@ -3,6 +3,8 @@ config/autotuber-key-pair.pem
 config/youtube-secrets.json
 config/local_attributes.js
 config/local_attributes_prod.js
+config/server_deploy_key
+config/server_deploy_key.pub
 thumbnails/*
 node_modules/
 video_data/*

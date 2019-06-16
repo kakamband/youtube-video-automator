@@ -1,19 +1,28 @@
-FROM ubuntu:16.04
+FROM amazonlinux:latest
 
-# Install dependencies
-RUN apt-get update
-RUN apt-get -y install apache2
+# The SSH private and public keys
+ARG ssh_prv_key
+ARG ssh_pub_key
 
-# Install apache and write hello world message
-RUN echo 'Hello World!' > /var/www/html/index.html
+# Copy over the setup encoding environment script
+ADD docker_info/setup_encoding_env.sh /home/ec2-user/setup_encoding_env.sh
 
-# Configure apache
-RUN echo '. /etc/apache2/envvars' > /root/run_apache.sh
-RUN echo 'mkdir -p /var/run/apache2' >> /root/run_apache.sh
-RUN echo 'mkdir -p /var/lock/apache2' >> /root/run_apache.sh
-RUN echo '/usr/sbin/apache2 -D FOREGROUND' >> /root/run_apache.sh
-RUN chmod 755 /root/run_apache.sh
+# Copy over the local attributes production attributes file
+ADD config/local_attributes_prod.js /home/ec2-user/local_attributes.js
 
-EXPOSE 80
+# Authorize SSH Host
+RUN mkdir -p /home/ec2-user/.ssh && \
+    chmod 0700 /home/ec2-user/.ssh && \
+    ssh-keyscan github.com > /home/ec2-user/.ssh/known_hosts
 
-CMD /root/run_apache.sh
+# Add the keys and set permissions
+RUN echo "$ssh_prv_key" > /home/ec2-user/.ssh/id_rsa && \
+    echo "$ssh_pub_key" > /home/ec2-user/.ssh/id_rsa.pub && \
+    chmod 600 /home/ec2-user/.ssh/id_rsa && \
+    chmod 600 /home/ec2-user/.ssh/id_rsa.pub
+
+# Set the user to be the ec2-user
+USER ec2-user
+
+# Run the setup encoding environment script
+RUN /home/ec2-user/setup_encoding_env.sh

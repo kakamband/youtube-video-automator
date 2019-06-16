@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 var Attr = require('../config/attributes');
-var Secrets = require('../config/secrets');
 var cLogger = require('color-log');
 var Helpers = require('./worker_helpers');
 var shell = require('shelljs');
@@ -69,7 +68,7 @@ cLogger.info("The global path is: " + ORIGIN_PATH);
 
 // Initialize Sentry
 Sentry.init({ 
-  dsn: Secrets.SENTRY_DSN,
+  dsn: process.env.AUTOTUBER_SENTRY_DSN,
   release: Attr.RELEASE_VERSION
 });
 

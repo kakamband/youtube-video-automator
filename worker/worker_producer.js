@@ -406,7 +406,7 @@ function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
 
 function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr) {
 	const jobNameBase = "video-processing-job";
-	const jobNameIteration = 8;
+	const jobNameIteration = 9;
 
 	var currDate = new Date();
 	var jobName = "encoding-task-" + userIDStr + "-" + currDate.getTime();
