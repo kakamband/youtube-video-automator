@@ -14,20 +14,20 @@ RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-cont
 RUN yum clean all
 
 # Copy over the setup encoding environment script
-ADD docker_info/setup_encoding_env.sh /home/ec2-user/setup_encoding_env.sh
+ADD docker_info/setup_encoding_env.sh ~/setup_encoding_env.sh
 
 # Copy over the local attributes production attributes file
-ADD config/local_attributes.js /home/ec2-user/local_attributes.js
+ADD config/local_attributes.js ~/local_attributes.js
 
 # Authorize SSH Host
-RUN mkdir -p /home/ec2-user/.ssh && \
-    chmod 0700 /home/ec2-user/.ssh && \
-    ssh-keyscan github.com > /home/ec2-user/.ssh/known_hosts
+RUN mkdir -p ~/.ssh && \
+    chmod 0700 ~/.ssh && \
+    ssh-keyscan github.com > ~/.ssh/known_hosts
 
 # Add the keys and set permissions
-RUN echo "$ssh_prv_key" > /home/ec2-user/.ssh/id_rsa && \
-    echo "$ssh_pub_key" > /home/ec2-user/.ssh/id_rsa.pub && \
-    chmod 600 /home/ec2-user/.ssh/id_rsa && \
-    chmod 600 /home/ec2-user/.ssh/id_rsa.pub
+RUN echo "$ssh_prv_key" > ~/.ssh/id_rsa && \
+    echo "$ssh_pub_key" > ~/.ssh/id_rsa.pub && \
+    chmod 600 ~/.ssh/id_rsa && \
+    chmod 600 ~/.ssh/id_rsa.pub
 
-ENTRYPOINT ["/home/ec2-user/setup_encoding_env.sh"]
+ENTRYPOINT ["~/setup_encoding_env.sh"]
