@@ -17,6 +17,7 @@ RUN yum clean all
 # Copy over the local attributes production attributes file
 RUN mkdir ~/AddedContent/
 ADD config/local_attributes.js ~/AddedContent/local_attributes.js
+RUN cat ~/AddedContent/local_attributes.js > ~/AddedContent/test1.js
 
 # Copy over the setup encoding environment script
 ADD docker_info/setup_encoding_env.sh ~/AddedContent/setup_encoding_env.sh
