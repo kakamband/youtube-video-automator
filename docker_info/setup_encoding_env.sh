@@ -18,9 +18,8 @@ eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 # Clone the github repository
 git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents/youtube-video-automator/
 
-# Display what is in the documents area
-eval "ls ~/Documents/"
-eval "ls ~/Documents/youtube-video-automator/"
+# Install all the dependencies needed into the youtube video automator folder
+eval "npm install ~/Documents/youtube-video-automator/"
 
 # Done
 echo "Done setting up encoding environment."
