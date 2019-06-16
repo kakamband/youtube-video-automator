@@ -5,7 +5,7 @@ ARG ssh_prv_key
 ARG ssh_pub_key
 
 # Download the ssh clients needed
-RUN yum update
+RUN yum -y update
 RUN yum -y install openssh-server openssh-clients
 
 # Copy over the setup encoding environment script
