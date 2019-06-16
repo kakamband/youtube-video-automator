@@ -11,6 +11,9 @@ eval "nvm install 8.10"
 # Create the Documents directory
 mkdir Documents/
 
+# Make sure that we have the github fingerprint into the knownhosts area
+eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
+
 # Clone the github repository
 git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents
 
