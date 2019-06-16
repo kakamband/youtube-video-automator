@@ -8,6 +8,9 @@ eval "curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install
 eval ". ~/.nvm/nvm.sh"
 eval "nvm install 8.10"
 
+# Display the node version
+eval "node -v"
+
 # Create the Documents directory
 mkdir -p Documents/youtube-video-automator/
 
@@ -29,3 +32,6 @@ eval "echo \"module.exports = {};\" > /root/Documents/youtube-video-automator/co
 
 # Done
 echo "Done setting up encoding environment. Starting to encode now."
+
+# Run the Encoding Batch Job
+eval "/root/Documents/youtube-video-automator/worker/runEncodingBatchJob.sh production \"2\" \"[1]\" \"176\""
