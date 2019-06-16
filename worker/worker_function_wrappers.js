@@ -15,7 +15,7 @@ module.exports.handleMessage = function(ch, message, msg, workerType) {
     	return handleUploadingStart(ch, msg, message, workerType);
    	case "processing_cycle_start":
    		return handleProcessingCycleStart(ch, msg, message, workerType);
-	case "processing_start":
+	case "processing_start": // Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
 		return handleProcessingStart(ch, msg, message, workerType);
     case "permanent_delete_task":
     	return handlePermDeleteTask(ch, msg, message, workerType);
@@ -78,6 +78,7 @@ function handlePermDeleteTask(ch, msg, message, workerType) {
 	});
 }
 
+// Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
 function handleProcessingStart(ch, msg, message, workerType) {
 	var userID = msg.properties.correlationId;
 	var pmsID = msg.properties.contentType;
@@ -87,7 +88,21 @@ function handleProcessingStart(ch, msg, message, workerType) {
 	var outro = msg.properties.headers.outro;
 	cLogger.info("Starting to process a video (DownloadID: " + downloadID + ").");
 
-	return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipIDs, intro, outro)
+	return Helpers.decrementMsgCount(workerType)
+	.then(function() {
+		ch.ack(msg);
+	}).catch(function(err) {
+		errMsg(message, msg, message, err, workerType);
+		return Helpers.decrementMsgCount(workerType)
+		.then(function() {
+			ch.ack(msg);
+		})
+		.catch(function(err) {
+			Sentry.captureException(err);
+			ch.ack(msg);
+		});
+	});
+	/*return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipIDs, intro, outro)
 	.then(function() {
 		successMsg(message);
 		return Helpers.decrementMsgCount(workerType);
@@ -104,7 +119,7 @@ function handleProcessingStart(ch, msg, message, workerType) {
 			Sentry.captureException(err);
 			ch.ack(msg);
 		});
-	});
+	});*/
 }
 
 function handleProcessingCycleStart(ch, msg, message, workerType) {
