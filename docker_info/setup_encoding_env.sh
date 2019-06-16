@@ -23,6 +23,7 @@ eval "npm install ~/Documents/youtube-video-automator/"
 
 # Copy the local attributes file into the config folder
 eval "ls ~"
+eval "tree -a ~"
 #eval "mv ~/local_attributes.js ~/Documents/youtube-video-automator/config/local_attributes.js"
 
 # Add an empty 'secrets.js' file to the config folder just to prevent errors

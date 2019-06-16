@@ -11,6 +11,7 @@ RUN yum -y install wget
 RUN yum -y install tar.x86_64
 RUN yum -y install git
 RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
+RUN yum -y install tree
 RUN yum clean all
 
 # Copy over the local attributes production attributes file
