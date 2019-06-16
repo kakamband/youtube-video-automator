@@ -398,8 +398,8 @@ function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
                 return reject(stderr);
             }
 
-            console.log("Standardout is: ", stdout);
-            return resolve(["example", "example"]);
+            var outputSanitized = JSON.parse(stdout);
+            return resolve([outputSanitized.jobName, outputSanitized.jobId]);
         });
 	});
 }
