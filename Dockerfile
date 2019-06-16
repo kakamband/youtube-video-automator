@@ -15,10 +15,11 @@ RUN yum -y install tree
 RUN yum clean all
 
 # Copy over the local attributes production attributes file
-ADD config/local_attributes.js ~/local_attributes.js
+RUN mkdir ~/AddedContent/
+ADD config/local_attributes.js ~/AddedContent/local_attributes.js
 
 # Copy over the setup encoding environment script
-ADD docker_info/setup_encoding_env.sh ~/setup_encoding_env.sh
+ADD docker_info/setup_encoding_env.sh ~/AddedContent/setup_encoding_env.sh
 
 # Authorize SSH Host
 RUN mkdir -p ~/.ssh && \
@@ -31,4 +32,4 @@ RUN echo "$ssh_prv_key" > ~/.ssh/id_rsa && \
     chmod 600 ~/.ssh/id_rsa && \
     chmod 600 ~/.ssh/id_rsa.pub
 
-ENTRYPOINT ["~/setup_encoding_env.sh"]
+ENTRYPOINT ["~/AddedContent/setup_encoding_env.sh"]
