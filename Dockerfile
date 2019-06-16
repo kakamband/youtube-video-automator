@@ -12,7 +12,10 @@ RUN yum -y install tar.x86_64
 RUN yum -y install git
 RUN yum -y install postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
 RUN yum -y install tree
+RUN yum -y install python36
+RUN yum -y install python36-setuptools
 RUN yum clean all
+RUN easy_install-3.6 pip
 
 # Copy over the local attributes production attributes file
 RUN mkdir ~/AddedContent/
