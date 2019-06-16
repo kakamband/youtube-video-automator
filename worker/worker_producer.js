@@ -188,7 +188,20 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 // Queues a video to begin being processed.
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro) {
 	return new Promise(function(resolve, reject) {
-		var msgOptions = {
+		
+		return queueEncodingBatchJob((userID + ""), JSON.stringify(toCombineIDs), (downloadID + ""))
+		.then(function(jobInfo) {
+			let jobName = jobInfo[0];
+			let jobID = jobInfo[1];
+
+			cLogger.info("Submitted a Batch job (Job Name: " + jobName + ", Job ID: " + jobID + ").");
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+		// Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
+		/*var msgOptions = {
 			persistent: true,
 			priority: 4,
 			mandatory: true,
@@ -212,7 +225,7 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 		})
 		.catch(function(err) {
 			return reject(err);
-		});
+		});*/
 	});
 }
 
@@ -220,7 +233,9 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 // Queues a video to begin being uploaded.
 module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFileLocation, toCombineIDs) {
 	return new Promise(function(resolve, reject) {
-		var msgOptions = {
+		cLogger.info("This is deprecated, needs to be replaced using AWS Batch.");
+		return resolve();
+		/*var msgOptions = {
 			persistent: true,
 			priority: 4,
 			mandatory: true,
@@ -241,7 +256,7 @@ module.exports.queueVideoToUpload = function(userID, pmsID, downloadID, finalFil
 		})
 		.catch(function(err) {
 			return reject(err);
-		});
+		});*/
 	});
 }
 
@@ -364,12 +379,39 @@ function makeProcessingCyclePost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "processing_cycle_start");
 }
 
+// Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
 function makeProcessingPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "processing_start");
 }
 
 function makeUploadingPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "uploading_start");
+}
+
+function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
+	return new Promise(function(resolve, reject) {
+		var cmd = "aws batch submit-job --job-name " + jobName + " --job-queue " + jobQueue + " --job-definition " + jobDefinition + " --parameters " + parameterStr;
+		cLogger.info("Running command: " + cmd);
+		return shell.exec(cmd, function(code, stdout, stderr) {
+            if (code != 0) {
+                return reject(stderr);
+            }
+
+            console.log("Standardout is: ", stdout);
+            return resolve(["example", "example"]);
+        });
+	});
+}
+
+function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr) {
+	const jobNameBase = "video-processing-job";
+	const jobNameIteration = 7;
+
+	var currDate = new Date();
+	var jobName = "encoding-task-" + userIDStr + "-" + currDate.getTime();
+	var parameterStr = "userID=" + userIDStr + ",clipIDs=" + toCombineIDsStr + ",downloadID=" + downloadIDStr;
+
+	return _makeBatchPost(jobName, "encoding-queue", (jobNameBase + ":" + jobNameIteration), parameterStr);
 }
 
 function getMessagesAndConsumers(queueName) {
