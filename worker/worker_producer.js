@@ -390,7 +390,7 @@ function makeUploadingPost(queueName, msgOptions) {
 
 function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
 	return new Promise(function(resolve, reject) {
-		var cmd = "aws batch submit-job --job-name " + jobName + " --job-queue " + jobQueue + " --job-definition " + jobDefinition + " --parameters " + parameterStr;
+		var cmd = "aws batch submit-job --job-name " + jobName + " --job-queue " + jobQueue + " --job-definition " + jobDefinition + " --parameters " + parameterStr + " --region us-east-2";
 		cLogger.info("Running command: " + cmd);
 		return shell.exec(cmd, function(code, stdout, stderr) {
             if (code != 0) {
