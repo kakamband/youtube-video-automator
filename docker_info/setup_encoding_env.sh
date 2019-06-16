@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [ $# -ne 4 ]
+then
+	echo "Need to pass in the environment type, the userID, all the clip ID's as a JSON string, and the download ID."
+	echo "Valid environment types are: 'production', 'development'."
+	echo "Valid user ID can be found by looking up the user."
+	echo "Valid Clip ID's is a JSON array"
+	echo "Valid Download ID is a string of an integer"
+	exit 1
+fi
+
 # Create a bash profile file
 echo "" > ~/.bash_profile
 
@@ -34,4 +44,4 @@ eval "echo \"module.exports = {};\" > /root/Documents/youtube-video-automator/co
 echo "Done setting up encoding environment. Starting to encode now."
 
 # Run the Encoding Batch Job
-eval "/root/Documents/youtube-video-automator/worker/runEncodingBatchJob.sh production \"2\" \"[1]\" \"176\""
+eval "/root/Documents/youtube-video-automator/worker/runEncodingBatchJob.sh production $2 $3 $4"

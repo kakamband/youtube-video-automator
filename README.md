@@ -138,7 +138,7 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 
 ### Building a Docker Image
 1) First Log in `$(aws ecr get-login --no-include-email --region us-east-2)`
-2) Build the image `docker build -t encoding-batch-image --build-arg ssh_prv_key="$(cat /home/ec2-user/.ssh/id_rsa)" --build-arg ssh_pub_key="$(cat /home/ec2-user/.ssh/id_rsa.pub)" .`
+2) Build the image `docker build -t encoding-batch-image --build-arg ssh_prv_key="$(cat /home/ec2-user/.ssh/id_rsa)" --build-arg ssh_pub_key="$(cat /home/ec2-user/.ssh/id_rsa.pub)" .` (You need to make sure the id_rsa public and private key are in the area specified)
 3) Tag the image as latest `docker tag encoding-batch-image:latest 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
 4) Push the image to the ECR repo `docker push 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
 
