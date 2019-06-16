@@ -108,7 +108,8 @@ return knexConnection(function(validKnex) {
       let outro = extraNeededInfo[2];
 
       cLogger.info("Going to run the following: startVideoProcessing(" + userID + ", " + pmsID + ", " + downloadID + ", " + JSON.stringify(allClipsID) + ", " + JSON.stringify(intro) + ", " + JSON.stringify(outro) + ");");
-      return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipsID, intro, outro);
+      return Promise.resolve(); // TEMPORARY
+      //return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipsID, intro, outro);
     })
     .then(function() {
       process.exit(0);

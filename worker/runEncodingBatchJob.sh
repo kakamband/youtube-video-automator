@@ -12,7 +12,7 @@ fi
 
 if [ $1 = "production" ]
 then
-	cmdStart="/home/ec2-user/Documents/youtube-video-automator/worker/worker_encoder_task.js";
+	cmdStart="/root/Documents/youtube-video-automator/worker/worker_encoder_task.js";
 elif [ $1 = "development" ]
 then
 	cmdStart="/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/worker/worker_encoder_task.js";
