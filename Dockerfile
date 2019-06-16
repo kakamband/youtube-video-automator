@@ -30,5 +30,4 @@ RUN echo "$ssh_prv_key" > /home/ec2-user/.ssh/id_rsa && \
     chmod 600 /home/ec2-user/.ssh/id_rsa && \
     chmod 600 /home/ec2-user/.ssh/id_rsa.pub
 
-# Run the setup encoding environment script
-RUN /home/ec2-user/setup_encoding_env.sh
+ENTRYPOINT ["/home/ec2-user/setup_encoding_env.sh"]
