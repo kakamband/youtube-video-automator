@@ -129,7 +129,7 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 5) Make sure you have streamlink downloaded, and runnable.
 6) Make sure you update the RDS inbound rules to accept connections from the new EC2 server.
 7) Make sure you have the NGinx server running (sudo service nginx start)
-8) Make sure you have the config/secrets.js , config/local_attributes.js , and the test_helper/helpers_tester.js files.
+8) Make sure you have the config/secrets.js , config/local_attributes.js files.
 9) Make sure the above files are filled out correctly.
 10) Make sure you make the migrations directory.
 11) Test to see that you can run the server initially without issue (npm start open).
@@ -141,6 +141,9 @@ http://pm2.keymetrics.io/docs/usage/quick-start/
 2) Build the image `docker build -t encoding-batch-image --build-arg ssh_prv_key="$(cat /home/ec2-user/.ssh/id_rsa)" --build-arg ssh_pub_key="$(cat /home/ec2-user/.ssh/id_rsa.pub)" .`
 3) Tag the image as latest `docker tag encoding-batch-image:latest 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
 4) Push the image to the ECR repo `docker push 387701573213.dkr.ecr.us-east-2.amazonaws.com/encoding-batch-image:latest`
+
+### Pruning all images, stopped containers (wasted space) in docker
+`docker system prune`
 
 ### Previous Problems and Solutions
 1) Updating the Security group inbound rules, and deleting the TCP Port 80 - 0.0.0.0/0, ::/0 rule.

@@ -15,20 +15,17 @@ mkdir -p Documents/youtube-video-automator/
 eval "mkdir -p ~/.ssh/"
 eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
-eval "tree -a ~/AddedContent/"
-
 # Clone the github repository
 git clone git@github.com:Javin-Ambridge/youtube-video-automator.git ~/Documents/youtube-video-automator/
 
 # Install all the dependencies needed into the youtube video automator folder
-#eval "npm install ~/Documents/youtube-video-automator/"
+eval "npm install ~/Documents/youtube-video-automator/"
 
 # Copy the local attributes file into the config folder
-eval "ls ~"
-#eval "mv ~/local_attributes.js ~/Documents/youtube-video-automator/config/local_attributes.js"
+eval "mv ~/local_attributes.js ~/Documents/youtube-video-automator/config/local_attributes.js"
 
 # Add an empty 'secrets.js' file to the config folder just to prevent errors
 eval "echo \"module.exports = {};\" > ~/Documents/youtube-video-automator/config/secrets.js"
 
 # Done
-echo "Done setting up encoding environment."
+echo "Done setting up encoding environment. Starting to encode now."
