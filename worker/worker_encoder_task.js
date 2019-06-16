@@ -35,7 +35,7 @@ function knexConnection(cb) {
   var knex = require('knex')(dbConfig);
 
   cLogger.mark("Trying Postgres connection...");
-  return knex.raw('select 1+1 as result').then(function() {
+  return knex.raw('select 1+1 as result').timeout(2000).then(function() {
     cLogger.info("Did connect succesfully to db.");
     return cb(knex);
   }).catch(function() {
