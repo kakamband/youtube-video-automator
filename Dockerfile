@@ -25,8 +25,5 @@ RUN echo "$ssh_prv_key" > /home/ec2-user/.ssh/id_rsa && \
     chmod 600 /home/ec2-user/.ssh/id_rsa && \
     chmod 600 /home/ec2-user/.ssh/id_rsa.pub
 
-# Set the user to be the ec2-user
-USER ec2-user
-
 # Run the setup encoding environment script
 RUN /home/ec2-user/setup_encoding_env.sh
