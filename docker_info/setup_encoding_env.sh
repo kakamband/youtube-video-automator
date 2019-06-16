@@ -12,6 +12,7 @@ eval "nvm install 8.10"
 mkdir Documents/
 
 # Make sure that we have the github fingerprint into the knownhosts area
+eval "mkdir -p ~/.ssh/"
 eval "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
 # Clone the github repository
