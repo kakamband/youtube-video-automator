@@ -421,7 +421,7 @@ function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr, queueN
 	// Switch the job definition if its an only uploading task
 	if (queueName == "only-uploading-queue") {
 		jobNameBase = "video-uploading-job";
-		jobNameIteration = 1;
+		jobNameIteration = 2;
 	}
 
 	var currDate = new Date();
