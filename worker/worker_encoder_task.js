@@ -57,6 +57,21 @@ function parseAndValidateArguments(cb) {
   }
 }
 
+// Fakes a redis object, since Batch jobs dont need redis
+function _createFakeRedisForBatchJob() {
+  return {
+    get: function(key, cb) {
+      return cb(undefined, null);
+    },
+    set: function(key, val, t, ttl) {
+      return;
+    },
+    del: function(key) {
+      return;
+    }
+  };
+}
+
 // Determine what the origin path is depending on the environment
 var staticOriginPath = "/root/Documents/youtube-video-automator/";
 if (Attr.SERVER_ENVIRONMENT == "development") {
@@ -65,6 +80,9 @@ if (Attr.SERVER_ENVIRONMENT == "development") {
 
 global.ORIGIN_PATH = staticOriginPath;
 cLogger.info("The global path is: " + ORIGIN_PATH);
+
+// Fake the redis object
+global.redis = _createFakeRedisForBatchJob();
 
 // Initialize Sentry
 Sentry.init({ 

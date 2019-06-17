@@ -1004,7 +1004,6 @@ function _getNumberOfVideosLeftInMonth(pmsID, activeSubscriptionID) {
 			return resolve(0);
 		}
 
-
 		var key = "users_number_of_videos_left_" + pmsID;
 
 		return redis.get(key, function(err, reply) {
