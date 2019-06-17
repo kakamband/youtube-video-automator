@@ -19,13 +19,14 @@ const uniqueString = require('unique-string');
 // The CDN URL
 const cdnURL = Attr.CDN_URL;
 
+const currentlyInQueueNotification = "currently-in-queue";
 const downloadingClipNotification = "currently-clipping";
 const needTitleOrDescriptionNotification = "need-title-or-description";
 const videoProcessingNotification = "currently-processing";
 const videoUploadingNotification = "currently-uploading";
 const videoDoneUploadingNotification = "done-uploading";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
-const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification];
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification, currentlyInQueueNotification];
 
 const defaultTTL = 3600; // 1 hour.
 

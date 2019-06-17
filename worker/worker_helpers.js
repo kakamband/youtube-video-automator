@@ -20,13 +20,14 @@ var Uploader = require('../uploader/uploader');
 // The CDN URL
 const cdnURL = Attr.CDN_URL;
 
+const inqueueNotification = "currently-in-queue";
 const downloadingClipNotification = "currently-clipping";
 const needTitleOrDescriptionNotification = "need-title-or-description";
 const videoProcessingNotification = "currently-processing";
 const videoUploadingNotification = "currently-uploading";
 const videoDoneUploadingNotification = "done-uploading";
 // The names of all of the clip flow notifications, this is used to clear when adding a new one.
-const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification];
+const clipFlowNotifications = [downloadingClipNotification, needTitleOrDescriptionNotification, videoProcessingNotification, videoUploadingNotification, videoDoneUploadingNotification, inqueueNotification];
 
 // downloadContent
 // Initiates a download of content for a user
@@ -682,6 +683,9 @@ function preliminaryProcessingStep(userID, pmsID, downloadID, combinedVideos) {
 			}
 
 			return next();
+		})
+		.then(function() {
+			return dbController.createInQueueNotification(pmsID, JSON.stringify({download_id: downloadID}));
 		})
 		.then(function() {
 			return resolve();

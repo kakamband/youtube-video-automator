@@ -415,8 +415,14 @@ function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
 }
 
 function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr, queueName) {
-	const jobNameBase = "video-processing-job";
-	const jobNameIteration = 13;
+	var jobNameBase = "video-processing-job";
+	var jobNameIteration = 13;
+
+	// Switch the job definition if its an only uploading task
+	if (queueName == "only-uploading-queue") {
+		jobNameBase = "video-uploading-job";
+		jobNameIteration = 1;
+	}
 
 	var currDate = new Date();
 	var jobName = "encoding-task-" + userIDStr + "-" + currDate.getTime();
