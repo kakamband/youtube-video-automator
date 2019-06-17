@@ -215,10 +215,14 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 			return preliminaryUploadingStep(userID, pmsID, downloadID, combinedVideos);
 		})
 		.then(function() {
-			return WorkerProducer.queueVideoToUpload(userID, pmsID, downloadID, finalFileLocation, allClipIDs);
-		})
-		.then(function() {
-			return resolve();
+			return _startVideoUploadingWrapper(userID, pmsID, downloadID, finalFileLocation, allClipIDs)
+			.then(function() {
+				return resolve();
+			})
+			.catch(function(err) {
+				// This is very unlikely to happen
+				return reject(err);
+			});
 		})
 		.catch(function(err) {
 			// Fail Safely
@@ -233,9 +237,7 @@ module.exports.startVideoProcessing = function(userID, pmsID, downloadID, allCli
 	});
 }
 
-// startVideoUploading
-// Starts uploading a video to Youtube
-module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation, allClipIDs) {
+function _startVideoUploadingWrapper(userID, pmsID, downloadID, fileLocation, allClipIDs) {
 	return new Promise(function(resolve, reject) {
 		var vidInfo = null;
 		var youtubeVideoURL = null;
@@ -302,6 +304,12 @@ module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLoc
 			});
 		});
 	});
+}
+
+// startVideoUploading
+// Starts uploading a video to Youtube
+module.exports.startVideoUploading = function(userID, pmsID, downloadID, fileLocation, allClipIDs) {
+	return _startVideoUploadingWrapper(userID, pmsID, downloadID, fileLocation, allClipIDs);
 }
 
 // --------------------------------------------
