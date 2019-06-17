@@ -190,7 +190,16 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro) {
 	return new Promise(function(resolve, reject) {
 		
-		return queueEncodingBatchJob((userID + ""), base64url(JSON.stringify(toCombineIDs)), (downloadID + ""))
+		var toCombineTotalLength = toCombineIDs.length;
+		if (intro != null) toCombineTotalLength++;
+		if (outro != null) toCombineTotalLength++;
+
+		var queueName = "encoding-queue";
+		if (toCombineTotalLength <= 1) {
+			queueName = "only-uploading-queue";
+		}
+
+		return queueEncodingBatchJob((userID + ""), base64url(JSON.stringify(toCombineIDs)), (downloadID + ""), queueName)
 		.then(function(jobInfo) {
 			let jobName = jobInfo[0];
 			let jobID = jobInfo[1];
@@ -405,7 +414,7 @@ function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
 	});
 }
 
-function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr) {
+function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr, queueName) {
 	const jobNameBase = "video-processing-job";
 	const jobNameIteration = 13;
 
@@ -413,7 +422,7 @@ function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr) {
 	var jobName = "encoding-task-" + userIDStr + "-" + currDate.getTime();
 	var parameterStr = "userID=" + userIDStr + ",clipIDs=" + toCombineIDsStr + ",downloadID=" + downloadIDStr;
 
-	return _makeBatchPost(jobName, "encoding-queue", (jobNameBase + ":" + jobNameIteration), parameterStr);
+	return _makeBatchPost(jobName, queueName, (jobNameBase + ":" + jobNameIteration), parameterStr);
 }
 
 function getMessagesAndConsumers(queueName) {
