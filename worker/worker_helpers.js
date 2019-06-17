@@ -589,7 +589,7 @@ function queueVideosToProcess(possibleVideos) {
 
 							// Queue this video up for processing.
 							cLogger.mark("The video can, and will being processing.");
-							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs, info.youtube_settings.video_intro, info.youtube_settings.video_outro);
+							return WorkerProducer.queueVideoToProcess(currentVid.user_id, currentVid.pms_user_id, currentVid.id, toCombineIDs, info.youtube_settings.video_intro, info.youtube_settings.video_outro, info.clip_seconds);
 						})
 						.then(function() {
 							return nextPossibleHelper();

@@ -187,7 +187,7 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 
 // queueVideoToProcess
 // Queues a video to begin being processed.
-module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro) {
+module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro, clipSeconds) {
 	return new Promise(function(resolve, reject) {
 		
 		var toCombineTotalLength = toCombineIDs.length;
@@ -197,6 +197,12 @@ module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombi
 		var queueName = "encoding-queue";
 		if (toCombineTotalLength <= 1) {
 			queueName = "only-uploading-queue";
+		} else {
+			var alotOfClipsToCombine = (toCombineTotalLength >= 3);
+			var estimateVideoLengthLong = (clipSeconds >= 300 && toCombineTotalLength >= 2);
+			if (alotOfClipsToCombine || estimateVideoLengthLong) {
+				queueName = "long-encoding-queue";
+			}
 		}
 
 		return queueEncodingBatchJob((userID + ""), base64url(JSON.stringify(toCombineIDs)), (downloadID + ""), queueName)
