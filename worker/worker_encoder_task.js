@@ -58,7 +58,7 @@ function parseAndValidateArguments(cb) {
 }
 
 // Determine what the origin path is depending on the environment
-var staticOriginPath = "/home/ec2-user/Documents/youtube-video-automator/";
+var staticOriginPath = "/root/Documents/youtube-video-automator/";
 if (Attr.SERVER_ENVIRONMENT == "development") {
   staticOriginPath = "/Users/javinambridge/Documents/youtube-creator-bot/youtube-video-automator/";
 }
@@ -108,8 +108,7 @@ return knexConnection(function(validKnex) {
       let outro = extraNeededInfo[2];
 
       cLogger.info("Going to run the following: startVideoProcessing(" + userID + ", " + pmsID + ", " + downloadID + ", " + JSON.stringify(allClipsID) + ", " + JSON.stringify(intro) + ", " + JSON.stringify(outro) + ");");
-      return Promise.resolve(); // TEMPORARY
-      //return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipsID, intro, outro);
+      return Helpers.startVideoProcessing(userID, pmsID, downloadID, allClipsID, intro, outro);
     })
     .then(function() {
       process.exit(0);

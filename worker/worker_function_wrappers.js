@@ -11,7 +11,7 @@ module.exports.handleMessage = function(ch, message, msg, workerType) {
     	return handleDownloadingTask(ch, msg, message, workerType);
     case "transfer_video_task":
     	return handleTransferVideo(ch, msg, message, workerType);
-    case "uploading_start":
+    case "uploading_start": // Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
     	return handleUploadingStart(ch, msg, message, workerType);
    	case "processing_cycle_start":
    		return handleProcessingCycleStart(ch, msg, message, workerType);

@@ -385,6 +385,7 @@ function makeProcessingPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "processing_start");
 }
 
+// Deprecated. No longer process videos on the same server, utilize AWS Batch for this now.
 function makeUploadingPost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "uploading_start");
 }
@@ -406,7 +407,7 @@ function _makeBatchPost(jobName, jobQueue, jobDefinition, parameterStr) {
 
 function queueEncodingBatchJob(userIDStr, toCombineIDsStr, downloadIDStr) {
 	const jobNameBase = "video-processing-job";
-	const jobNameIteration = 11;
+	const jobNameIteration = 13;
 
 	var currDate = new Date();
 	var jobName = "encoding-task-" + userIDStr + "-" + currDate.getTime();

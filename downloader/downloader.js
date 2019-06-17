@@ -83,7 +83,7 @@ module.exports.downloadEachAWSClip = function(userID, toDownload) {
 
 		// Start downloading each clip
 		var count = 0;
-		if (toDownload.length <= 0) return reject(new Error("Can't download no clips..."));
+		if (toDownload.length <= 0) return reject(new Error("Can't download 0 clips..."));
 
 		function next() {
 			return downloadClip(toDownload[count], folderPath, count)

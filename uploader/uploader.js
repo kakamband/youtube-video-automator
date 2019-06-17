@@ -607,11 +607,25 @@ function _createYoutubeClientForUser(accessTkn, refreshTkn) {
 	// Generate the Auth Client
 	var redirectLink = Secrets.GOOGLE_API_REDIRECT_URI2; // Development
 	if (Attr.SERVER_ENVIRONMENT == "production") {
-		redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+		redirectLink = process.env.AUTOTUBER_GOOGLE_API_REDIRECT_URI;
+		if (redirectLink == undefined) {
+			redirectLink = Secrets.GOOGLE_API_REDIRECT_URI3;
+		}
 	}
+
+	// Try to get this info from the environment variables first (for batch jobs) then default to secrets file.
+	var googleApiCLientID = process.env.AUTOTUBER_GOOGLE_API_CLIENT_ID;
+	if (googleApiCLientID == undefined) {
+		googleApiCLientID = Secrets.GOOGLE_API_CLIENT_ID;
+	}
+	var googleApiClientSecret = process.env.AUTOTUBER_GOOGLE_API_CLIENT_SECRET;
+	if (googleApiClientSecret == undefined) {
+		googleApiClientSecret = Secrets.GOOGLE_API_CLIENT_SECRET;
+	}
+
 	const oauth2Client = new google.auth.OAuth2(
-		Secrets.GOOGLE_API_CLIENT_ID,
-		Secrets.GOOGLE_API_CLIENT_SECRET,
+		googleApiCLientID,
+		googleApiClientSecret,
 		redirectLink
 	);
 
@@ -814,7 +828,6 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			privacyVal = vidInfo.youtube_settings.custom_privacy;
 		}
 
-
 		// Build the video object
 		var videoObject = {
 			title: vidInfo.title,
@@ -848,7 +861,12 @@ module.exports.uploadUsersVideo = function(userID, pmsID, downloadID, folderLoca
 			}
 
 			// Get the users OAuth2 Tokens
-			return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID);
+			var googleAPIClientID = process.env.AUTOTUBER_GOOGLE_API_CLIENT_ID;
+			if (googleAPIClientID == undefined) {
+				googleAPIClientID = Secrets.GOOGLE_API_CLIENT_ID;
+			}
+
+			return dbController.getUsersTokens(userID, googleAPIClientID);
 		})
 		.then(function(userTokens) {
 			if (userTokens == null) {
