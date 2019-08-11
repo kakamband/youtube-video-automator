@@ -119,7 +119,7 @@ module.exports.updateUserData = function(username, ID, email, password, payments
             if (currentRoute == null) {
                 return resolve([activeSubscriptionInfo, []]);
             } else {
-                return getCurrentRouteNotifications(ID, currentRoute);
+                return getCurrentRouteNotifications(username, ID, email, password, currentRoute);
             }
     	})
         .then(function(notifications) {
@@ -2338,7 +2338,7 @@ function validLanguage(item) {
     return (languages.indexOf(item) >= 0);
 }
 
-function getCurrentRouteNotifications(ID, currentRoute) {
+function getCurrentRouteNotifications(username, ID, email, password, currentRoute) {
     return new Promise(function(resolve, reject) {
         switch(currentRoute) {
             case "dashboard":
@@ -2362,7 +2362,12 @@ function getCurrentRouteNotifications(ID, currentRoute) {
                 return dbController.getAccountNotifications(ID)
                 .then(function(results) {
                     basicNotifications = results;
-                    return userHasTokenHelper(ID)
+
+                    // First we need to get the internal userID
+                    return validateUserAndGetID(username, ID, email, password);
+                })
+                .then(function(userID) {
+                    return userHasTokenHelper(userID);
                 })
                 .then(function(hasToken) {
 
