@@ -37,3 +37,14 @@ Fixing the Password Reset bug:
 	- At line 1150 add the following: '$newKey    = $wpdb->get_var( $wpdb->prepare( "SELECT user_activation_key FROM $wpdb->users WHERE user_login = %s", $loginName ) );'
 	- Update the if statement to say '$newKey == $key'.
 	- Change from 'wp_set_password' to 'reset_password' to utilize the password reset hook.
+	- New section looks like:
+
+	$newKey = $wpdb->get_var( $wpdb->prepare( "SELECT user_activation_key FROM $wpdb->users WHERE user_login = %s", $loginName ) );
+				
+    if ( ( count( pms_errors()->get_error_codes() ) == 0 ) && is_object($user) && ($newKey == $key) ) {
+        do_action( 'pms_password_reset', $user->ID, $new_pass );
+        // update the new password
+        reset_password( $user, $new_pass );
+        //delete the user activation key
+        update_user_meta($user->ID, 'user_activation_key', '' );
+    }

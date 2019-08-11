@@ -693,6 +693,7 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   var showProcessingNotification = false; var processingContent = {download_id: -1};
   var showUploadingNotification = false; var uploadingContent = {download_id: -1};
   var showDoneUploadingNotification = false; var uploadingDoneContent = {download_id: -1, video_url: "https://www.youtube.com"};
+  var showInQueueNotification = false; var inQueueContent = {download_id: -1};
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
@@ -718,6 +719,9 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
      } else if (result.notifications[i].notification == "done-uploading") {
         showDoneUploadingNotification = true;
         uploadingDoneContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "currently-in-queue") {
+        showInQueueNotification = true;
+        inQueueContent = JSON.parse(result.notifications[i].content);
      }
     }
   }
@@ -778,6 +782,15 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
     $("#video-processing-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + processingContent.download_id));
     $(".close-video-processing-notification").click(function() {
       closeNotification($, "currently-processing", username, ID, email, passwordHash); 
+    });
+  }
+
+  // Video in queue notification
+  if (showInQueueNotification) {
+    $(".video-in-queue-notification").show();
+    $("#video-in-queue-action-link").attr("href", ("https://twitchautomator.com/dashboard?clipping=true&download_id=" + inQueueContent.download_id));
+    $(".close-video-in-queue-notification").click(function() {
+      closeNotification($, "currently-in-queue", username, ID, email, passwordHash); 
     });
   }
 
@@ -3812,6 +3825,9 @@ function closeNotification($, notificationName, username, ID, email, passwordHas
           case "done-uploading":
             $(".video-done-uploading-notification").hide();
             break;
+          case "currently-in-queue":
+            $(".video-in-queue-notification").hide();
+            break;
         }
       },
       dataType: "json"
@@ -3839,6 +3855,7 @@ jQuery(document).ready(function( $ ){
   $(".video-uploading-notification").hide();
   $(".video-processing-notification").hide();
   $(".video-done-uploading-notification").hide();
+  $(".video-in-queue-notification").hide();
   $(".no-videos-left-notification").hide();
   
   // Logic now based on the specific route

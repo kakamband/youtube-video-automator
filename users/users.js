@@ -2358,9 +2358,22 @@ function getCurrentRouteNotifications(ID, currentRoute) {
                     return reject(err);
                 });
             case "account":
+                var basicNotifications;
                 return dbController.getAccountNotifications(ID)
                 .then(function(results) {
-                    return resolve(results);
+                    basicNotifications = results;
+                    return userHasTokenHelper(ID)
+                })
+                .then(function(hasToken) {
+
+                    // If they have a youtube token already, then we should show them the option to revoke it
+                    if (hasToken == true) {
+                        basicNotifications = basicNotifications.concat({
+                            notification: "expose-revoke-youtube-token",
+                        })
+                    }
+
+                    return resolve(basicNotifications);
                 })
                 .catch(function(err) {
                     return reject(err);
