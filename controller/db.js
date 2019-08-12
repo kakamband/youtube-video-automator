@@ -2046,6 +2046,21 @@ module.exports.getUsersTokens = function(userID, clientID) {
 	});
 }
 
+module.exports.deleteUserToken = function(userID, clientID) {
+	return new Promise(function(resolve, reject) {
+		knex('user_tokens')
+		.where("user_id", "=", userID)
+		.where("client_id", "=", clientID)
+		.del()
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(ErrorHelper.dbError(err));
+		});
+	});
+}
+
 module.exports.updateStateBasedOnTitleDesc = function(userID, downloadID) {
 	return new Promise(function(resolve, reject) {
 		return knex('users')

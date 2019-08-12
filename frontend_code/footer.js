@@ -694,6 +694,7 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   var showUploadingNotification = false; var uploadingContent = {download_id: -1};
   var showDoneUploadingNotification = false; var uploadingDoneContent = {download_id: -1, video_url: "https://www.youtube.com"};
   var showInQueueNotification = false; var inQueueContent = {download_id: -1};
+  var showRevokeYoutubeAuth = false;
   if (result.notifications.length > 0) {
     for (var i = 0; i < result.notifications.length; i++) {
      if (result.notifications[i].notification == "defaults-intro") {
@@ -722,6 +723,8 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
      } else if (result.notifications[i].notification == "currently-in-queue") {
         showInQueueNotification = true;
         inQueueContent = JSON.parse(result.notifications[i].content);
+     } else if (result.notifications[i].notification == "expose-revoke-youtube-token") {
+        showRevokeYoutubeAuth = true;
      }
     }
   }
@@ -812,6 +815,12 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
       closeNotification($, "done-uploading", username, ID, email, passwordHash); 
     });
   }
+
+  // Unlink YouTube account notification
+  if (showRevokeYoutubeAuth) {
+    $(".unlink-youtube-account-prompt").show();
+  }
+
   stretchAWB($);
 }
 

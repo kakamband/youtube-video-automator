@@ -56,6 +56,10 @@ module.exports.introOutroDoesNotExist = function() {
     return setup400Err("The intro and outro you are trying to find does not exist.");
 }
 
+module.exports.cantRevokeTokenDNE = function() {
+    return setup400Err("Can't revoke an access token if we don't have one for the user yet.");
+}
+
 module.exports.invalidIntroOutroType = function() {
     return setup400Err("Invalid intro or outro type passed. Unsure where to include this video.");
 }

@@ -4,11 +4,13 @@ var cLogger = require('color-log');
 var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
 var Hijacker = require('../hijacker/hijacker');
+var Uploader = require("'../uploader/uploader");
 var Worker = require('../worker/worker_producer');
 var ErrorHelper = require('../errors/errors');
 var Errors = require('../errors/defined_errors');
 var Attr = require('../config/attributes');
 var shell = require('shelljs');
+var Secrets = require('../config/secrets');
 var fs = require('fs');
 const uniqueString = require('unique-string');
 
@@ -796,6 +798,32 @@ module.exports.deleteIntroOutro = function(username, pmsID, email, password, gam
     });
 }
 
+// revokeAccessToken
+// Revokes a users access token, making it so that they need to re-authenticate with YouTube
+module.exports.revokeAccessToken = function(username, pmsID, email, password) {
+    var userID = pmsID;
+    return new Promise(function(resolve, reject) {
+        return validateUserAndGetID(username, pmsID, email, password)
+        .then(function(id) {
+            userID = id;
+            return userHasTokenHelper(id);
+        })
+        .then(function(hasToken) {
+            if (!hasToken) {
+                return reject(Errors.cantRevokeTokenDNE());
+            } else {
+                return revokeUserTokenHelper(userID);
+            }
+        })
+        .then(function(successfull) {
+            return resolve(successfull);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
@@ -1251,6 +1279,46 @@ function removeUserDownloadingNotification(pmsID) {
             ErrorHelper.emitSimpleError(err);
 
             return resolve();
+        });
+    });
+}
+
+function revokeUserTokenHelper(userID) {
+    var userHasTokenRedisKey = "user_" + userID + "_has_youtube_token";
+
+    return new Promise(function(resolve, reject) {
+        // Delete it from redis first
+        redis.del(userHasTokenRedisKey);
+
+        // Now use the googleapi's to revoke our servers access to the token
+        return _revokeGoogleAccessToken(userID)
+        .then(function() {
+            // Now delete this token in our DB
+            return dbController.deleteUserToken(userID);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
+
+function _revokeGoogleAccessToken(userID) {
+    return new Promise(function(resolve, reject) {
+
+        return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
+        .then(function(token) {
+            return Uploader.createYoutubeClientForUserWrapper(token.access_token, token.refresh_token);
+        })
+        .then(function(youtubeClient) {
+            return youtubeClient.revokeCredentials(function() {
+                return resolve();
+            });
+        })
+        .catch(function(err) {
+            return reject(err);
         });
     });
 }
