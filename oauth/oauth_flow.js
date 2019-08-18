@@ -254,7 +254,7 @@ function _revokeGoogleAccessToken(userID) {
 
 function _refreshAndGetAccessToken(oauth2Client) {
 	return new Promise(function(resolve, reject) {
-		return oauth2Client.getAccessToken(function(token, err) {
+		return oauth2Client.getAccessToken(function(err, token) {
 			return resolve(token);
 		});
 	});
