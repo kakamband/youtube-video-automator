@@ -226,26 +226,37 @@ module.exports.revokeToken = function(userID) {
 function _revokeGoogleAccessToken(userID) {
     return new Promise(function(resolve, reject) {
 
+        const oauth2Client = new google.auth.OAuth2(
+            Secrets.GOOGLE_API_CLIENT_ID,
+            Secrets.GOOGLE_API_CLIENT_SECRET,
+            Secrets.GOOGLE_API_REDIRECT_URI
+        );
+
         return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
         .then(function(token) {
-            const oauth2Client = new google.auth.OAuth2(
-                Secrets.GOOGLE_API_CLIENT_ID,
-                Secrets.GOOGLE_API_CLIENT_SECRET,
-                Secrets.GOOGLE_API_REDIRECT_URI
-            );
-
             oauth2Client.setCredentials({
                 refresh_token: token.refresh_token
             });
 
-            return oauth2Client.revokeCredentials(function() {
-                return resolve();
-            });
+            return _refreshAndGetAccessToken(oauth2Client);
+        })
+        .then(function(accessToken) {
+        	return oauth2Client.revokeToken(accessToken, function() {
+        		return resolve(true);
+        	})
         })
         .catch(function(err) {
             return reject(err);
         });
     });
+}
+
+function _refreshAndGetAccessToken(oauth2Client) {
+	return new Promise(function(resolve, reject) {
+		return oauth2Client.refreshAccessToken(function(credentials, err) {
+			return resolve(credentials.access_token);
+		});
+	});
 }
 
 function _banPossibilityChecker(userID, youtubeChannelID) {
