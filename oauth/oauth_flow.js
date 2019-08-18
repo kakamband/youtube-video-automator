@@ -253,8 +253,8 @@ function _revokeGoogleAccessToken(userID) {
 
 function _refreshAndGetAccessToken(oauth2Client) {
 	return new Promise(function(resolve, reject) {
-		return oauth2Client.refreshAccessToken(function(credentials, err) {
-			return resolve(credentials.access_token);
+		return oauth2Client.getAccessToken(function(token, err) {
+			return resolve(token);
 		});
 	});
 }
