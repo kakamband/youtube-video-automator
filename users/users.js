@@ -1289,39 +1289,9 @@ function revokeUserTokenHelper(userID) {
         // Delete it from redis first
         redis.del(userHasTokenRedisKey);
 
-        // Now use the googleapi's to revoke our servers access to the token
-        return _revokeGoogleAccessToken(userID)
-        .then(function() {
-            // Now delete this token in our DB
-            return dbController.deleteUserToken(userID);
-        })
-        .then(function() {
-            return resolve(true);
-        })
-        .catch(function(err) {
-            return reject(err);
-        });
-    });
-}
-
-function _revokeGoogleAccessToken(userID) {
-    return new Promise(function(resolve, reject) {
-
-        return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
-        .then(function(token) {
-            const oauth2Client = new google.auth.OAuth2(
-                Secrets.GOOGLE_API_CLIENT_ID,
-                Secrets.GOOGLE_API_CLIENT_SECRET,
-                Secrets.GOOGLE_API_REDIRECT_URI
-            );
-
-            oauth2Client.setCredentials({
-                refresh_token: obj.refresh_token
-            });
-
-            return oauth2Client.revokeCredentials(function() {
-                return resolve();
-            });
+        return OAuthFlow.revokeToken(userID)
+        .then(function(result) {
+            return resolve(result);
         })
         .catch(function(err) {
             return reject(err);

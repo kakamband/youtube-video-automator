@@ -197,11 +197,56 @@ module.exports.invalidateToken = function() {
 	});
 }
 
+// revokeToken
+// This will permanently revoke the oauth token, this usually should be done ONLY IF you are changing scopes + adding new scopes or as a user. Usually this should never
+// be run. As such there is a "Are you sure?" prompt.
+module.exports.revokeToken = function(userID) {
+	return new Promise(function(resolve, reject) {
+        // Now use the googleapi's to revoke our servers access to the token
+        return _revokeGoogleAccessToken(userID)
+        .then(function() {
+            // Now delete this token in our DB
+            return dbController.deleteUserToken(userID);
+        })
+        .then(function() {
+            return resolve(true);
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+	});
+}
+
 // --------------------------------------------
 // Exported compartmentalized functions above.
 // --------------------------------------------
 // Helper functions below.
 // --------------------------------------------
+
+function _revokeGoogleAccessToken(userID) {
+    return new Promise(function(resolve, reject) {
+
+        return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
+        .then(function(token) {
+            const oauth2Client = new google.auth.OAuth2(
+                Secrets.GOOGLE_API_CLIENT_ID,
+                Secrets.GOOGLE_API_CLIENT_SECRET,
+                Secrets.GOOGLE_API_REDIRECT_URI
+            );
+
+            oauth2Client.setCredentials({
+                refresh_token: obj.refresh_token
+            });
+
+            return oauth2Client.revokeCredentials(function() {
+                return resolve();
+            });
+        })
+        .catch(function(err) {
+            return reject(err);
+        });
+    });
+}
 
 function _banPossibilityChecker(userID, youtubeChannelID) {
 	return new Promise(function(resolve, reject) {
