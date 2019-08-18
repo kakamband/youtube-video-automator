@@ -242,8 +242,11 @@ function _revokeGoogleAccessToken(userID) {
         })
         .then(function(accessToken) {
         	return oauth2Client.revokeToken(accessToken, function(resp) {
-        		console.log("The response from revoking is: ", resp);
-        		return resolve(true);
+        		if (resp != null) {
+        			return reject(resp);
+        		} else {
+        			return resolve(true);
+        		}
         	})
         })
         .catch(function(err) {
