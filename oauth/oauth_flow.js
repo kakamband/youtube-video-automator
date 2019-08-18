@@ -235,7 +235,7 @@ function _revokeGoogleAccessToken(userID) {
             );
 
             oauth2Client.setCredentials({
-                refresh_token: obj.refresh_token
+                refresh_token: token.refresh_token
             });
 
             return oauth2Client.revokeCredentials(function() {
