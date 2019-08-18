@@ -241,7 +241,8 @@ function _revokeGoogleAccessToken(userID) {
             return _refreshAndGetAccessToken(oauth2Client);
         })
         .then(function(accessToken) {
-        	return oauth2Client.revokeToken(accessToken, function() {
+        	return oauth2Client.revokeToken(accessToken, function(resp) {
+        		console.log("The response from revoking is: ", resp);
         		return resolve(true);
         	})
         })
