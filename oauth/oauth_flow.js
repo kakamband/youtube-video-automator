@@ -206,7 +206,7 @@ module.exports.revokeToken = function(userID) {
         return _revokeGoogleAccessToken(userID)
         .then(function() {
             // Now delete this token in our DB
-            return dbController.deleteUserToken(userID);
+            return dbController.deleteUserToken(userID, Secrets.GOOGLE_API_CLIENT_ID);
         })
         .then(function() {
             return resolve(true);
