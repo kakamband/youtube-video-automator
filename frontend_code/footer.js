@@ -686,6 +686,27 @@ function updateSetting($, username, ID, email, pass, setting, settingJSON) {
   });
 }
 
+// revokes a youtube token
+function revokeYoutubeToken($, username, ID, email, pass, cb) {
+  $.ajax({
+      type: "POST",
+      url: autoTuberURL + "user/youtube/token/revoke",
+      data: {
+        "username": username,
+        "user_id": ID,
+        "email": email,
+        "password": pass
+      },
+      error: function(xhr,status,error) {
+        console.log("Error: ", error);
+      },
+      success: function(result,status,xhr) {
+        return cb();
+      },
+      dataType: "json"
+  });
+}
+
 function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   var showNotification = false, showNotification1 = false, showNotification2 = false, showNotification3 = false;
   var showDLNotification = false; var dlContent = {download_id: -1};
@@ -819,6 +840,17 @@ function _handleAllNotifications($, result, username, ID, email, passwordHash) {
   // Unlink YouTube account notification
   if (showRevokeYoutubeAuth) {
     $(".unlink-youtube-account-prompt").show();
+    // Optionally handle the unlink youtube account one, this is unique to this page.
+    $("#unlink-youtube-account-btn").click(function() {
+      if (confirm("Are you sure you want to unlink your YouTube account? You won't be able to clip.")) {
+        revokeYoutubeToken($, username, ID, email, passwordHash, function() {
+          console.log("Revoked access token from YouTube.");
+          $(".unlink-youtube-account-prompt").hide();
+        });
+      } else {
+        console.log("Don't unlink");
+      }
+    });
   }
 
   stretchAWB($);

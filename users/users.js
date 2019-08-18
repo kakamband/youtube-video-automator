@@ -4,7 +4,6 @@ var cLogger = require('color-log');
 var dbController = require('../controller/db');
 var OAuthFlow = require('../oauth/oauth_flow');
 var Hijacker = require('../hijacker/hijacker');
-var Uploader = require('../uploader/uploader');
 var Worker = require('../worker/worker_producer');
 var ErrorHelper = require('../errors/errors');
 var Errors = require('../errors/defined_errors');
@@ -1310,10 +1309,17 @@ function _revokeGoogleAccessToken(userID) {
 
         return dbController.getUsersTokens(userID, Secrets.GOOGLE_API_CLIENT_ID)
         .then(function(token) {
-            return Uploader.createYoutubeClientForUserWrapper(token.access_token, token.refresh_token);
-        })
-        .then(function(youtubeClient) {
-            return youtubeClient.revokeCredentials(function() {
+            const oauth2Client = new google.auth.OAuth2(
+                Secrets.GOOGLE_API_CLIENT_ID,
+                Secrets.GOOGLE_API_CLIENT_SECRET,
+                Secrets.GOOGLE_API_REDIRECT_URI
+            );
+
+            oauth2Client.setCredentials({
+                refresh_token: obj.refresh_token
+            });
+
+            return oauth2Client.revokeCredentials(function() {
                 return resolve();
             });
         })
