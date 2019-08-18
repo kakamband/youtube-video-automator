@@ -550,4 +550,19 @@ router.post(Models.DELETE_INTRO_OUTRO, function(req, res, next) {
 	});
 });
 
+router.post(Models.USER_REVOKE_TOKEN, function(req, res, next) {
+	validFirst(Models.USER_REVOKE_TOKEN, req, res, next, function() {
+		return Users.revokeAccessToken(req.body.username, req.body.user_id, req.body.email, req.body.password)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.USER_REVOKE_TOKEN, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

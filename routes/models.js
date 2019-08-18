@@ -96,6 +96,9 @@ module.exports.UPLOAD_INTRO_OUTRO_DONE = "/user/intro-outro/upload/done";
 
 // Deletes an intro or outro
 module.exports.DELETE_INTRO_OUTRO = "/user/intro-outro/delete";
+
+// Deletes an intro or outro
+module.exports.USER_REVOKE_TOKEN = "/user/youtube/token/revoke";
 // -------------------
 
 // Route definitions
@@ -531,6 +534,19 @@ module.exports.routes = new Map([
 
 			nameAndType("game", "string"),
 			nameAndType("link_url", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.USER_REVOKE_TOKEN, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("username", "string"),
+			nameAndType("user_id", "string"),
+			nameAndType("email", "string"),
+			nameAndType("password", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
