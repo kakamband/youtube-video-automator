@@ -3,16 +3,21 @@ var WorkerProducer = require('../worker/worker_producer');
 var cLogger = require('color-log');
 var ErrorHelper = require('../errors/errors');
 const CronJob = require('cron').CronJob;
+var shell = require('shelljs');
+
+// Cron schedules
+const midnightCron = "00 00 00 * * *";
+const every5MinCron = "3 */5 * * * *";
+const every7MinCron = "15 */7 * * * *";
+const everySundayCron = "* * * * * *"; //"00 00 00 * * 0";
 
 module.exports.getCronJobs = function() {
-	var crons = [];
-
-	// Permanent delete cron job
-	crons.push(getPermDeleteCron());
-	// Processing cron job
-	crons.push(kickOffProcessing());
-	// Delete failed intro and outro job
-	crons.push(kickOffIntroOutroDeletion());
+	var crons = [
+		getPermDeleteCron(), 		 // Permanent delete cron job
+		kickOffProcessing(), 		 // Processing cron job
+		kickOffIntroOutroDeletion(), // Delete failed intro and outro job
+		kickOffDeleteLogs(), 		 // Delete Logs cron job
+	];
 
 	return crons;
 }
@@ -21,8 +26,6 @@ module.exports.getCronJobs = function() {
 // This cron job initiates the permanent deletion of clips.
 // Clips that are listed as over 48 hours get deleted.
 function getPermDeleteCron() {
-	const midnightCron = "00 00 00 * * *";
-
 	var permanentDeleteCron = new CronJob(midnightCron, function() {
 		WorkerProducer.startPermDeleteCycle()
 		.then(function() {
@@ -41,8 +44,6 @@ function getPermDeleteCron() {
 // This cron job initiates videos that need to start to be processed.
 // This runs every 5 minutes.
 function kickOffProcessing() {
-	const every5MinCron = "3 */5 * * * *";
-
 	var kickOffProcessingCron = new CronJob(every5MinCron, function() {
 		WorkerProducer.startProcessingCycle()
 		.then(function() {
@@ -61,8 +62,6 @@ function kickOffProcessing() {
 // This cron job deletes any failed intro and outro uploads.
 // This runs every 7 minutes.
 function kickOffIntroOutroDeletion() {
-	const every7MinCron = "15 */7 * * * *";
-
 	var kickOffFailedIntroOutroCron = new CronJob(every7MinCron, function() {
 		WorkerProducer.startIntrosOutrosDeleteCycle()
 		.then(function() {
@@ -75,4 +74,23 @@ function kickOffIntroOutroDeletion() {
 	});
 
 	return kickOffFailedIntroOutroCron;
+}
+
+// The kick off deleting logs cron job
+// This job deletes the pm2 logs on a weekly basis (keep log sizes down + lower possible costs)
+// This runs every 7 days
+function kickOffDeleteLogs() {
+	var kickOffDeleteLogsCron = new CronJob(everySundayCron, function() {
+		return shell.exec("pm2 flush", function(code, stdout, stderr) {
+			if (code != 0) {
+				ErrorHelper.scopeConfigure("cron_handler.init", {job_name: "kickOffDeleteLogs"});
+				ErrorHelper.emitSimpleError(stderr);
+			}
+
+			cLogger.info("Done flushing logs.");
+			// Done
+		});
+	});
+
+	return kickOffDeleteLogsCron;
 }
