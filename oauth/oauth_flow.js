@@ -313,7 +313,7 @@ function _getAndAddChannelIDToUser(userID, accessToken, refreshToken) {
 	return new Promise(function(resolve, reject) {
 		var youtubeClient = Uploader.createYoutubeClientForUserWrapper(accessToken, refreshToken);
 		var req = {
-			part: 'snippet,contentDetails,statistics',
+			part: 'snippet,contentDetails,statistics,status',
 			mine: true
 		};
 
@@ -342,6 +342,23 @@ function _getAndAddChannelIDToUser(userID, accessToken, refreshToken) {
 					return resolve(undefined);
 				} else {
 					cLogger.info("The Channel ID is: " + usersChannels[0].id);
+
+					// Check if the youtube channel is actually linked here
+					var isLinked = false;
+					if (usersChannels[0].status && (usersChannels[0].status.isLinked == true || usersChannels[0].status.isLinked == 'true')) {
+						isLinked = true;
+					}
+
+					// For now just send an error, we can deal with it later
+					if (!isLinked) {
+						ErrorHelper.scopeConfigureWarning("oauth_flow._getAndAddChannelIDToUser", {
+							message: "The YouTube channel is not linked, will result in an error when uploading",
+							user_id: userID,
+							channelID: usersChannels[0].id,
+							status: usersChannels[0].status
+						});
+						ErrorHelper.emitSimpleError(new Error("YouTube Channel Not Linked to Google Account."));
+					}
 
 					return dbController.setUsersChannelID(userID, usersChannels[0].id + "")
 					.then(function() {
