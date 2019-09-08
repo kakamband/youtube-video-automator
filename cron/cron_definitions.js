@@ -9,7 +9,7 @@ var shell = require('shelljs');
 const midnightCron = "00 00 00 * * *";
 const every5MinCron = "3 */5 * * * *";
 const every7MinCron = "15 */7 * * * *";
-const everySundayCron = "1 1 * * * *"; //"00 00 00 * * 0";
+const everySundayCron = "1 * * * * *"; //"00 00 00 * * 0";
 
 module.exports.getCronJobs = function() {
 	var crons = [
