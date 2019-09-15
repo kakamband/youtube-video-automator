@@ -565,4 +565,19 @@ router.post(Models.USER_REVOKE_TOKEN, function(req, res, next) {
 	});
 });
 
+router.post(Models.USER_EMAIL_UNSUBSCRIBE, function(req, res, next) {
+	validFirst(Models.USER_EMAIL_UNSUBSCRIBE, req, res, next, function() {
+		return Users.unsubscribeFromEmail(req.body.user_id, req.body.token)
+		.then(function(results) {
+			return res.json({
+				success: results
+			});
+		})
+		.catch(function(err) {
+			ErrorHelper.scopeConfigure(Models.USER_EMAIL_UNSUBSCRIBE, req.body);
+			return ErrorHelper.errorHelper(next, err);
+		});
+	});
+});
+
 module.exports = router;

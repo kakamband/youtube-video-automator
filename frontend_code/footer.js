@@ -3679,6 +3679,47 @@ function dashboardAuthenticator($, username, ID, email, subscriptions, passwordH
 // -----------------------------------------
 
 // -----------------------------------------
+// Starting point for all Unsubscribe code
+// -----------------------------------------
+
+function unsubscribeFlow($, pageURL) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const myUserID = urlParams.get('user_id');
+  const myUnsubscribeToken = urlParams.get('unsubscribe_token');
+
+  if (myUserID == null || myUnsubscribeToken == null) {
+    console.log("Missing userID (" + myUserID + ") or token (" + myUnsubscribeToken + ").");
+    $(".currently-unsubscribing-notification").hide();
+    $(".couldnt-unsubscribe-notification").show();
+    return;
+  }
+
+  $.ajax({
+    type: "POST",
+    url: autoTuberURL + "user/emails/unsubscribe",
+    data: {
+      "user_id": myUserID,
+      "token": myUnsubscribeToken,
+    },
+    error: function(xhr,status,error) {
+      console.log("Error: ", error);
+      $(".currently-unsubscribing-notification").hide();
+      $(".couldnt-unsubscribe-notification").show();
+      stretchAWB($);
+    },
+    success: function(result,status,xhr) {
+      $(".currently-unsubscribing-notification").hide();
+      $(".success-unsubscribe-notification").show();
+    },
+    dataType: "json"
+  });
+}
+
+// -----------------------------------------
+// Ending point for all Unsubscribe code
+// -----------------------------------------
+
+// -----------------------------------------
 // Starting point for all Globally used code
 // -----------------------------------------
 
@@ -3944,6 +3985,8 @@ jQuery(document).ready(function( $ ){
         }
 
         notificationsAuth($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments, "defaults");
+    } else if (pageURL[1].startsWith("unsubscribe")) {
+      unsubscribeFlow($, pageURL[1]);
     } else {
       if (canAuth) {
       	authenticateWithAutoTuberHost($, theUser.username, theUser.id, theUser.email, theUser.subscriptions, theUser.unique_identifier, theUser.payments);

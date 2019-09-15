@@ -233,6 +233,30 @@ module.exports.initialize = function(knex) {
 	        table.timestamps();
 		});
 	}).then(function() {
+		return knex.schema.createTableIfNotExists('emails', function(table) {
+	        table.increments();
+	        table.string("user_id").notNullable();
+	        table.string("pms_user_id").notNullable();
+	        table.string("email_id").notNullable();
+	        table.string("data_id").notNullable();
+	        table.string("to").notNullable();
+	        table.string("from").notNullable();
+	        table.string("cc");
+	        table.string("bcc");
+	        table.string("ses_data");
+	        table.string("message_id");
+	        table.string("request_id");
+	        table.timestamps();
+		});
+	}).then(function() {
+		return knex.schema.createTableIfNotExists('email_list', function(table) {
+	        table.increments();
+	        table.string("user_id").notNullable();
+	        table.boolean("emails_enabled").notNullable().default(true);
+	        table.string("email_unsubscribe_token").notNullable();
+	        table.timestamps();
+		});
+	}).then(function() {
 		return knex.migrate.latest()
 	}).then(function() {
 		console.log = oldLogger;

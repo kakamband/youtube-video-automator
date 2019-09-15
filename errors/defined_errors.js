@@ -32,8 +32,28 @@ module.exports.clipsCannotBeSwapped = function() {
     return setup400Err("The clips cannot be swapped. This can result from any of the following reasons: Not belonging to user, being deleted, being exclusive, clips not being done or active.");
 }
 
+module.exports.invalidSendEmailType = function(emailType) {
+    return setup501Err("Invalid send email type (" + emailType + ").");
+}
+
 module.exports.invalidWorkerType = function(workerName) {
     return setup501Err("Invalid worker type specified (" + workerName + ").");
+}
+
+module.exports.dataIDHasNoFileMapping = function(dataID) {
+    return setup500Err("The dataID passed has no email file mapping: " + dataID);
+}
+
+module.exports.noToEmailPassed = function() {
+    return setup500Err("No To email address passed");
+}
+
+module.exports.invalidEmailID = function(emailID) {
+    return setup500Err("Email ID passed wasn't valid: " + emailID);
+}
+
+module.exports.userNotAllowingEmails = function() {
+    return setup500Err("User has emails turned off.");
 }
 
 module.exports.internalServerError = function() {
@@ -118,6 +138,10 @@ module.exports.invalidLanguage = function() {
 
 module.exports.invalidCategory = function() {
     return setup400Err("Invalid Category.");
+}
+
+module.exports.userTryingToUnsubscribeIllegally = function() {
+    return setup403Err("User is not authorized to unsubscribe for this email.");
 }
 
 module.exports.userBanned = function(banReason) {

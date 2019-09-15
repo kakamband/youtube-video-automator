@@ -870,6 +870,8 @@ function addUserToPlaceboState(pmsID) {
 
 module.exports.registerUser = function(username, ID, email) {
 	return new Promise(function(resolve, reject) {
+		var ourUserID;
+
 		cLogger.info("Creating new user.");
 		return knex('users')
 		.insert({
@@ -880,7 +882,10 @@ module.exports.registerUser = function(username, ID, email) {
 			created_at: new Date(),
 			updated_at: new Date()
 		})
-		.then(function() {
+		.returning('id')
+		.then(function(id) {
+			ourUserID = id;
+
 			return createNewUserNotifications(ID);
 		})
 		.then(function() {
@@ -890,7 +895,7 @@ module.exports.registerUser = function(username, ID, email) {
 			return addUserToPlaceboState(ID);
 		})
 		.then(function() {
-			return resolve();
+			return resolve(ourUserID);
 		})
 		.catch(function(err) {
 			return reject(ErrorHelper.dbError(err));
@@ -3363,6 +3368,74 @@ module.exports.doesActiveIntroOutroExist = function(userID, pmsID, nonce) {
 			} else {
 				return resolve(undefined);
 			}
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.insertEmail = function(obj) {
+	return new Promise(function(resolve, reject) {
+		return knex('emails')
+		.insert(obj)
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(ErrorHelper.dbError(err));
+		});
+	});
+}
+
+module.exports.getUserEmailList = function(userID) {
+	return new Promise(function(resolve, reject) {
+		return knex('email_list')
+		.where("user_id", "=", userID)
+		.orderBy("created_at", "DESC")
+		.limit(1)
+		.then(function(results) {
+			if (results.length > 0) {
+				return resolve(results[0]);
+			} else {
+				return resolve(undefined);
+			}
+		})
+		.catch(function(err) {
+			return reject(ErrorHelper.dbError(err));
+		});
+	});
+}
+
+module.exports.newEmailListEmailsAllowed = function(userID, token) {
+	return new Promise(function(resolve, reject) {
+		return knex('email_list')
+		.insert({
+			user_id: userID,
+			email_unsubscribe_token: token,
+			updated_at: new Date(),
+			created_at: new Date()
+		})
+		.then(function(results) {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
+module.exports.updateUserEmailList = function(userID, token, enabled) {
+	return new Promise(function(resolve, reject) {
+		return knex('email_list')
+		.where("user_id", "=", userID)
+		.where("email_unsubscribe_token", "=", token)
+		.update({
+			emails_enabled: enabled,
+			updated_at: new Date(),
+		})
+		.then(function(results) {
+			return resolve();
 		})
 		.catch(function(err) {
 			return reject(err);
