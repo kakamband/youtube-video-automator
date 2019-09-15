@@ -27,6 +27,7 @@
     "dateformat": "^3.0.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
+    "fast-xml-parser": "^3.12.20",
     "ffprobe": "^1.1.0",
     "get-video-dimensions": "^1.0.0",
     "get-video-duration": "^1.0.3",
