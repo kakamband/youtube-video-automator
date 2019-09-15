@@ -10,6 +10,7 @@ var redis = require('redis');
 var retriesMap = new Map();
 const Sentry = require('@sentry/node');
 var MessageHandler = require('./worker_function_wrappers');
+var Emailer = require('../emailer/emailer');
 const redisFallbackKey = "fallback_queue_msg_count";
 
 function knexConnection() {
@@ -48,6 +49,8 @@ function knexConnection() {
 function handleMessage(message, msg, ch, knex) {
   return MessageHandler.handleMessage(ch, message, msg, "fallback");
 }
+
+Emailer.initClient();
 
 global.ORIGIN_PATH = (shell.pwd() + "/");
 cLogger.info("The global path is: " + ORIGIN_PATH);

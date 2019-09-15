@@ -23,6 +23,7 @@ var redis = require("redis");
 var Promise = require('bluebird');
 const readline = require('readline');
 const Sentry = require('@sentry/node');
+var emailer = require('./emailer/emailer');
 var CronHandler = require('./cron/cron_handler');
 
 var index = require('./routes/index');
@@ -79,6 +80,9 @@ var redisClient = redis.createClient({
 });
 
 global.redis = redisClient;
+
+// Initialize the SES Emailer client
+emailer.initClient();
 
 // Defines what process is run
 var processType = 0;

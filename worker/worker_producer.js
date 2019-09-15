@@ -185,6 +185,40 @@ module.exports.startIntrosOutrosDeleteCycle = function() {
 	});
 }
 
+// sendEmail
+// Sends an email
+module.exports.sendEmail = function(userID, pmsID, toEmail, cc, bcc, emailType) {
+	return new Promise(function(resolve, reject) {
+		var jsonBody = JSON.stringify({
+			pms_id: pmsID,
+			toEmail: toEmail,
+			cc: cc,
+			bcc: bcc
+		});
+
+		var msgOptions = {
+			persistent: true,
+			priority: 10,
+			mandatory: true,
+			timestamp: (new Date).getTime(),
+			correlationId: userID.toString(),
+			contentType: emailType,
+			contentEncoding: jsonBody
+		}
+
+		return workerStartingWork("fallback")
+		.then(function() {
+			return makeSendEmailPost(Attr.FINAL_FALLBACK_AMQP_CHANNEL_NAME, msgOptions);
+		})
+		.then(function() {
+			return resolve();
+		})
+		.catch(function(err) {
+			return reject(err);
+		});
+	});
+}
+
 // queueVideoToProcess
 // Queues a video to begin being processed.
 module.exports.queueVideoToProcess = function(userID, pmsID, downloadID, toCombineIDs, intro, outro, clipSeconds) {
@@ -385,6 +419,10 @@ function makeDownloadPost(queueName, msgOptions) {
 
 function makeIntroOutroDeletePost(queueName, msgOptions) {
 	return makePost(queueName, msgOptions, "intro_outro_delete_task");
+}
+
+function makeSendEmailPost(queueName, msgOptions) {
+	return makePost(queueName, msgOptions, "send_email_task");
 }
 
 function makePermDeletePost(queueName, msgOptions) {

@@ -12,6 +12,7 @@ var shell = require('shelljs');
 var Secrets = require('../config/secrets');
 var fs = require('fs');
 const uniqueString = require('unique-string');
+var Emailer = require('../emailer/emailer');
 
 // --------------------------------------------
 // Constants below.
@@ -81,6 +82,9 @@ module.exports.registerUser = function(userData) {
         cLogger.info("Registering a new user with ID: " + userID + ", username: " + userName + ", and userEmail: " + userEmail);
 
         return dbController.registerUser(userName, userID, userEmail)
+        .then(function(interalUserID) {
+            return Worker.sendEmail(interalUserID, userID, userEmail, [], [], "welcome_email");
+        })
         .then(function() {
             return resolve();
         })
@@ -820,6 +824,20 @@ module.exports.revokeAccessToken = function(username, pmsID, email, password) {
         .catch(function(err) {
             return reject(err);
         });
+    });
+}
+
+// unsubscribeFromEmail
+// Unsubscribes a user from all future emails
+module.exports.unsubscribeFromEmail = function(userID, token) {
+    return new Promise(function(resolve, reject) {
+        return Emailer.unsubscribeFromEmail(userID, token)
+        .then(function(resp) {
+            return resolve(resp);
+        })
+        .catch(function(err) {
+            return reject(err);
+        })
     });
 }
 

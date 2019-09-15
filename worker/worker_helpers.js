@@ -3,6 +3,7 @@ var cLogger = require('color-log');
 var Hijacker = require('../hijacker/hijacker');
 var dbController = require('../controller/db');
 var ErrorHelper = require('../errors/errors');
+var Errors = require('../errors/defined_errors');
 var Attr = require('../config/attributes');
 var shell = require('shelljs');
 var WorkerProducer = require('./worker_producer');
@@ -12,6 +13,7 @@ var Users = require('../users/users');
 var Downloader = require('../downloader/downloader');
 var Combiner = require('../combiner/combiner');
 var Uploader = require('../uploader/uploader');
+var Emailer = require('../emailer/emailer');
 
 // --------------------------------------------
 // Exported compartmentalized functions below.
@@ -145,6 +147,30 @@ module.exports.introOutroDeleteTask = function() {
 		.catch(function(err) {
 			return reject(err);
 		});
+	});
+}
+
+// sendEmailTask
+// Sends an email
+module.exports.sendEmailTask = function(userID, emailType, extraBody) {
+	var pmsID = extraBody.pms_id;
+	var toEmail = extraBody.toEmail;
+	var cc = extraBody.cc;
+	var bcc = extraBody.bcc;
+
+	return new Promise(function(resolve, reject) {
+		switch (emailType) {
+			case "welcome_email":
+				return Emailer.sendWelcomeEmail(userID, pmsID, toEmail, true)
+				.then(function() {
+					return resolve();
+				})
+				.catch(function(err) {
+					return reject(err);
+				});
+			default:
+				return reject(Errors.invalidSendEmailType(emailType));
+		}
 	});
 }
 

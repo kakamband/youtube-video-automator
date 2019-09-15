@@ -99,6 +99,9 @@ module.exports.DELETE_INTRO_OUTRO = "/user/intro-outro/delete";
 
 // Deletes an intro or outro
 module.exports.USER_REVOKE_TOKEN = "/user/youtube/token/revoke";
+
+// Unsubscribe from all emails
+module.exports.USER_EMAIL_UNSUBSCRIBE = "/user/emails/unsubscribe";
 // -------------------
 
 // Route definitions
@@ -547,6 +550,17 @@ module.exports.routes = new Map([
 			nameAndType("user_id", "string"),
 			nameAndType("email", "string"),
 			nameAndType("password", "string")
+		],
+		validateParams: function(body, params) {
+			return validateHelper(body, params, this.required_body, null);
+		}
+	}],
+	[this.USER_EMAIL_UNSUBSCRIBE, {
+		method: "post",
+		required_body: [
+			// The default required for authenticated requests.
+			nameAndType("user_id", "string"),
+			nameAndType("token", "string")
 		],
 		validateParams: function(body, params) {
 			return validateHelper(body, params, this.required_body, null);
