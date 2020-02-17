@@ -19,6 +19,9 @@ What you can find in this project is a lot of server endpoints, that at one poin
 
 However, due to the reasons explained above, this is now deprecated.
 
+## If you would like to revive this project
+Feel free to shoot me a message, we can have a chat.
+
 Simple  usage:
 
 ``` bash
