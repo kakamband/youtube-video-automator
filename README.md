@@ -1,11 +1,23 @@
 
 
-# Youtube-Twitch-Automator
+# [Deprecated] Youtube-Twitch-Automator
+
+## Deprecation Reasons
+I have decided to deprecate, and open source this work due to a few reasons:
+1) Legal Concerns
+While I think the idea has good merit, and has good customer value, its essentially ripping off copy righted content for personal gain.
+2) Twitch AD Evolution
+While in the current state of this project, we are able to download and build videos with no Twitch ADs. However, as is the software industry Twitch can change the way they serve ADs, and once again, this would no longer be a feasible project.
+3) Maintenance
+I also unfortunately have no more time to maintain what this project ended up becoming.
+
 
 ## Simple to use
-The following automator was designed to be as simple to use and as robust as possible. To quickly summarize what this automator does: automatically polls for twitch clips, downloads these clips, combines these clips into a fully fledged video, and then automatically uploads the clips to Youtube setting specific titles, descriptions and tags.
+This project ended up becoming a fully blown backend server, as well as a few docker images.
 
-This automator has a robust retry mechanism also, if there is ever a failure to post to Youtube, which sometimes happens if you get rate limited. It will automatically move the videos into a safe location, storing the information needed to post down the line. (The videos are also automatically uploaded the next time any of the normal or upload processes are run).
+What you can find in this project is a lot of server endpoints, that at one point were interacting with a web client. This web client would allow users to simply enter a twitch link, at which point a clip would start downloading, after which the user can choose to terminate it whenever they want. Once the user terminates it, based on user preferences, it would either combine these clips into a single HD video, and then upload it to YouTube (into a playlist, with a thumbnail, etc).
+
+However, due to the reasons explained above, this is now deprecated.
 
 Simple  usage:
 
